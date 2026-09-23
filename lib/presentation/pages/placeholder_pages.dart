@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -278,43 +279,575 @@ class MonthlyHistoryPage extends ConsumerWidget {
   }
 }
 
-class ReportsPage extends ConsumerWidget {
+
+class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final transactions = ref.watch(allTransactionsProvider);
+  ConsumerState<ReportsPage> createState() => _ReportsPageState();
+}
+
+class _ReportsPageState extends ConsumerState<ReportsPage> {
+  late DateTime _selectedMonth;
+
+  final _monthFormatter = DateFormat('MMMM yyyy');
+
+  final List<Color> _chartColors = [
+    Colors.teal,
+    Colors.orange,
+    Colors.indigo,
+    Colors.pink,
+    Colors.amber,
+    Colors.purple,
+    Colors.blue,
+    Colors.green,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    final now = DateTime.now();
+    _selectedMonth = DateTime(now.year, now.month);
+  }
+
+  void _changeMonth(int offset) {
+    setState(() {
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month + offset,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final transactionsAsync = ref.watch(allTransactionsProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
-      body: transactions.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Unable to load reports: $error')),
-        data: (items) {
-          final expenses = items.where((item) => item.type == TransactionType.expense);
-          final totals = <String, double>{};
-          for (final item in expenses) {
-            totals.update(item.categoryId, (value) => value + item.amount,
-                ifAbsent: () => item.amount);
-          }
-          final entries = totals.entries.toList()
-            ..sort((a, b) => b.value.compareTo(a.value));
-          if (entries.isEmpty) {
-            return const Center(child: Text('Add expenses to see reports.'));
-          }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text('Spending by category',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              for (final entry in entries)
-                ListTile(
-                  title: Text(entry.key),
-                  trailing: Text(AppUtils.formatCurrency(entry.value)),
-                ),
-            ],
-          );
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Reports',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Understand your spending habits',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: transactionsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(),
+        ),
+        error: (error, stackTrace) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Unable to load reports:\n$error',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+        data: (transactions) {
+          return _buildReport(context, transactions);
         },
+      ),
+    );
+  }
+
+  Widget _buildReport(
+      BuildContext context,
+      List<Transaction> transactions,
+      ) {
+    final monthlyExpenses = transactions.where((transaction) {
+      final date = transaction.date.toLocal();
+
+      return transaction.type == TransactionType.expense &&
+          date.year == _selectedMonth.year &&
+          date.month == _selectedMonth.month;
+    }).toList();
+
+    final totals = <String, double>{};
+
+    for (final transaction in monthlyExpenses) {
+      totals.update(
+        transaction.categoryId,
+            (value) => value + transaction.amount,
+        ifAbsent: () => transaction.amount,
+      );
+    }
+
+    final entries = totals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final totalExpense = monthlyExpenses.fold<double>(
+      0,
+          (sum, transaction) => sum + transaction.amount,
+    );
+
+    final topCategory = entries.isEmpty ? null : entries.first;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(allTransactionsProvider);
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _MonthSelector(
+                  month: _selectedMonth,
+                  formatter: _monthFormatter,
+                  onPrevious: () => _changeMonth(-1),
+                  onNext: () => _changeMonth(1),
+                ),
+                const SizedBox(height: 16),
+                _OverviewCard(
+                  totalExpense: totalExpense,
+                  transactionCount: monthlyExpenses.length,
+                  topCategory: topCategory?.key,
+                ),
+                const SizedBox(height: 16),
+                if (entries.isEmpty)
+                  const _EmptyReportState()
+                else ...[
+                  _SectionTitle(
+                    title: 'Spending by category',
+                    subtitle: 'Where your money went this month',
+                  ),
+                  const SizedBox(height: 12),
+                  _CategoryChart(
+                    entries: entries,
+                    total: totalExpense,
+                    colors: _chartColors,
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionTitle(
+                    title: 'Category breakdown',
+                    subtitle: 'Detailed spending distribution',
+                  ),
+                  const SizedBox(height: 12),
+                  ...entries.asMap().entries.map(
+                        (entry) => _CategoryProgressTile(
+                      category: entry.value.key,
+                      amount: entry.value.value,
+                      total: totalExpense,
+                      color: _chartColors[
+                      entry.key % _chartColors.length],
+                    ),
+                  ),
+                ],
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthSelector extends StatelessWidget {
+  const _MonthSelector({
+    required this.month,
+    required this.formatter,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final DateTime month;
+  final DateFormat formatter;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onPrevious,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                formatter.format(month),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewCard extends StatelessWidget {
+  const _OverviewCard({
+    required this.totalExpense,
+    required this.transactionCount,
+    required this.topCategory,
+  });
+
+  final double totalExpense;
+  final int transactionCount;
+  final String? topCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.primary.withOpacity(0.72),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Total expense',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            AppUtils.formatCurrency(totalExpense),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _OverviewMetric(
+                  label: 'Transactions',
+                  value: '$transactionCount',
+                ),
+              ),
+              Expanded(
+                child: _OverviewMetric(
+                  label: 'Top category',
+                  value: topCategory ?? 'N/A',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewMetric extends StatelessWidget {
+  const _OverviewMetric({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryChart extends StatelessWidget {
+  const _CategoryChart({
+    required this.entries,
+    required this.total,
+    required this.colors,
+  });
+
+  final List<MapEntry<String, double>> entries;
+  final double total;
+  final List<Color> colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 230,
+              child: PieChart(
+                PieChartData(
+                  centerSpaceRadius: 48,
+                  sectionsSpace: 3,
+                  sections: [
+                    for (var index = 0; index < entries.length; index++)
+                      PieChartSectionData(
+                        value: entries[index].value,
+                        color: colors[index % colors.length],
+                        radius: 76,
+                        title: _percentage(
+                          entries[index].value,
+                          total,
+                        ),
+                        titleStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 14,
+              runSpacing: 8,
+              children: [
+                for (var index = 0; index < entries.length; index++)
+                  _ChartLegendItem(
+                    label: entries[index].key,
+                    color: colors[index % colors.length],
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _percentage(double amount, double total) {
+    if (total == 0) return '0%';
+
+    return '${(amount / total * 100).round()}%';
+  }
+}
+
+class _ChartLegendItem extends StatelessWidget {
+  const _ChartLegendItem({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label),
+      ],
+    );
+  }
+}
+
+class _CategoryProgressTile extends StatelessWidget {
+  const _CategoryProgressTile({
+    required this.category,
+    required this.amount,
+    required this.total,
+    required this.color,
+  });
+
+  final String category;
+  final double amount;
+  final double total;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final percentage = total == 0 ? 0.0 : amount / total;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: color.withOpacity(0.12),
+                  child: Icon(
+                    Icons.category_outlined,
+                    size: 19,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    category,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  AppUtils.formatCurrency(amount),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: percentage,
+                      minHeight: 7,
+                      backgroundColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                      valueColor: AlwaysStoppedAnimation(color),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${(percentage * 100).round()}%',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyReportState extends StatelessWidget {
+  const _EmptyReportState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          children: [
+            Icon(
+              Icons.pie_chart_outline,
+              size: 56,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'No expense data available',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Add expenses for this month to see your spending report.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
       ),
     );
   }
