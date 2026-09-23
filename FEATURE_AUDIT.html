@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pocket Ledger - Feature & Issue Audit</title>
+    <style>
+        :root {
+            --primary: #6200EA;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --critical: #FF9800;
+            --error: #F44336;
+            --bg: #FFFFFF;
+            --surface: #F5F5F5;
+            --text: #212121;
+            --text-secondary: #757575;
+            --border: #E0E0E0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #121212;
+                --surface: #1E1E1E;
+                --text: #FFFFFF;
+                --text-secondary: #B0B0B0;
+                --border: #424242;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #121212;
+            --surface: #1E1E1E;
+            --text: #FFFFFF;
+            --text-secondary: #B0B0B0;
+            --border: #424242;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin: 30px 0;
+        }
+
+        .summary-card {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .summary-card.complete {
+            border-left-color: var(--success);
+        }
+
+        .summary-card.missing {
+            border-left-color: var(--error);
+        }
+
+        .summary-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .summary-card .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .section {
+            margin: 40px 0;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 30px 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-complete {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-partial {
+            background: var(--warning);
+            color: #000;
+        }
+
+        .status-missing {
+            background: var(--error);
+            color: white;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(98, 0, 234, 0.1);
+        }
+
+        .feature-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feature-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .completion-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .completion-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+
+        .issue {
+            background: var(--surface);
+            border-left: 4px solid var(--error);
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .issue.high {
+            border-left-color: var(--critical);
+        }
+
+        .issue.medium {
+            border-left-color: var(--warning);
+        }
+
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .issue-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .severity {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: var(--error);
+            color: white;
+            white-space: nowrap;
+        }
+
+        .severity.high {
+            background: var(--critical);
+        }
+
+        .severity.medium {
+            background: var(--warning);
+            color: #000;
+        }
+
+        .issue-content {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .issue-content p {
+            margin: 8px 0;
+        }
+
+        .checklist {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            padding: 8px;
+            background: var(--surface);
+            border-radius: 4px;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        code {
+            background: var(--surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .code-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--surface);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .accordion {
+            margin: 16px 0;
+        }
+
+        .accordion-header {
+            background: var(--surface);
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            background: var(--border);
+        }
+
+        .accordion-content {
+            display: none;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .accordion-content.open {
+            display: block;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--surface);
+            color: var(--text-secondary);
+            margin: 2px;
+        }
+
+        .tag.critical {
+            background: var(--error);
+            color: white;
+        }
+
+        .tag.high {
+            background: var(--critical);
+            color: white;
+        }
+
+        .tag.medium {
+            background: var(--warning);
+            color: #000;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+        }
+
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline-item {
+            padding: 12px 16px;
+            background: var(--surface);
+            border-left: 3px solid var(--primary);
+            margin: 12px 0;
+            border-radius: 4px;
+        }
+
+        .timeline-item.completed {
+            border-left-color: var(--success);
+        }
+
+        .priority {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .priority.p1 {
+            background: var(--error);
+            color: white;
+        }
+
+        .priority.p2 {
+            background: var(--warning);
+            color: #000;
+        }
+
+        .priority.p3 {
+            background: var(--success);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Pocket Ledger - Feature & Issue Audit</h1>
+            <p class="subtitle">Comprehensive coverage analysis and development roadmap</p>
+            <p class="subtitle">Date: 2026-09-23 | Project: Flutter Personal Finance App (Clean Architecture + MVVM)</p>
+        </header>
+
+        <!-- Executive Summary -->
+        <section class="section">
+            <h2 class="section-title">Executive Summary</h2>
+            <div class="summary">
+                <div class="summary-card complete">
+                    <h3>✅ Foundation Complete</h3>
+                    <p>Clean Architecture properly structured with all entities and interfaces defined</p>
+                </div>
+                <div class="summary-card missing">
+                    <h3>❌ 70% Work Remaining</h3>
+                    <p>Features need implementation, state management not yet wired</p>
+                </div>
+                <div class="summary-card">
+                    <h3>⚠️ Critical Issues</h3>
+                    <p>3 blockers: Database not initialized, no state management, 7 pages missing</p>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number">14/14</div>
+                    <div class="stat-label">Data Models ✅</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">20+</div>
+                    <div class="stat-label">Missing UseCases</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">7/8</div>
+                    <div class="stat-label">Pages Missing</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">40-60h</div>
+                    <div class="stat-label">Est. to MVP</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Coverage -->
+        <section class="section">
+            <h2 class="section-title">📋 Phase 1 MVP Feature Coverage</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>
+                        Dashboard
+                        <span class="status-badge status-partial">15%</span>
+                    </h3>
+                    <p>UI skeleton only, no business logic or database queries</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 15%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Hardcoded data, needs ViewModel & real totals</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Add Expense
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>Not implemented - critical for MVP</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Needs form page, validation, repository</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Add Income
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>Separate income handling not implemented</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Entity exists but no UI or logic</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Edit/Delete
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>Transaction modification not implemented</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Needs repository methods, UI page</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Monthly Limit
+                        <span class="status-badge status-partial">10%</span>
+                    </h3>
+                    <p>Data model exists, no UI or persistence</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 10%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Cannot set limits, needs ViewModel & page</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Transaction History
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>List view with filters not implemented</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Needs page, filters, search logic</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Monthly History
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>Comparison view not implemented</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Needs calculation UseCases</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Categories
+                        <span class="status-badge status-partial">20%</span>
+                    </h3>
+                    <p>9 defaults defined, in-memory storage only</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 20%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Not persisted, needs Drift DAO & page</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Reports & Charts
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>FL Charts dependency added only</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ No chart implementations</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Recurring Expenses
+                        <span class="status-badge status-partial">5%</span>
+                    </h3>
+                    <p>Entity defined, complex feature not started</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 5%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Many dependencies missing</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Export (CSV/PDF)
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>Packages added, no services implemented</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Needs services & UseCase</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Local Storage
+                        <span class="status-badge status-partial">30%</span>
+                    </h3>
+                    <p>Schema designed, DAOs not generated</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 30%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Critical: Need build_runner</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Backup & Restore
+                        <span class="status-badge status-missing">0%</span>
+                    </h3>
+                    <p>Complex feature not started</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 0%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ Needs file I/O services</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>
+                        Theme & Settings
+                        <span class="status-badge status-partial">40%</span>
+                    </h3>
+                    <p>Theme configured, settings page missing</p>
+                    <div class="completion-bar"><div class="completion-fill" style="width: 40%"></div></div>
+                    <p style="font-size: 12px; color: var(--error);">❌ No preferences UI or persistence</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Critical Issues -->
+        <section class="section">
+            <h2 class="section-title">🚨 Critical Issues (Blockers)</h2>
+
+            <div class="issue high">
+                <div class="issue-header">
+                    <div class="issue-title">1. Database Not Initialized</div>
+                    <span class="severity high">BLOCKER</span>
+                </div>
+                <div class="issue-content">
+                    <p><strong>Problem:</strong> Drift DAOs not generated, database code compilation will fail</p>
+                    <p><strong>Impact:</strong> App cannot run, all repository operations fail, no persistence</p>
+                    <p><strong>Solution:</strong></p>
+                    <div class="code-block">flutter pub run build_runner build --delete-conflicting-outputs</div>
+                </div>
+            </div>
+
+            <div class="issue high">
+                <div class="issue-header">
+                    <div class="issue-title">2. No State Management</div>
+                    <span class="severity high">BLOCKER</span>
+                </div>
+                <div class="issue-content">
+                    <p><strong>Problem:</strong> Zero Riverpod providers or ViewModels implemented</p>
+                    <p><strong>Impact:</strong> No reactive UI, cannot bind data, app non-functional</p>
+                    <p><strong>Missing:</strong> 20+ providers, 10+ ViewModels, state classes</p>
+                    <p><strong>Estimated effort:</strong> 12-16 hours</p>
+                </div>
+            </div>
+
+            <div class="issue high">
+                <div class="issue-header">
+                    <div class="issue-title">3. Missing 7 of 8 Pages</div>
+                    <span class="severity high">BLOCKER</span>
+                </div>
+                <div class="issue-content">
+                    <p><strong>Problem:</strong> Only Dashboard UI skeleton exists</p>
+                    <p><strong>Missing Pages:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 8px;">
+                        <li>Add/Edit Transaction (2 variants)</li>
+                        <li>Transaction History with filters</li>
+                        <li>Monthly History & Comparison</li>
+                        <li>Reports & Charts</li>
+                        <li>Categories Management</li>
+                        <li>Settings</li>
+                        <li>Recurring Expenses</li>
+                    </ul>
+                    <p style="margin-top: 8px;"><strong>Estimated effort:</strong> 20-30 hours</p>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 30px;">High-Severity Issues</h3>
+
+            <div class="issue high">
+                <div class="issue-header">
+                    <div class="issue-title">4. Hardcoded Data in Dashboard</div>
+                    <span class="severity">HIGH</span>
+                </div>
+                <div class="issue-content">
+                    <p>Dashboard shows fake values: ৳8,500, ৳30,000, "Lunch" (lines 140-160)</p>
+                    <p><strong>Fix:</strong> Create DashboardViewModel with Riverpod, replace with real queries</p>
+                </div>
+            </div>
+
+            <div class="issue high">
+                <div class="issue-header">
+                    <div class="issue-title">5. CategoryRepositoryImpl Uses In-Memory Storage</div>
+                    <span class="severity">HIGH</span>
+                </div>
+                <div class="issue-content">
+                    <p>Data lost on app restart, not persisted to database</p>
+                    <p><strong>Fix:</strong> Inject Drift DAO, convert to database queries</p>
+                </div>
+            </div>
+
+            <div class="issue high">
+                <div class="issue-header">
+                    <div class="issue-title">6. No Form Validation</div>
+                    <span class="severity">HIGH</span>
+                </div>
+                <div class="issue-content">
+                    <p>Missing: amount validation (> 0), note length (max 250), required fields</p>
+                    <p><strong>Fix:</strong> Create form validator mixin and validation classes</p>
+                </div>
+            </div>
+
+            <div class="issue high">
+                <div class="issue-header">
+                    <div class="issue-title">7. No Navigation (GoRouter)</div>
+                    <span class="severity">HIGH</span>
+                </div>
+                <div class="issue-content">
+                    <p>GoRouter not configured, buttons do nothing, single-page app only</p>
+                    <p><strong>Fix:</strong> Configure all route definitions, implement navigation</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture Status -->
+        <section class="section">
+            <h2 class="section-title">🏗️ Architecture Layer Status</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Layer</th>
+                        <th>Status</th>
+                        <th>Completion</th>
+                        <th>Next Steps</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Core</strong></td>
+                        <td>✅ Complete</td>
+                        <td>70%</td>
+                        <td>Add utils & logging</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Domain</strong></td>
+                        <td>⚠️ Partial</td>
+                        <td>50%</td>
+                        <td>Create 15+ missing UseCases</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data</strong></td>
+                        <td>⚠️ Partial</td>
+                        <td>40%</td>
+                        <td>Generate DAOs, implement repositories</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Presentation</strong></td>
+                        <td>❌ Incomplete</td>
+                        <td>10%</td>
+                        <td>Create 7 pages, 20+ providers, routing</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Missing Files -->
+        <section class="section">
+            <h2 class="section-title">📁 Missing Critical Files</h2>
+
+            <div style="columns: 2; column-gap: 20px;">
+                <div>
+                    <h3 style="margin-top: 0;">Domain Layer (15 files)</h3>
+                    <ul style="list-style: none; margin: 0; padding-left: 0; font-size: 13px;">
+                        <li>❌ update_transaction_usecase.dart</li>
+                        <li>❌ delete_transaction_usecase.dart</li>
+                        <li>❌ get_transactions_usecase.dart</li>
+                        <li>❌ search_transactions_usecase.dart</li>
+                        <li>❌ get_monthly_summary_usecase.dart</li>
+                        <li>❌ set_monthly_limit_usecase.dart</li>
+                        <li>❌ export_transactions_usecase.dart</li>
+                        <li>❌ get_recurring_rules_usecase.dart</li>
+                        <li>❌ limit_repository.dart</li>
+                        <li>❌ recurring_rule_repository.dart</li>
+                        <li>❌ preferences_repository.dart</li>
+                    </ul>
+
+                    <h3>Data Layer (8 files)</h3>
+                    <ul style="list-style: none; margin: 0; padding-left: 0; font-size: 13px;">
+                        <li>❌ transaction_repository_impl.dart</li>
+                        <li>❌ limit_repository_impl.dart</li>
+                        <li>❌ recurring_rule_repository_impl.dart</li>
+                        <li>❌ preferences_repository_impl.dart</li>
+                        <li>❌ export_service.dart</li>
+                        <li>❌ csv_export_service.dart</li>
+                        <li>❌ backup_service.dart</li>
+                        <li>❌ recurring_rule_model.dart</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="margin-top: 0;">Presentation Layer (30+ files)</h3>
+                    <ul style="list-style: none; margin: 0; padding-left: 0; font-size: 13px;">
+                        <li>❌ database_provider.dart</li>
+                        <li>❌ transaction_provider.dart</li>
+                        <li>❌ category_provider.dart</li>
+                        <li>❌ limit_provider.dart</li>
+                        <li>❌ dashboard_viewmodel.dart</li>
+                        <li>❌ transaction_viewmodel.dart</li>
+                        <li>❌ settings_viewmodel.dart</li>
+                        <li>❌ add_transaction_page.dart</li>
+                        <li>❌ edit_transaction_page.dart</li>
+                        <li>❌ transactions_page.dart</li>
+                        <li>❌ monthly_history_page.dart</li>
+                        <li>❌ reports_page.dart</li>
+                        <li>❌ categories_page.dart</li>
+                        <li>❌ settings_page.dart</li>
+                        <li>❌ recurring_expenses_page.dart</li>
+                        <li>❌ form_validators.dart</li>
+                        <li>❌ transaction_form_widget.dart</li>
+                        <li>❌ error_dialog_widget.dart</li>
+                        <li>❌ empty_state_widget.dart</li>
+                        <li>❌ loading_widget.dart</li>
+                        <li>❌ app_router.dart (GoRouter)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Work Estimates -->
+        <section class="section">
+            <h2 class="section-title">⏱️ Work Estimates & Timeline</h2>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong class="priority p1">P1</strong> Fix database compilation
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">1 hour - Prerequisite for everything</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p1">P1</strong> Create transaction repository implementation
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">2-3 hours - Core CRUD operations</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p1">P1</strong> Build Dashboard ViewModel with real data
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">3-4 hours - Display actual transactions</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p1">P1</strong> Create Add/Edit Transaction pages & forms
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">6-8 hours - Core user feature</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p1">P1</strong> Set up GoRouter navigation
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">2-3 hours - Connect all pages</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p2">P2</strong> Implement transaction history & filtering
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">6-8 hours - Complex filtering logic</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p2">P2</strong> Build category management
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">4-6 hours - Create/edit/archive</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p2">P2</strong> Create settings & preferences
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">3-4 hours - Theme, currency, defaults</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p3">P3</strong> Build reports & charts
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">6-8 hours - Multiple chart types</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p3">P3</strong> Implement export (CSV/PDF)
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">4-6 hours - Services & file handling</span>
+                </div>
+
+                <div class="timeline-item">
+                    <strong class="priority p3">P3</strong> Add comprehensive tests
+                    <br><span style="color: var(--text-secondary); font-size: 13px;">6-8 hours - Unit, widget, integration tests</span>
+                </div>
+            </div>
+
+            <div style="background: var(--surface); padding: 16px; border-radius: 8px; margin-top: 20px;">
+                <strong>Total Estimated Effort:</strong> 40-60 hours
+                <br><strong>Team with 1 developer:</strong> 1-2 weeks (8-10 days)
+                <br><strong>Team with 2 developers:</strong> 3-5 days (parallel work possible)
+            </div>
+        </section>
+
+        <!-- Data Model Validation -->
+        <section class="section">
+            <h2 class="section-title">✅ Data Model Validation (100% Complete)</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">All 4 domain entities are fully defined with proper fields, enums, and validation.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Entity</th>
+                        <th>Fields</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Transaction</strong></td>
+                        <td>10 fields</td>
+                        <td>✅ Complete</td>
+                        <td>Type enum, PaymentMethod enum defined</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Category</strong></td>
+                        <td>7 fields</td>
+                        <td>✅ Complete</td>
+                        <td>9 defaults included, archiving support</td>
+                    </tr>
+                    <tr>
+                        <td><strong>MonthlyLimit</strong></td>
+                        <td>6 fields</td>
+                        <td>✅ Complete</td>
+                        <td>Unique (year, month) constraint</td>
+                    </tr>
+                    <tr>
+                        <td><strong>RecurringRule</strong></td>
+                        <td>11 fields</td>
+                        <td>✅ Complete</td>
+                        <td>Frequency enum, active/inactive status</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Recommendations -->
+        <section class="section">
+            <h2 class="section-title">💡 Recommendations for Next Steps</h2>
+
+            <div style="background: var(--primary); color: white; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                <h3 style="margin-top: 0;">Before Next Development Session</h3>
+                <ol style="margin: 12px 0;">
+                    <li>Run code generation: <code style="background: rgba(255,255,255,0.2);">flutter pub run build_runner build --delete-conflicting-outputs</code></li>
+                    <li>Fix any compilation errors that arise</li>
+                    <li>Test that app can launch with current code</li>
+                    <li>Create basic test data for database</li>
+                </ol>
+            </div>
+
+            <div style="background: var(--warning); color: #000; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                <h3 style="margin-top: 0;">Week 1 Priority (Phase 1 MVP Foundation)</h3>
+                <ol style="margin: 12px 0;">
+                    <li>Complete transaction repository implementation</li>
+                    <li>Build dashboard viewmodel with real data</li>
+                    <li>Create add transaction page & form</li>
+                    <li>Set up GoRouter navigation</li>
+                    <li>Test core add/view transaction flow end-to-end</li>
+                </ol>
+            </div>
+
+            <div style="background: var(--success); color: white; padding: 16px; border-radius: 8px;">
+                <h3 style="margin-top: 0;">Quality Improvements Needed Throughout</h3>
+                <ul style="margin: 12px 0;">
+                    <li>✓ Input validation for all forms (amount, notes, etc.)</li>
+                    <li>✓ User-friendly error messages</li>
+                    <li>✓ Empty states for all pages</li>
+                    <li>✓ Loading indicators for async operations</li>
+                    <li>✓ Success confirmations after saves</li>
+                    <li>✓ Offline-first error handling</li>
+                    <li>✓ Database query optimization & indexing</li>
+                    <li>✓ Comprehensive test coverage</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Conclusion -->
+        <section class="section">
+            <h2 class="section-title">📌 Conclusion</h2>
+            <div style="background: var(--surface); padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary);">
+                <p><strong>Current Status:</strong> Foundation complete, implementation just beginning</p>
+                <p style="margin-top: 12px;">✅ <strong>What's working:</strong> Clean Architecture properly structured, MVVM pattern ready, all data models defined, database schema designed</p>
+                <p style="margin-top: 12px;">❌ <strong>What's missing:</strong> Database not initialized, no state management, 7 of 8 pages missing, no form validation, no navigation, no tests</p>
+                <p style="margin-top: 12px; color: var(--error); font-weight: 600;">⏰ <strong>Next immediate action:</strong> Run build_runner to generate database code, then resolve compilation errors</p>
+                <p style="margin-top: 12px;"><strong>Estimated time to Phase 1 MVP:</strong> 40-60 hours of development work</p>
+            </div>
+        </section>
+
+        <footer style="margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-align: center;">
+            <p>Pocket Ledger - Feature & Issue Audit | Generated 2026-09-23</p>
+            <p>Project Location: /Users/bs-support/pocket_ledger | Flutter 3.47.2 | Dart 3.13.2</p>
+        </footer>
+    </div>
+
+    <script>
+        // Accordion functionality
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                content.classList.toggle('open');
+                header.textContent = content.classList.contains('open') ? '▼ ' : '▶ ' + header.textContent.slice(2);
+            });
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
