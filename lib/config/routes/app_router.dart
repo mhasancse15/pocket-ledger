@@ -5,6 +5,7 @@ import '../../presentation/pages/add_transaction_page.dart';
 import '../../presentation/pages/commercial_pages.dart';
 import '../../presentation/pages/dashboard_page.dart';
 import '../../presentation/pages/edit_transaction_page.dart';
+import '../../presentation/pages/previous_month_summary_page.dart';
 import '../../presentation/pages/report_page.dart';
 import '../../presentation/pages/setting_page.dart';
 import '../../presentation/pages/transactions_page.dart';
@@ -84,6 +85,11 @@ class AppRouter {
         path: AppRoutes.recurringExpenses,
         name: 'recurringExpenses',
         builder: (context, state) => const RecurringExpensesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.previousExpanse,
+        name: 'previousExpanse',
+        builder: (context, state) => const PreviousMonthSummaryPage(),
       ),
     ],
     errorBuilder: (context, state) => const Scaffold(

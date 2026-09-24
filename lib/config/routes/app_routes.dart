@@ -15,4 +15,5 @@ class AppRoutes {
   static const String categories = '/categories';
   static const String settings = '/settings';
   static const String recurringExpenses = '/recurring-expenses';
+  static const String  previousExpanse = '/previous-expenses';
 }

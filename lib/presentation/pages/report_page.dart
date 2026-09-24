@@ -2,8 +2,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
@@ -49,6 +51,15 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              context.go(AppRoutes.previousExpanse);
+            },
+            padding: const EdgeInsets.only(right: 16),
+            icon: const Icon(Icons.history_edu_outlined),
+          ),
+        ],
       ),
       body: transactionsAsync.when(
         loading: () => const Center(
