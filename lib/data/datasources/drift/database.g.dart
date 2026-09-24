@@ -1481,6 +1481,563 @@ class MonthlyLimitTableCompanion
   }
 }
 
+class $BudgetTableTable extends BudgetTable
+    with TableInfo<$BudgetTableTable, BudgetTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<int> month = GeneratedColumn<int>(
+    'month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scopeMeta = const VerificationMeta('scope');
+  @override
+  late final GeneratedColumn<String> scope = GeneratedColumn<String>(
+    'scope',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scopeKeyMeta = const VerificationMeta(
+    'scopeKey',
+  );
+  @override
+  late final GeneratedColumn<String> scopeKey = GeneratedColumn<String>(
+    'scope_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rolloverMeta = const VerificationMeta(
+    'rollover',
+  );
+  @override
+  late final GeneratedColumn<bool> rollover = GeneratedColumn<bool>(
+    'rollover',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("rollover" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    year,
+    month,
+    scope,
+    scopeKey,
+    amount,
+    rollover,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BudgetTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('month')) {
+      context.handle(
+        _monthMeta,
+        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('scope')) {
+      context.handle(
+        _scopeMeta,
+        scope.isAcceptableOrUnknown(data['scope']!, _scopeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scopeMeta);
+    }
+    if (data.containsKey('scope_key')) {
+      context.handle(
+        _scopeKeyMeta,
+        scopeKey.isAcceptableOrUnknown(data['scope_key']!, _scopeKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scopeKeyMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('rollover')) {
+      context.handle(
+        _rolloverMeta,
+        rollover.isAcceptableOrUnknown(data['rollover']!, _rolloverMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {year, month, scope, scopeKey},
+  ];
+  @override
+  BudgetTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      )!,
+      month: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}month'],
+      )!,
+      scope: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scope'],
+      )!,
+      scopeKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scope_key'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      rollover: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}rollover'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BudgetTableTable createAlias(String alias) {
+    return $BudgetTableTable(attachedDatabase, alias);
+  }
+}
+
+class BudgetTableData extends DataClass implements Insertable<BudgetTableData> {
+  final String id;
+  final int year;
+  final int month;
+  final String scope;
+  final String scopeKey;
+  final double amount;
+  final bool rollover;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const BudgetTableData({
+    required this.id,
+    required this.year,
+    required this.month,
+    required this.scope,
+    required this.scopeKey,
+    required this.amount,
+    required this.rollover,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['year'] = Variable<int>(year);
+    map['month'] = Variable<int>(month);
+    map['scope'] = Variable<String>(scope);
+    map['scope_key'] = Variable<String>(scopeKey);
+    map['amount'] = Variable<double>(amount);
+    map['rollover'] = Variable<bool>(rollover);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  BudgetTableCompanion toCompanion(bool nullToAbsent) {
+    return BudgetTableCompanion(
+      id: Value(id),
+      year: Value(year),
+      month: Value(month),
+      scope: Value(scope),
+      scopeKey: Value(scopeKey),
+      amount: Value(amount),
+      rollover: Value(rollover),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory BudgetTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetTableData(
+      id: serializer.fromJson<String>(json['id']),
+      year: serializer.fromJson<int>(json['year']),
+      month: serializer.fromJson<int>(json['month']),
+      scope: serializer.fromJson<String>(json['scope']),
+      scopeKey: serializer.fromJson<String>(json['scopeKey']),
+      amount: serializer.fromJson<double>(json['amount']),
+      rollover: serializer.fromJson<bool>(json['rollover']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'year': serializer.toJson<int>(year),
+      'month': serializer.toJson<int>(month),
+      'scope': serializer.toJson<String>(scope),
+      'scopeKey': serializer.toJson<String>(scopeKey),
+      'amount': serializer.toJson<double>(amount),
+      'rollover': serializer.toJson<bool>(rollover),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  BudgetTableData copyWith({
+    String? id,
+    int? year,
+    int? month,
+    String? scope,
+    String? scopeKey,
+    double? amount,
+    bool? rollover,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => BudgetTableData(
+    id: id ?? this.id,
+    year: year ?? this.year,
+    month: month ?? this.month,
+    scope: scope ?? this.scope,
+    scopeKey: scopeKey ?? this.scopeKey,
+    amount: amount ?? this.amount,
+    rollover: rollover ?? this.rollover,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  BudgetTableData copyWithCompanion(BudgetTableCompanion data) {
+    return BudgetTableData(
+      id: data.id.present ? data.id.value : this.id,
+      year: data.year.present ? data.year.value : this.year,
+      month: data.month.present ? data.month.value : this.month,
+      scope: data.scope.present ? data.scope.value : this.scope,
+      scopeKey: data.scopeKey.present ? data.scopeKey.value : this.scopeKey,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      rollover: data.rollover.present ? data.rollover.value : this.rollover,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetTableData(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('scope: $scope, ')
+          ..write('scopeKey: $scopeKey, ')
+          ..write('amount: $amount, ')
+          ..write('rollover: $rollover, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    year,
+    month,
+    scope,
+    scopeKey,
+    amount,
+    rollover,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetTableData &&
+          other.id == this.id &&
+          other.year == this.year &&
+          other.month == this.month &&
+          other.scope == this.scope &&
+          other.scopeKey == this.scopeKey &&
+          other.amount == this.amount &&
+          other.rollover == this.rollover &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BudgetTableCompanion extends UpdateCompanion<BudgetTableData> {
+  final Value<String> id;
+  final Value<int> year;
+  final Value<int> month;
+  final Value<String> scope;
+  final Value<String> scopeKey;
+  final Value<double> amount;
+  final Value<bool> rollover;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const BudgetTableCompanion({
+    this.id = const Value.absent(),
+    this.year = const Value.absent(),
+    this.month = const Value.absent(),
+    this.scope = const Value.absent(),
+    this.scopeKey = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.rollover = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BudgetTableCompanion.insert({
+    required String id,
+    required int year,
+    required int month,
+    required String scope,
+    required String scopeKey,
+    required double amount,
+    this.rollover = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       year = Value(year),
+       month = Value(month),
+       scope = Value(scope),
+       scopeKey = Value(scopeKey),
+       amount = Value(amount),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<BudgetTableData> custom({
+    Expression<String>? id,
+    Expression<int>? year,
+    Expression<int>? month,
+    Expression<String>? scope,
+    Expression<String>? scopeKey,
+    Expression<double>? amount,
+    Expression<bool>? rollover,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (year != null) 'year': year,
+      if (month != null) 'month': month,
+      if (scope != null) 'scope': scope,
+      if (scopeKey != null) 'scope_key': scopeKey,
+      if (amount != null) 'amount': amount,
+      if (rollover != null) 'rollover': rollover,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BudgetTableCompanion copyWith({
+    Value<String>? id,
+    Value<int>? year,
+    Value<int>? month,
+    Value<String>? scope,
+    Value<String>? scopeKey,
+    Value<double>? amount,
+    Value<bool>? rollover,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return BudgetTableCompanion(
+      id: id ?? this.id,
+      year: year ?? this.year,
+      month: month ?? this.month,
+      scope: scope ?? this.scope,
+      scopeKey: scopeKey ?? this.scopeKey,
+      amount: amount ?? this.amount,
+      rollover: rollover ?? this.rollover,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (month.present) {
+      map['month'] = Variable<int>(month.value);
+    }
+    if (scope.present) {
+      map['scope'] = Variable<String>(scope.value);
+    }
+    if (scopeKey.present) {
+      map['scope_key'] = Variable<String>(scopeKey.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (rollover.present) {
+      map['rollover'] = Variable<bool>(rollover.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetTableCompanion(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('scope: $scope, ')
+          ..write('scopeKey: $scopeKey, ')
+          ..write('amount: $amount, ')
+          ..write('rollover: $rollover, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $RecurringRuleTableTable extends RecurringRuleTable
     with TableInfo<$RecurringRuleTableTable, RecurringRuleTableData> {
   @override
@@ -2211,6 +2768,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CategoryTableTable categoryTable = $CategoryTableTable(this);
   late final $MonthlyLimitTableTable monthlyLimitTable =
       $MonthlyLimitTableTable(this);
+  late final $BudgetTableTable budgetTable = $BudgetTableTable(this);
   late final $RecurringRuleTableTable recurringRuleTable =
       $RecurringRuleTableTable(this);
   @override
@@ -2221,6 +2779,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     transactionTable,
     categoryTable,
     monthlyLimitTable,
+    budgetTable,
     recurringRuleTable,
   ];
 }
@@ -3043,6 +3602,291 @@ typedef $$MonthlyLimitTableTableProcessedTableManager =
       MonthlyLimitTableData,
       PrefetchHooks Function()
     >;
+typedef $$BudgetTableTableCreateCompanionBuilder =
+    BudgetTableCompanion Function({
+      required String id,
+      required int year,
+      required int month,
+      required String scope,
+      required String scopeKey,
+      required double amount,
+      Value<bool> rollover,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$BudgetTableTableUpdateCompanionBuilder =
+    BudgetTableCompanion Function({
+      Value<String> id,
+      Value<int> year,
+      Value<int> month,
+      Value<String> scope,
+      Value<String> scopeKey,
+      Value<double> amount,
+      Value<bool> rollover,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$BudgetTableTableFilterComposer
+    extends Composer<_$AppDatabase, $BudgetTableTable> {
+  $$BudgetTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scopeKey => $composableBuilder(
+    column: $table.scopeKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get rollover => $composableBuilder(
+    column: $table.rollover,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BudgetTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $BudgetTableTable> {
+  $$BudgetTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scopeKey => $composableBuilder(
+    column: $table.scopeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get rollover => $composableBuilder(
+    column: $table.rollover,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BudgetTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BudgetTableTable> {
+  $$BudgetTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<int> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<String> get scope =>
+      $composableBuilder(column: $table.scope, builder: (column) => column);
+
+  GeneratedColumn<String> get scopeKey =>
+      $composableBuilder(column: $table.scopeKey, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<bool> get rollover =>
+      $composableBuilder(column: $table.rollover, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$BudgetTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BudgetTableTable,
+          BudgetTableData,
+          $$BudgetTableTableFilterComposer,
+          $$BudgetTableTableOrderingComposer,
+          $$BudgetTableTableAnnotationComposer,
+          $$BudgetTableTableCreateCompanionBuilder,
+          $$BudgetTableTableUpdateCompanionBuilder,
+          (
+            BudgetTableData,
+            BaseReferences<_$AppDatabase, $BudgetTableTable, BudgetTableData>,
+          ),
+          BudgetTableData,
+          PrefetchHooks Function()
+        > {
+  $$BudgetTableTableTableManager(_$AppDatabase db, $BudgetTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BudgetTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BudgetTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BudgetTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<int> year = const Value.absent(),
+                Value<int> month = const Value.absent(),
+                Value<String> scope = const Value.absent(),
+                Value<String> scopeKey = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<bool> rollover = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetTableCompanion(
+                id: id,
+                year: year,
+                month: month,
+                scope: scope,
+                scopeKey: scopeKey,
+                amount: amount,
+                rollover: rollover,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required int year,
+                required int month,
+                required String scope,
+                required String scopeKey,
+                required double amount,
+                Value<bool> rollover = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetTableCompanion.insert(
+                id: id,
+                year: year,
+                month: month,
+                scope: scope,
+                scopeKey: scopeKey,
+                amount: amount,
+                rollover: rollover,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$BudgetTableTable, BudgetTableData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $BudgetTableTable,
+                    BudgetTableData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BudgetTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BudgetTableTable,
+      BudgetTableData,
+      $$BudgetTableTableFilterComposer,
+      $$BudgetTableTableOrderingComposer,
+      $$BudgetTableTableAnnotationComposer,
+      $$BudgetTableTableCreateCompanionBuilder,
+      $$BudgetTableTableUpdateCompanionBuilder,
+      (
+        BudgetTableData,
+        BaseReferences<_$AppDatabase, $BudgetTableTable, BudgetTableData>,
+      ),
+      BudgetTableData,
+      PrefetchHooks Function()
+    >;
 typedef $$RecurringRuleTableTableCreateCompanionBuilder =
     RecurringRuleTableCompanion Function({
       required String id,
@@ -3416,6 +4260,8 @@ class $AppDatabaseManager {
       $$CategoryTableTableTableManager(_db, _db.categoryTable);
   $$MonthlyLimitTableTableTableManager get monthlyLimitTable =>
       $$MonthlyLimitTableTableTableManager(_db, _db.monthlyLimitTable);
+  $$BudgetTableTableTableManager get budgetTable =>
+      $$BudgetTableTableTableManager(_db, _db.budgetTable);
   $$RecurringRuleTableTableTableManager get recurringRuleTable =>
       $$RecurringRuleTableTableTableManager(_db, _db.recurringRuleTable);
 }

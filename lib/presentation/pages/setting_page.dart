@@ -115,6 +115,12 @@ class SettingsPage extends ConsumerWidget {
                 onTap: () => context.push(AppRoutes.categories),
               ),
               _SettingsTile(
+                icon: Icons.track_changes_outlined,
+                title: 'Budgets',
+                subtitle: 'Monthly, category, and wallet budgets',
+                onTap: () => context.pushNamed(AppRoutes.budgetsName),
+              ),
+              _SettingsTile(
                 icon: Icons.repeat_outlined,
                 title: 'Recurring expenses',
                 subtitle: 'Manage subscriptions and recurring bills',

@@ -12,6 +12,7 @@ part 'database.g.dart';
   TransactionTable,
   CategoryTable,
   MonthlyLimitTable,
+  BudgetTable,
   RecurringRuleTable,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -20,7 +21,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
@@ -29,7 +30,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        // Migration strategies for future schema updates
+        if (from < 2) {
+          await m.createTable(budgetTable);
+        }
       },
     );
   }
@@ -122,6 +125,29 @@ class AppDatabase extends _$AppDatabase {
     return select(monthlyLimitTable).get();
   }
 
+  Future<BudgetTableData?> getBudget(
+    int year,
+    int month,
+    String scope,
+    String scopeKey,
+  ) {
+    return (select(budgetTable)
+          ..where((b) =>
+              b.year.equals(year) &
+              b.month.equals(month) &
+              b.scope.equals(scope) &
+              b.scopeKey.equals(scopeKey)))
+        .getSingleOrNull();
+  }
+
+  Future<List<BudgetTableData>> getAllBudgets() => select(budgetTable).get();
+
+  Future<int> upsertBudget(BudgetTableCompanion budget) =>
+      into(budgetTable).insertOnConflictUpdate(budget);
+
+  Future<int> deleteBudgetById(String id) =>
+      (delete(budgetTable)..where((b) => b.id.equals(id))).go();
+
   // --- Recurring Rule Table Queries ---
 
   Future<int> insertRecurringRule(RecurringRuleTableCompanion rule) {
@@ -150,6 +176,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(transactionTable).go();
       await delete(categoryTable).go();
       await delete(monthlyLimitTable).go();
+      await delete(budgetTable).go();
       await delete(recurringRuleTable).go();
     });
   }

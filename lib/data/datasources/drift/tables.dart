@@ -49,6 +49,26 @@ class MonthlyLimitTable extends Table {
       ];
 }
 
+class BudgetTable extends Table {
+  TextColumn get id => text()();
+  IntColumn get year => integer()();
+  IntColumn get month => integer()();
+  TextColumn get scope => text()(); // monthly, category, wallet
+  TextColumn get scopeKey => text()(); // all, category id, payment method
+  RealColumn get amount => real()();
+  BoolColumn get rollover => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {year, month, scope, scopeKey}
+      ];
+}
+
 /// Drift table definition for Recurring Rules
 class RecurringRuleTable extends Table {
   TextColumn get id => text()();

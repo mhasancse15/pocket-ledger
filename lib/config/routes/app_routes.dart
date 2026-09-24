@@ -29,4 +29,6 @@ class AppRoutes {
   static const String previousExpanseName = 'previousExpanse';
   static const String transactionDetails = '/transaction/:id';
   static const String transactionDetailsName = 'transactionDetails';
+  static const String budgets = '/budgets';
+  static const String budgetsName = 'budgets';
 }

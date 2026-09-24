@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../presentation/pages/add_transaction_page.dart';
+import '../../presentation/pages/budget_page.dart';
 import '../../presentation/pages/commercial_pages.dart';
 import '../../presentation/pages/dashboard_page.dart';
 import '../../presentation/pages/edit_transaction_page.dart';
@@ -98,6 +99,11 @@ class AppRouter {
         path: AppRoutes.previousExpanse,
         name: AppRoutes.previousExpanseName,
         builder: (context, state) => const PreviousMonthSummaryPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.budgets,
+        name: AppRoutes.budgetsName,
+        builder: (context, state) => const BudgetPage(),
       ),
     ],
     errorBuilder: (context, state) => const Scaffold(
