@@ -46,7 +46,7 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
     try {
       final vm = ref.read(transactionViewModelProvider);
       final transaction = await vm.getTransaction(widget.transactionId);
-      if (transaction != null) {
+      if (mounted && transaction != null) {
         setState(() {
           _transaction = transaction;
           _amountController.text = transaction.amount.toString();
@@ -54,13 +54,16 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
           _selectedDate = transaction.date;
           _transactionType = transaction.type;
           _selectedCategory = transaction.categoryId;
-          _selectedPaymentMethod =
-              transaction.paymentMethod.toString().split('.').last;
+          _selectedPaymentMethod = _paymentMethodLabel(
+            transaction.paymentMethod,
+          );
           _isLoading = false;
         });
+      } else if (mounted) {
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -103,7 +106,7 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
         categoryId: _selectedCategory ?? '',
         date: _selectedDate,
         paymentMethod: PaymentMethod.values.firstWhere(
-          (method) => method.toString().split('.').last == _selectedPaymentMethod,
+          (method) => _paymentMethodLabel(method) == _selectedPaymentMethod,
           orElse: () => PaymentMethod.cash,
         ),
         note: _noteController.text.isEmpty ? null : _noteController.text,
@@ -231,6 +234,7 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
                     onSelectionChanged: (Set<TransactionType> newSelection) {
                       setState(() {
                         _transactionType = newSelection.first;
+                        _selectedCategory = null;
                       });
                     },
                   ),
@@ -256,7 +260,7 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
 
             // Category Selector
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(
@@ -283,7 +287,7 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
 
             // Payment Method Selector
             DropdownButtonFormField<String>(
-              value: _selectedPaymentMethod,
+              initialValue: _selectedPaymentMethod,
               decoration: InputDecoration(
                 labelText: 'Payment Method',
                 border: OutlineInputBorder(
@@ -348,5 +352,22 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
         ),
       ),
     );
+  }
+
+  String _paymentMethodLabel(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.cash:
+        return 'Cash';
+      case PaymentMethod.bankTransfer:
+        return 'Bank Transfer';
+      case PaymentMethod.debitCard:
+        return 'Debit Card';
+      case PaymentMethod.creditCard:
+        return 'Credit Card';
+      case PaymentMethod.mobileWallet:
+        return 'Mobile Wallet';
+      case PaymentMethod.other:
+        return 'Other';
+    }
   }
 }

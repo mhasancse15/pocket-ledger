@@ -27,4 +27,6 @@ class AppRoutes {
   static const String categoriesName = 'categories';
   static const String recurringExpensesName = 'recurringExpenses';
   static const String previousExpanseName = 'previousExpanse';
+  static const String transactionDetails = '/transaction/:id';
+  static const String transactionDetailsName = 'transactionDetails';
 }

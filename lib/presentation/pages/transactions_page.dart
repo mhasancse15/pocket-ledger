@@ -22,6 +22,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   TransactionType? _selectedType;
   String _query = '';
   DateTime _selectedMonth = DateTime.now();
+  DateTimeRange? _dateRange;
+  double? _minimumAmount;
+  double? _maximumAmount;
 
   int get _activeFilterCount {
     var count = 0;
@@ -30,6 +33,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     if (_selectedPaymentMethod != null) count++;
     if (_selectedType != null) count++;
     if (_query.trim().isNotEmpty) count++;
+    if (_dateRange != null) count++;
+    if (_minimumAmount != null) count++;
+    if (_maximumAmount != null) count++;
 
     return count;
   }
@@ -175,6 +181,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                           date: entry.key,
                           transactions: entry.value,
                           categoryNames: categoryNames,
+                          onTransactionLongPress: _showTransactionActions,
                         );
                       },
                       childCount: groupedTransactions.length,
@@ -197,8 +204,20 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     final normalizedQuery = _query.trim().toLowerCase();
 
     final filtered = transactions.where((transaction) {
-      final sameMonth = transaction.date.year == _selectedMonth.year &&
-          transaction.date.month == _selectedMonth.month;
+      final date = transaction.date.toLocal();
+      final sameMonth = _dateRange != null ||
+          (date.year == _selectedMonth.year &&
+              date.month == _selectedMonth.month);
+      final dateMatches = _dateRange == null ||
+          !date.isBefore(_dateRange!.start) &&
+          !date.isAfter(DateTime(
+            _dateRange!.end.year,
+            _dateRange!.end.month,
+            _dateRange!.end.day,
+            23,
+            59,
+            59,
+          ));
 
       final categoryMatches = _selectedCategory == null ||
           transaction.categoryId == _selectedCategory;
@@ -212,12 +231,19 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       final queryMatches = normalizedQuery.isEmpty ||
           transaction.categoryId.toLowerCase().contains(normalizedQuery) ||
           (transaction.note ?? '').toLowerCase().contains(normalizedQuery);
+      final minimumMatches =
+          _minimumAmount == null || transaction.amount >= _minimumAmount!;
+      final maximumMatches =
+          _maximumAmount == null || transaction.amount <= _maximumAmount!;
 
       return sameMonth &&
+          dateMatches &&
           categoryMatches &&
           paymentMatches &&
           typeMatches &&
-          queryMatches;
+          queryMatches &&
+          minimumMatches &&
+          maximumMatches;
     }).toList();
 
     filtered.sort((a, b) => b.date.compareTo(a.date));
@@ -247,6 +273,13 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     var draftCategory = _selectedCategory;
     var draftPaymentMethod = _selectedPaymentMethod;
     var draftType = _selectedType;
+    var draftRange = _dateRange;
+    var minController = TextEditingController(
+      text: _minimumAmount?.toStringAsFixed(2) ?? '',
+    );
+    var maxController = TextEditingController(
+      text: _maximumAmount?.toStringAsFixed(2) ?? '',
+    );
 
     final categories = transactions
         .map((transaction) => transaction.categoryId)
@@ -284,6 +317,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                               draftCategory = null;
                               draftPaymentMethod = null;
                               draftType = null;
+                              draftRange = null;
+                              minController.clear();
+                              maxController.clear();
                             });
                           },
                           child: const Text('Reset'),
@@ -347,6 +383,56 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                       },
                     ),
                     const SizedBox(height: 14),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          initialDateRange: draftRange,
+                        );
+                        if (picked != null) {
+                          setModalState(() => draftRange = picked);
+                        }
+
+                      },
+                      icon: const Icon(Icons.date_range_outlined),
+                      label: Text(draftRange == null
+                          ? 'Any date range'
+                          : '${DateFormat('d MMM').format(draftRange!.start)} - '
+                              '${DateFormat('d MMM yyyy').format(draftRange!.end)}'),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: minController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Minimum amount',
+                              prefixText: '৳ ',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: maxController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Maximum amount',
+                              prefixText: '৳ ',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                     DropdownButtonFormField<String>(
                       value: draftPaymentMethod,
                       decoration: const InputDecoration(
@@ -375,6 +461,13 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                             _selectedCategory = draftCategory;
                             _selectedPaymentMethod = draftPaymentMethod;
                             _selectedType = draftType;
+                            _dateRange = draftRange;
+                            _minimumAmount = double.tryParse(
+                              minController.text.trim(),
+                            );
+                            _maximumAmount = double.tryParse(
+                              maxController.text.trim(),
+                            );
                           });
 
                           Navigator.of(context).pop();
@@ -390,6 +483,103 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         );
       },
     );
+    minController.dispose();
+    maxController.dispose();
+  }
+
+  Future<void> _showTransactionActions(Transaction transaction) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(children: [
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('Edit transaction'),
+            onTap: () => Navigator.pop(context, 'edit'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.copy_outlined),
+            title: const Text('Duplicate transaction'),
+            onTap: () => Navigator.pop(context, 'duplicate'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline, color: Colors.red),
+            title: const Text('Delete transaction'),
+            onTap: () => Navigator.pop(context, 'delete'),
+          ),
+        ]),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'edit') {
+      context.pushNamed(
+        AppRoutes.editTransactionName,
+        pathParameters: {'id': transaction.id},
+      );
+      return;
+    }
+    if (action == 'duplicate') {
+      final now = DateTime.now();
+      final result = await ref.read(transactionRepositoryProvider).addTransaction(
+        transaction.copyWith(
+          id: AppUtils.generateId(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      if (!mounted) return;
+      result.fold(
+        (failure) => _showMessage(failure.message),
+        (_) {
+          ref.invalidate(allTransactionsProvider);
+          _showMessage('Transaction duplicated');
+        },
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete transaction?'),
+        content: const Text('This transaction will be removed from your records.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final result = await ref.read(transactionRepositoryProvider)
+        .deleteTransaction(transaction.id);
+    result.fold(
+      (failure) => _showMessage(failure.message),
+      (_) {
+        ref.invalidate(allTransactionsProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Transaction deleted'),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () async {
+                await ref.read(transactionRepositoryProvider)
+                    .addTransaction(transaction);
+                ref.invalidate(allTransactionsProvider);
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _clearFilters() {
@@ -398,6 +588,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       _selectedPaymentMethod = null;
       _selectedType = null;
       _query = '';
+      _dateRange = null;
+      _minimumAmount = null;
+      _maximumAmount = null;
     });
   }
 
@@ -661,11 +854,13 @@ class _DateTransactionGroup extends StatelessWidget {
     required this.date,
     required this.transactions,
     required this.categoryNames,
+    required this.onTransactionLongPress,
   });
 
   final DateTime date;
   final List<Transaction> transactions;
   final Map<String, String> categoryNames;
+  final Future<void> Function(Transaction) onTransactionLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -698,6 +893,7 @@ class _DateTransactionGroup extends StatelessWidget {
               (transaction) => _TransactionCard(
                 transaction: transaction,
                 categoryName: categoryNames[transaction.categoryId],
+                onLongPress: () => onTransactionLongPress(transaction),
               ),
         ),
       ],
@@ -725,10 +921,12 @@ class _TransactionCard extends StatelessWidget {
   const _TransactionCard({
     required this.transaction,
     this.categoryName,
+    required this.onLongPress,
   });
 
   final Transaction transaction;
   final String? categoryName;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -795,10 +993,11 @@ class _TransactionCard extends StatelessWidget {
         ),
         onTap: () {
           context.pushNamed(
-            AppRoutes.editTransactionName,
+            AppRoutes.transactionDetailsName,
             pathParameters: {'id': transaction.id},
           );
         },
+        onLongPress: onLongPress,
       ),
     );
   }

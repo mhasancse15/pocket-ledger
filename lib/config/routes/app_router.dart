@@ -9,6 +9,7 @@ import '../../presentation/pages/previous_month_summary_page.dart';
 import '../../presentation/pages/report_page.dart';
 import '../../presentation/pages/setting_page.dart';
 import '../../presentation/pages/transactions_page.dart';
+import '../../presentation/pages/transaction_details_page.dart';
 
 
 part 'app_routes.dart';
@@ -68,6 +69,13 @@ class AppRouter {
         path: AppRoutes.editTransaction,
         name: AppRoutes.editTransactionName,
         builder: (context, state) => EditTransactionPage(
+          transactionId: state.pathParameters['id'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.transactionDetails,
+        name: AppRoutes.transactionDetailsName,
+        builder: (context, state) => TransactionDetailsPage(
           transactionId: state.pathParameters['id'] ?? '',
         ),
       ),
