@@ -332,16 +332,19 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
               children: monthBudgets.map((budget) {
                 final spent = _spent(items, budget);
                 final effectiveAmount = _effectiveAmount(budget, all, items);
-                final percent =
-                    effectiveAmount == 0 ? 0 : spent / effectiveAmount * 100;
-                final status = percent >= 100
+                final percent = effectiveAmount <= 0
+                    ? (spent > 0 ? double.infinity : 0.0)
+                    : spent / effectiveAmount * 100;
+                final isExceeded = spent >= effectiveAmount &&
+                    effectiveAmount > 0;
+                final status = isExceeded
                     ? 'Exceeded'
                     : percent >= 90
                         ? 'Critical'
                         : percent >= 75
                             ? 'Warning'
                             : 'On track';
-                final color = percent >= 100
+                final color = isExceeded
                     ? Colors.red
                     : percent >= 90
                         ? Colors.deepOrange
@@ -354,28 +357,56 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
                     subtitle: Text(
                       '${AppUtils.formatCurrency(spent)} of '
                       '${AppUtils.formatCurrency(effectiveAmount)}'
-                      '${budget.rollover ? ' • rollover' : ''} • $status',
+                      '${budget.rollover ? ' • rollover' : ''}',
                     ),
                     leading: CircleAvatar(
                       backgroundColor: color.withOpacity(.12),
                       child: Icon(Icons.track_changes_outlined, color: color),
                     ),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _startEditing(budget);
-                        } else if (value == 'delete') {
-                          _deleteBudget(budget);
-                        }
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Text('Edit'),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            status,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete'),
+                        SizedBox(
+                          height: 28,
+                          child: PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _startEditing(budget);
+                              } else if (value == 'delete') {
+                                _deleteBudget(budget);
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Edit'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Delete'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
