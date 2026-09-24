@@ -7,26 +7,15 @@ import '../../domain/entities/transaction.dart';
 import '../../domain/entities/category.dart';
 import '../viewmodels/transaction_viewmodel.dart';
 import '../providers/category_provider.dart';
-
-
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/utils/constants.dart';
-import '../../domain/entities/category.dart';
-import '../../domain/entities/transaction.dart';
-import '../providers/category_provider.dart';
-import '../providers/transaction_provider.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key});
 
   @override
-  ConsumerState<AddTransactionPage> createState() =>
-      _AddTransactionPageState();
+  ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
 }
 
 class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
@@ -94,9 +83,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       return;
     }
 
-    final amount = double.tryParse(
-      _amountController.text.trim(),
-    );
+    final amount = double.tryParse(_amountController.text.trim());
 
     if (amount == null || amount <= 0) {
       _showMessage('Enter a valid amount greater than ৳0.');
@@ -111,7 +98,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       final now = DateTime.now();
 
       final paymentMethod = PaymentMethod.values.firstWhere(
-            (method) => method.name == _selectedPaymentMethod,
+        (method) => method.name == _selectedPaymentMethod,
         orElse: () => PaymentMethod.cash,
       );
 
@@ -129,9 +116,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         updatedAt: now,
       );
 
-      await ref
-          .read(transactionViewModelProvider)
-          .addTransaction(transaction);
+      await ref.read(transactionViewModelProvider).addTransaction(transaction);
 
       if (!mounted) return;
 
@@ -158,10 +143,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -173,9 +155,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         ? CategoryType.expense
         : CategoryType.income;
 
-    final categoriesAsync = ref.watch(
-      categoriesByTypeProvider(categoryType),
-    );
+    final categoriesAsync = ref.watch(categoriesByTypeProvider(categoryType));
 
     final categoryItems = categoriesAsync.when(
       loading: () => <DropdownMenuItem<String>>[],
@@ -185,10 +165,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             .where((category) => !category.isArchived)
             .map(
               (category) => DropdownMenuItem<String>(
-            value: category.id,
-            child: Text(category.name),
-          ),
-        )
+                value: category.id,
+                child: Text(category.name),
+              ),
+            )
             .toList();
       },
     );
@@ -239,8 +219,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                 onSelectionChanged: _isLoading
                     ? null
                     : (selection) {
-                  _changeTransactionType(selection.first);
-                },
+                        _changeTransactionType(selection.first);
+                      },
               ),
 
               const SizedBox(height: 24),
@@ -254,9 +234,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   decimal: true,
                 ),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                    RegExp(r'^\d*\.?\d{0,2}'),
-                  ),
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                 ],
                 decoration: InputDecoration(
                   labelText: 'Amount',
@@ -290,15 +268,13 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   prefixIcon: const Icon(Icons.category_outlined),
                   suffixIcon: categoriesAsync.isLoading
                       ? const Padding(
-                    padding: EdgeInsets.all(14),
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  )
+                          padding: EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -308,10 +284,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                 onChanged: _isLoading || categoriesAsync.isLoading
                     ? null
                     : (value) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                },
+                        setState(() {
+                          _selectedCategory = value;
+                        });
+                      },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Select a category';
@@ -349,20 +325,20 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                 items: AppConstants.paymentMethods
                     .map(
                       (method) => DropdownMenuItem<String>(
-                    value: method,
-                    child: Text(_formatLabel(method)),
-                  ),
-                )
+                        value: method,
+                        child: Text(_formatLabel(method)),
+                      ),
+                    )
                     .toList(),
                 onChanged: _isLoading
                     ? null
                     : (value) {
-                  if (value == null) return;
+                        if (value == null) return;
 
-                  setState(() {
-                    _selectedPaymentMethod = value;
-                  });
-                },
+                        setState(() {
+                          _selectedPaymentMethod = value;
+                        });
+                      },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Select a payment method';
@@ -422,18 +398,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   onPressed: _isLoading ? null : _saveTransaction,
                   icon: _isLoading
                       ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Icon(Icons.check),
                   label: Text(
-                    _isLoading
-                        ? 'Saving transaction...'
-                        : 'Save transaction',
+                    _isLoading ? 'Saving transaction...' : 'Save transaction',
                   ),
                 ),
               ),
@@ -450,9 +424,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
         .split(' ')
         .map(
           (word) => word.isEmpty
-          ? word
-          : '${word[0].toUpperCase()}${word.substring(1)}',
-    )
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
         .join(' ');
   }
 }

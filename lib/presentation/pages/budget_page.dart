@@ -12,74 +12,262 @@ import '../providers/transaction_provider.dart';
 
 class BudgetPage extends ConsumerStatefulWidget {
   const BudgetPage({super.key});
+
   @override
   ConsumerState<BudgetPage> createState() => _BudgetPageState();
 }
 
 class _BudgetPageState extends ConsumerState<BudgetPage> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
-  BudgetScope _scope = BudgetScope.monthly;
-  String? _scopeKey;
-  final _amount = TextEditingController();
-  bool _rollover = false;
-  Budget? _editingBudget;
 
   @override
-  void dispose() {
-    _amount.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final budgetsAsync = ref.watch(budgetsProvider);
+    final transactionsAsync = ref.watch(allTransactionsProvider);
+    final categories = ref.watch(allCategoriesProvider).valueOrNull ?? const [];
+    final transactions = transactionsAsync.valueOrNull ?? const [];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Budget management',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Previous month',
+            onPressed: () => _changeMonth(-1),
+            icon: const Icon(Icons.chevron_left),
+          ),
+          IconButton(
+            tooltip: 'Next month',
+            onPressed: () => _changeMonth(1),
+            icon: const Icon(Icons.chevron_right),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
+        onPressed: _openBudgetEditor,
+        icon: const Icon(Icons.add),
+        label: const Text('Add budget'),
+      ),
+      body: budgetsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _ErrorState(
+          message: 'Unable to load budgets\n$error',
+        ),
+        data: (allBudgets) {
+          final monthBudgets = allBudgets
+              .where(
+                (budget) =>
+            budget.year == _month.year &&
+                budget.month == _month.month,
+          )
+              .toList()
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(budgetsProvider);
+              ref.invalidate(allTransactionsProvider);
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+              children: [
+                _MonthHeader(month: _month),
+                const SizedBox(height: 16),
+                _BudgetSummaryCard(
+                  budgets: monthBudgets,
+                  allBudgets: allBudgets,
+                  transactions: transactions,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Budgets for this month',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${monthBudgets.length} set',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (monthBudgets.isEmpty)
+                  _EmptyBudgetState(onAdd: _openBudgetEditor)
+                else
+                  ...monthBudgets.map(
+                        (budget) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _BudgetCard(
+                        budget: budget,
+                        categories: categories,
+                        allBudgets: allBudgets,
+                        transactions: transactions,
+                        onEdit: () => _openBudgetEditor(budget),
+                        onDelete: () => _deleteBudget(budget, categories),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                _MonthComparison(
+                  transactions: transactions,
+                  month: _month,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
-  double _spent(List<Transaction> items, Budget budget) {
-    return items.where((item) {
-      final date = item.date.toLocal();
-      final month = date.year == budget.year && date.month == budget.month;
-      final keyMatches = budget.scope == BudgetScope.monthly ||
-          (budget.scope == BudgetScope.category &&
-              item.categoryId == budget.scopeKey) ||
-          (budget.scope == BudgetScope.wallet &&
-              item.paymentMethod.name == budget.scopeKey);
-      return month && item.type == TransactionType.expense && keyMatches;
-    }).fold(0, (sum, item) => sum + item.amount);
+  void _changeMonth(int offset) {
+    setState(() {
+      _month = DateTime(_month.year, _month.month + offset);
+    });
   }
 
-  double _effectiveAmount(
-    Budget budget,
-    List<Budget> allBudgets,
-    List<Transaction> transactions,
-  ) {
-    if (!budget.rollover) return budget.amount;
-    final previous = allBudgets.where((candidate) =>
-        candidate.scope == budget.scope &&
-        candidate.scopeKey == budget.scopeKey &&
-        candidate.year == DateTime(budget.year, budget.month - 1).year &&
-        candidate.month == DateTime(budget.year, budget.month - 1).month);
-    if (previous.isEmpty) return budget.amount;
-    final previousBudget = previous.first;
-    final unused =
-        previousBudget.amount - _spent(transactions, previousBudget);
-    return budget.amount + (unused > 0 ? unused : 0);
+  Future<void> _openBudgetEditor([Budget? existing]) async {
+    final categories = ref.read(allCategoriesProvider).valueOrNull ?? const [];
+
+    final result = await showModalBottomSheet<_BudgetDraft>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return _BudgetEditorSheet(
+          month: _month,
+          existing: existing,
+          categories: categories,
+        );
+      },
+    );
+
+    if (result == null || !mounted) return;
+
+    final now = DateTime.now();
+    final budget = Budget(
+      id: existing?.id ?? AppUtils.generateId(),
+      year: _month.year,
+      month: _month.month,
+      scope: result.scope,
+      scopeKey: result.scope == BudgetScope.monthly
+          ? 'all'
+          : result.scopeKey!,
+      amount: result.amount,
+      rollover: result.rollover,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    );
+
+    try {
+      await ref.read(budgetStoreProvider).save(budget);
+      ref.invalidate(budgetsProvider);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            existing == null ? 'Budget created' : 'Budget updated',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to save budget: $error'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
-  String _budgetLabel(
-    Budget budget,
-    List<Category> categories,
-  ) {
-    final monthLabel = DateFormat(
-      'MMMM yyyy',
-    ).format(DateTime(budget.year, budget.month));
+  Future<void> _deleteBudget(
+      Budget budget,
+      List<Category> categories,
+      ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete budget?'),
+        content: Text(
+          '${_budgetLabel(budget, categories)} will be permanently deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(budgetStoreProvider).delete(budget);
+      ref.invalidate(budgetsProvider);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Budget deleted'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to delete budget: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _budgetLabel(Budget budget, List<Category> categories) {
+    final month = DateFormat('MMMM yyyy').format(
+      DateTime(budget.year, budget.month),
+    );
 
     switch (budget.scope) {
       case BudgetScope.monthly:
-        return 'Monthly budget • $monthLabel';
+        return 'Monthly budget • $month';
       case BudgetScope.category:
         final category = categories.where(
-          (item) => item.id == budget.scopeKey,
+              (item) => item.id == budget.scopeKey,
         );
-        final name = category.isEmpty ? budget.scopeKey : category.first.name;
-        return 'Category budget • $name • $monthLabel';
+        final name = category.isEmpty
+            ? budget.scopeKey
+            : category.first.name;
+        return 'Category budget • $name • $month';
       case BudgetScope.wallet:
-        return 'Wallet budget • ${_formatLabel(budget.scopeKey)} • $monthLabel';
+        return 'Wallet budget • ${_formatLabel(budget.scopeKey)} • $month';
     }
   }
 
@@ -89,384 +277,894 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
         .split(' ')
         .map(
           (word) => word.isEmpty
-              ? word
-              : '${word[0].toUpperCase()}${word.substring(1)}',
-        )
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1)}',
+    )
         .join(' ');
   }
+}
 
-  Future<void> _save() async {
-    final amount = double.tryParse(_amount.text.trim());
+class _BudgetEditorSheet extends StatefulWidget {
+  const _BudgetEditorSheet({
+    required this.month,
+    required this.existing,
+    required this.categories,
+  });
+
+  final DateTime month;
+  final Budget? existing;
+  final List<Category> categories;
+
+  @override
+  State<_BudgetEditorSheet> createState() => _BudgetEditorSheetState();
+}
+
+class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
+  late final TextEditingController amountController;
+  late BudgetScope scope;
+  String? scopeKey;
+  late bool rollover;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final existing = widget.existing;
+
+    amountController = TextEditingController(
+      text: existing?.amount.toStringAsFixed(0) ?? '',
+    );
+    scope = existing?.scope ?? BudgetScope.monthly;
+    scopeKey = existing?.scope == BudgetScope.monthly
+        ? null
+        : existing?.scopeKey;
+    rollover = existing?.rollover ?? false;
+  }
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    super.dispose();
+  }
+
+  void submit() {
+    final amount = double.tryParse(amountController.text.trim());
+
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid budget amount')),
-      );
+      setState(() => error = 'Enter a valid amount greater than ৳0.');
       return;
     }
-    if (_scope != BudgetScope.monthly && _scopeKey == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _scope == BudgetScope.category
-                ? 'Select a category'
-                : 'Select a wallet or payment method',
-          ),
-        ),
-      );
+
+    if (scope != BudgetScope.monthly && scopeKey == null) {
+      setState(() {
+        error = scope == BudgetScope.category
+            ? 'Select a category.'
+            : 'Select a payment method.';
+      });
       return;
     }
-    final now = DateTime.now();
-    final existing = _editingBudget;
-    await ref.read(budgetStoreProvider).save(Budget(
-          id: existing?.id ?? AppUtils.generateId(),
-          year: _month.year,
-          month: _month.month,
-          scope: _scope,
-          scopeKey: _scope == BudgetScope.monthly ? 'all' : _scopeKey!,
-          amount: amount,
-          rollover: _rollover,
-          createdAt: existing?.createdAt ?? now,
-          updatedAt: now,
-        ));
-    _amount.clear();
-    if (!mounted) return;
-    setState(() => _editingBudget = null);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Budget saved')),
-      );
-    }
 
-  }
-
-  void _startEditing(Budget budget) {
-    setState(() {
-      _month = DateTime(budget.year, budget.month);
-      _scope = budget.scope;
-      _scopeKey = budget.scope == BudgetScope.monthly ? null : budget.scopeKey;
-      _amount.text = budget.amount.toStringAsFixed(2);
-      _rollover = budget.rollover;
-      _editingBudget = budget;
-    });
-  }
-
-  Future<void> _deleteBudget(Budget budget) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete budget?'),
-        content: Text('${_budgetLabel(budget, const [])} will be deleted.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
+    Navigator.of(context).pop(
+      _BudgetDraft(
+        scope: scope,
+        scopeKey: scope == BudgetScope.monthly ? null : scopeKey,
+        amount: amount,
+        rollover: rollover,
       ),
     );
-    if (confirmed != true || !mounted) return;
-    await ref.read(budgetStoreProvider).delete(budget);
-    if (_editingBudget?.id == budget.id) {
-      setState(() {
-        _editingBudget = null;
-        _amount.clear();
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final budgets = ref.watch(budgetsProvider);
-    final transactions = ref.watch(allTransactionsProvider);
-    final categories = ref.watch(allCategoriesProvider).valueOrNull ?? const [];
-    final items = transactions.valueOrNull ?? const [];
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Budget management'),
-        actions: [
-          IconButton(
-            tooltip: 'Previous month',
-            onPressed: () => setState(() {
-              _month = DateTime(_month.year, _month.month - 1);
-              _clearEditingBudget();
-            }),
-            icon: const Icon(Icons.chevron_left),
-          ),
-          IconButton(
-            tooltip: 'Next month',
-            onPressed: () => setState(() {
-              _month = DateTime(_month.year, _month.month + 1);
-              _clearEditingBudget();
-            }),
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
+    final theme = Theme.of(context);
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    final categoryItems = widget.categories
+        .where((category) => category.type == CategoryType.expense)
+        .map(
+          (category) => DropdownMenuItem<String>(
+        value: category.id,
+        child: Text(category.name),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            DateFormat('MMMM yyyy').format(_month),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+    )
+        .toList();
+
+    final paymentItems = PaymentMethod.values
+        .map(
+          (method) => DropdownMenuItem<String>(
+        value: method.name,
+        child: Text(_formatLabel(method.name)),
+      ),
+    )
+        .toList();
+
+    return SafeArea(
+      child: Material(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            padding: EdgeInsets.fromLTRB(
+              20,
+              12,
+              20,
+              keyboardInset + 24,
+            ),
+            children: [
+              Text(
+                widget.existing == null ? 'Add budget' : 'Edit budget',
+                style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<BudgetScope>(
-            initialValue: _scope,
-            decoration: const InputDecoration(labelText: 'Budget type'),
-            items: const [
-              DropdownMenuItem(
-                value: BudgetScope.monthly,
-                child: Text('Monthly budget'),
               ),
-              DropdownMenuItem(
-                value: BudgetScope.category,
-                child: Text('Category budget'),
+              const SizedBox(height: 5),
+              Text(
+                DateFormat('MMMM yyyy').format(widget.month),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-              DropdownMenuItem(
-                value: BudgetScope.wallet,
-                child: Text('Wallet/payment budget'),
+              const SizedBox(height: 22),
+              DropdownButtonFormField<BudgetScope>(
+                value: scope,
+                decoration: InputDecoration(
+                  labelText: 'Budget type',
+                  prefixIcon: const Icon(Icons.tune_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: BudgetScope.monthly,
+                    child: Text('Monthly budget'),
+                  ),
+                  DropdownMenuItem(
+                    value: BudgetScope.category,
+                    child: Text('Category budget'),
+                  ),
+                  DropdownMenuItem(
+                    value: BudgetScope.wallet,
+                    child: Text('Payment method budget'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    scope = value;
+                    scopeKey = null;
+                    error = null;
+                  });
+                },
+              ),
+              if (scope != BudgetScope.monthly) ...[
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  value: scopeKey,
+                  decoration: InputDecoration(
+                    labelText: scope == BudgetScope.category
+                        ? 'Category'
+                        : 'Payment method',
+                    prefixIcon: Icon(
+                      scope == BudgetScope.category
+                          ? Icons.category_outlined
+                          : Icons.account_balance_wallet_outlined,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  items: scope == BudgetScope.category
+                      ? categoryItems
+                      : paymentItems,
+                  onChanged: (value) {
+                    setState(() {
+                      scopeKey = value;
+                      error = null;
+                    });
+                  },
+                ),
+              ],
+              const SizedBox(height: 14),
+              TextField(
+                controller: amountController,
+                autofocus: widget.existing == null,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Budget amount',
+                  prefixText: '৳ ',
+                  prefixIcon: const Icon(Icons.payments_outlined),
+                  errorText: error,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onChanged: (_) {
+                  if (error != null) setState(() => error = null);
+                },
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Rollover unused amount'),
+                subtitle: const Text(
+                  'Carry unused budget into the next month',
+                ),
+                value: rollover,
+                onChanged: (value) {
+                  setState(() => rollover = value);
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: submit,
+                  icon: Icon(
+                    widget.existing == null
+                        ? Icons.add
+                        : Icons.save_outlined,
+                  ),
+                  label: Text(
+                    widget.existing == null
+                        ? 'Create budget'
+                        : 'Save changes',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
               ),
             ],
-            onChanged: (value) => setState(() {
-              _scope = value ?? BudgetScope.monthly;
-              _scopeKey = null;
-            }),
           ),
-          if (_scope != BudgetScope.monthly) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _scope == BudgetScope.category
-                  ? categories.any((category) => category.id == _scopeKey)
-                      ? _scopeKey
-                      : null
-                  : PaymentMethod.values.any(
-                      (method) => method.name == _scopeKey,
-                    )
-                      ? _scopeKey
-                      : null,
-              decoration: InputDecoration(
-                labelText: _scope == BudgetScope.category
-                    ? 'Category'
-                    : 'Wallet/payment method',
+        ),
+      ),
+    );
+  }
+
+  String _formatLabel(String value) {
+    return value
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map(
+          (word) => word.isEmpty
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1)}',
+    )
+        .join(' ');
+  }
+}
+
+class _BudgetDraft {
+  const _BudgetDraft({
+    required this.scope,
+    required this.scopeKey,
+    required this.amount,
+    required this.rollover,
+  });
+
+  final BudgetScope scope;
+  final String? scopeKey;
+  final double amount;
+  final bool rollover;
+}
+
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader({required this.month});
+
+  final DateTime month;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: const Icon(
+              Icons.account_balance_outlined,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Budget overview',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              items: _scope == BudgetScope.category
-                  ? categories
-                      .where((category) => category.type == CategoryType.expense)
-                      .map((category) => DropdownMenuItem(
-                            value: category.id,
-                            child: Text(category.name),
-                          ))
-                      .toList()
-                  : PaymentMethod.values
-                      .map((method) => DropdownMenuItem(
-                            value: method.name,
-                            child: Text(method.name),
-                          ))
-                      .toList(),
-              onChanged: (value) => setState(() => _scopeKey = value),
-            ),
-          ],
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Budget amount',
-              prefixText: '৳ ',
-            ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Rollover unused amount'),
-            subtitle: const Text('Carry last month’s unused budget forward'),
-            value: _rollover,
-            onChanged: (value) => setState(() => _rollover = value),
-          ),
-          FilledButton.icon(
-            onPressed: _save,
-            icon: Icon(
-              _editingBudget == null
-                  ? Icons.save_outlined
-                  : Icons.edit_outlined,
-            ),
-            label: Text(
-              _editingBudget == null ? 'Save budget' : 'Update budget',
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Budget history and status',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('MMMM yyyy').format(month),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
-          ),
-          const SizedBox(height: 8),
-          budgets.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Text('Unable to load budgets: $error'),
-            data: (all) {
-              final monthBudgets = all.where(
-                (budget) =>
-                    budget.year == _month.year &&
-                    budget.month == _month.month,
-              ).toList()
-                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-
-              if (monthBudgets.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    'No budgets set for this month.',
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              }
-
-              return Column(
-              children: monthBudgets.map((budget) {
-                final spent = _spent(items, budget);
-                final effectiveAmount = _effectiveAmount(budget, all, items);
-                final percent = effectiveAmount <= 0
-                    ? (spent > 0 ? double.infinity : 0.0)
-                    : spent / effectiveAmount * 100;
-                final isExceeded = spent >= effectiveAmount &&
-                    effectiveAmount > 0;
-                final status = isExceeded
-                    ? 'Exceeded'
-                    : percent >= 90
-                        ? 'Critical'
-                        : percent >= 75
-                            ? 'Warning'
-                            : 'On track';
-                final color = isExceeded
-                    ? Colors.red
-                    : percent >= 90
-                        ? Colors.deepOrange
-                        : percent >= 75
-                            ? Colors.amber.shade800
-                            : Colors.green;
-                return Card(
-                  child: ListTile(
-                    title: Text(_budgetLabel(budget, categories)),
-                    subtitle: Text(
-                      '${AppUtils.formatCurrency(spent)} of '
-                      '${AppUtils.formatCurrency(effectiveAmount)}'
-                      '${budget.rollover ? ' • rollover' : ''}',
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: color.withOpacity(.12),
-                      child: Icon(Icons.track_changes_outlined, color: color),
-                    ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: color.withOpacity(.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            status,
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 28,
-                          child: PopupMenuButton<String>(
-                            padding: EdgeInsets.zero,
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                _startEditing(budget);
-                              } else if (value == 'delete') {
-                                _deleteBudget(budget);
-                              }
-                            },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Text('Edit'),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Delete'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-            },
-          ),
-          const SizedBox(height: 16),
-          _MonthComparison(
-            transactions: items,
-            month: _month,
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+}
 
-  void _clearEditingBudget() {
-    _editingBudget = null;
-    _amount.clear();
-    _scope = BudgetScope.monthly;
-    _scopeKey = null;
-    _rollover = false;
+class _BudgetSummaryCard extends StatelessWidget {
+  const _BudgetSummaryCard({
+    required this.budgets,
+    required this.allBudgets,
+    required this.transactions,
+  });
+
+  final List<Budget> budgets;
+  final List<Budget> allBudgets;
+  final List<Transaction> transactions;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalBudget = budgets.fold<double>(
+      0,
+          (sum, budget) => sum + _effectiveAmount(budget),
+    );
+
+    final totalSpent = budgets.fold<double>(
+      0,
+          (sum, budget) => sum + _spent(budget),
+    );
+
+    final remaining = totalBudget - totalSpent;
+    final usage = totalBudget <= 0 ? 0.0 : totalSpent / totalBudget;
+    final progress = usage.clamp(0.0, 1.0);
+    final color = usage >= 1
+        ? Colors.red
+        : usage >= 0.9
+        ? Colors.orange
+        : Colors.green;
+
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Monthly budget status',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${(usage * 100).round()}% used',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryValue(
+                    label: 'Available budget',
+                    value: AppUtils.formatCurrency(totalBudget),
+                  ),
+                ),
+                Expanded(
+                  child: _SummaryValue(
+                    label: 'Spent',
+                    value: AppUtils.formatCurrency(totalSpent),
+                  ),
+                ),
+                Expanded(
+                  child: _SummaryValue(
+                    label: remaining >= 0 ? 'Remaining' : 'Over budget',
+                    value: AppUtils.formatCurrency(remaining.abs()),
+                    color: remaining >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(8),
+              color: color,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _spent(Budget budget) {
+    return transactions
+        .where((item) {
+      final date = item.date.toLocal();
+      final sameMonth = date.year == budget.year &&
+          date.month == budget.month;
+
+      final scopeMatches = budget.scope == BudgetScope.monthly ||
+          budget.scope == BudgetScope.category &&
+              item.categoryId == budget.scopeKey ||
+          budget.scope == BudgetScope.wallet &&
+              item.paymentMethod.name == budget.scopeKey;
+
+      return sameMonth &&
+          item.type == TransactionType.expense &&
+          scopeMatches;
+    })
+        .fold<double>(0, (sum, item) => sum + item.amount);
+  }
+
+  double _effectiveAmount(Budget budget) {
+    if (!budget.rollover) return budget.amount;
+
+    final previousMonth = DateTime(
+      budget.year,
+      budget.month - 1,
+    );
+
+    final previous = allBudgets.where(
+          (candidate) =>
+      candidate.scope == budget.scope &&
+          candidate.scopeKey == budget.scopeKey &&
+          candidate.year == previousMonth.year &&
+          candidate.month == previousMonth.month,
+    );
+
+    if (previous.isEmpty) return budget.amount;
+
+    final previousBudget = previous.first;
+    final previousSpent = _spent(previousBudget);
+    final unused = previousBudget.amount - previousSpent;
+
+    return budget.amount + (unused > 0 ? unused : 0);
+  }
+}
+
+class _BudgetCard extends StatelessWidget {
+  const _BudgetCard({
+    required this.budget,
+    required this.categories,
+    required this.allBudgets,
+    required this.transactions,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final Budget budget;
+  final List<Category> categories;
+  final List<Budget> allBudgets;
+  final List<Transaction> transactions;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final spent = _spent();
+    final effectiveAmount = _effectiveAmount();
+    final usage = effectiveAmount <= 0 ? 0.0 : spent / effectiveAmount;
+    final progress = usage.clamp(0.0, 1.0);
+    final remaining = effectiveAmount - spent;
+    final color = usage >= 1
+        ? Colors.red
+        : usage >= 0.9
+        ? Colors.orange
+        : usage >= 0.75
+        ? Colors.amber.shade800
+        : Colors.green;
+
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: color.withOpacity(0.12),
+                  child: Icon(
+                    Icons.track_changes_outlined,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _label(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        budget.rollover ? 'Rollover enabled' : 'Fixed budget',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit') onEdit();
+                    if (value == 'delete') onDelete();
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Edit'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryValue(
+                    label: 'Budget',
+                    value: AppUtils.formatCurrency(effectiveAmount),
+                  ),
+                ),
+                Expanded(
+                  child: _SummaryValue(
+                    label: 'Spent',
+                    value: AppUtils.formatCurrency(spent),
+                    color: color,
+                  ),
+                ),
+                Expanded(
+                  child: _SummaryValue(
+                    label: remaining >= 0 ? 'Left' : 'Over',
+                    value: AppUtils.formatCurrency(remaining.abs()),
+                    color: remaining >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            LinearProgressIndicator(
+              value: progress,
+              minHeight: 7,
+              borderRadius: BorderRadius.circular(8),
+              color: color,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                '${(usage * 100).round()}% used',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _label() {
+    final month = DateFormat('MMM yyyy').format(
+      DateTime(budget.year, budget.month),
+    );
+
+    switch (budget.scope) {
+      case BudgetScope.monthly:
+        return 'Monthly budget • $month';
+      case BudgetScope.category:
+        final match = categories.where(
+              (category) => category.id == budget.scopeKey,
+        );
+        return 'Category • ${match.isEmpty ? budget.scopeKey : match.first.name}';
+      case BudgetScope.wallet:
+        return 'Payment • ${budget.scopeKey}';
+    }
+  }
+
+  double _spent() {
+    return transactions
+        .where((item) {
+      final date = item.date.toLocal();
+      final sameMonth = date.year == budget.year &&
+          date.month == budget.month;
+
+      final scopeMatches = budget.scope == BudgetScope.monthly ||
+          budget.scope == BudgetScope.category &&
+              item.categoryId == budget.scopeKey ||
+          budget.scope == BudgetScope.wallet &&
+              item.paymentMethod.name == budget.scopeKey;
+
+      return sameMonth &&
+          item.type == TransactionType.expense &&
+          scopeMatches;
+    })
+        .fold<double>(0, (sum, item) => sum + item.amount);
+  }
+
+  double _effectiveAmount() {
+    if (!budget.rollover) return budget.amount;
+
+    final previousMonth = DateTime(
+      budget.year,
+      budget.month - 1,
+    );
+
+    final previous = allBudgets.where(
+          (candidate) =>
+      candidate.scope == budget.scope &&
+          candidate.scopeKey == budget.scopeKey &&
+          candidate.year == previousMonth.year &&
+          candidate.month == previousMonth.month,
+    );
+
+    if (previous.isEmpty) return budget.amount;
+
+    final previousBudget = previous.first;
+    final previousSpent = transactions
+        .where((item) {
+      final date = item.date.toLocal();
+      final sameMonth = date.year == previousBudget.year &&
+          date.month == previousBudget.month;
+
+      final scopeMatches =
+          previousBudget.scope == BudgetScope.monthly ||
+              previousBudget.scope == BudgetScope.category &&
+                  item.categoryId == previousBudget.scopeKey ||
+              previousBudget.scope == BudgetScope.wallet &&
+                  item.paymentMethod.name == previousBudget.scopeKey;
+
+      return sameMonth &&
+          item.type == TransactionType.expense &&
+          scopeMatches;
+    })
+        .fold<double>(0, (sum, item) => sum + item.amount);
+
+    final unused = previousBudget.amount - previousSpent;
+    return budget.amount + (unused > 0 ? unused : 0);
   }
 }
 
 class _MonthComparison extends StatelessWidget {
-  const _MonthComparison({required this.transactions, required this.month});
+  const _MonthComparison({
+    required this.transactions,
+    required this.month,
+  });
+
   final List<Transaction> transactions;
   final DateTime month;
-
-  double _total(DateTime value) => transactions.where((item) {
-        final date = item.date.toLocal();
-        return item.type == TransactionType.expense &&
-            date.year == value.year &&
-            date.month == value.month;
-      }).fold(0, (sum, item) => sum + item.amount);
 
   @override
   Widget build(BuildContext context) {
     final current = _total(month);
-    final previous = _total(DateTime(month.year, month.month - 1));
+    final previous = _total(
+      DateTime(month.year, month.month - 1),
+    );
     final difference = current - previous;
+    final isImproved = difference <= 0;
+
     return Card(
-      child: ListTile(
-        leading: const Icon(Icons.compare_arrows_outlined),
-        title: const Text('Current vs previous month'),
-        subtitle: Text(
-          '${AppUtils.formatCurrency(current)} vs '
-          '${AppUtils.formatCurrency(previous)}',
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current vs previous month',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryValue(
+                    label: DateFormat('MMM yyyy').format(
+                      DateTime(month.year, month.month - 1),
+                    ),
+                    value: AppUtils.formatCurrency(previous),
+                    color: Colors.orange,
+                  ),
+                ),
+                Expanded(
+                  child: _SummaryValue(
+                    label: DateFormat('MMM yyyy').format(month),
+                    value: AppUtils.formatCurrency(current),
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            Row(
+              children: [
+                Icon(
+                  isImproved ? Icons.trending_down : Icons.trending_up,
+                  color: isImproved ? Colors.green : Colors.red,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isImproved
+                        ? 'Spending improved compared with last month'
+                        : 'Spending increased compared with last month',
+                    style: TextStyle(
+                      color: isImproved ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${difference >= 0 ? '+' : '-'}'
+                      '${AppUtils.formatCurrency(difference.abs())}',
+                  style: TextStyle(
+                    color: isImproved ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        trailing: Text(
-          '${difference >= 0 ? '+' : '-'}'
-          '${AppUtils.formatCurrency(difference.abs())}',
-          style: TextStyle(
-            color: difference <= 0 ? Colors.green : Colors.red,
-            fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  double _total(DateTime value) {
+    return transactions
+        .where((item) {
+      final date = item.date.toLocal();
+      return item.type == TransactionType.expense &&
+          date.year == value.year &&
+          date.month == value.month;
+    })
+        .fold<double>(0, (sum, item) => sum + item.amount);
+  }
+}
+
+class _SummaryValue extends StatelessWidget {
+  const _SummaryValue({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 5),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            maxLines: 1,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyBudgetState extends StatelessWidget {
+  const _EmptyBudgetState({required this.onAdd});
+
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          children: [
+            Icon(
+              Icons.account_balance_outlined,
+              size: 54,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'No budget set for this month',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Create a budget to track your spending progress.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Create budget'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
         ),
       ),
     );
