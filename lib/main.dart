@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import 'config/routes/app_router.dart';
 import 'config/theme/app_theme.dart';
@@ -18,7 +16,7 @@ void main() async {
 }
 
 class PocketLedgerApp extends ConsumerWidget {
-  const PocketLedgerApp({Key? key}) : super(key: key);
+  const PocketLedgerApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

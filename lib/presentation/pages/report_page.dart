@@ -57,7 +57,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               context.pushNamed(AppRoutes.previousExpanseName);
             },
             padding: const EdgeInsets.only(right: 16),
-            icon: const Icon(Icons.history_edu_outlined),
+            icon: const Icon(Icons.bar_chart_outlined),
           ),
         ],
       ),

@@ -32,6 +32,15 @@ class AppConstants {
     'Entertainment',
     'Education',
     'Mobile/Internet',
+    'House Rent',
+    'Fatema Salary',
+    'Bike Oil',
+    'Baby Medicine',
+    'Baby Food',
+    'Monthly Bazaar',
+    'Daliy Bazaar',
+    'Baby Food',
+    'Baby Milk',
     'Other',
   ];
 
