@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_router.dart';
+import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/database_provider.dart';
 import '../providers/limit_provider.dart';
@@ -124,9 +125,7 @@ class SettingsPage extends ConsumerWidget {
                 icon: Icons.repeat_outlined,
                 title: 'Recurring expenses',
                 subtitle: 'Manage subscriptions and recurring bills',
-                onTap: () => context.pushNamed(
-                  AppRoutes.recurringExpensesName,
-                ),
+                onTap: () => context.pushNamed(AppRoutes.recurringExpensesName),
               ),
             ],
           ),
@@ -169,10 +168,7 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
-Future<void> _clearLocalDatabase(
-    BuildContext context,
-    WidgetRef ref,
-    ) async {
+Future<void> _clearLocalDatabase(BuildContext context, WidgetRef ref) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
@@ -180,7 +176,7 @@ Future<void> _clearLocalDatabase(
         title: const Text('Clear local database?'),
         content: const Text(
           'All transactions, categories, recurring expenses, '
-              'payment methods, and monthly limits will be permanently deleted.',
+          'payment methods, and monthly limits will be permanently deleted.',
         ),
         actions: [
           TextButton(
@@ -190,9 +186,7 @@ Future<void> _clearLocalDatabase(
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.of(dialogContext).pop(true);
             },
@@ -209,10 +203,15 @@ Future<void> _clearLocalDatabase(
     await ref.read(databaseProvider).clearAllData();
 
     ref.invalidate(allTransactionsProvider);
+    ref.invalidate(monthlyTransactionsProvider);
+    ref.invalidate(monthlyTotalProvider);
     ref.invalidate(allCategoriesProvider);
+    ref.invalidate(categoriesByTypeProvider);
     ref.invalidate(allRecurringRulesProvider);
+    ref.invalidate(activeRecurringRulesProvider);
     ref.invalidate(allLimitsProvider);
     ref.invalidate(monthlyLimitProvider);
+    ref.invalidate(budgetsProvider);
 
     if (!context.mounted) return;
 
@@ -256,15 +255,11 @@ class _SettingsSection extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 10),
           Card(
             elevation: 0,
