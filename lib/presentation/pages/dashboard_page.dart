@@ -142,7 +142,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
           IconButton(
             tooltip: 'Settings',
-            onPressed: () => context.go(AppRoutes.settings),
+            onPressed: () => context.goNamed(AppRoutes.settingsName),
             icon: const Icon(Icons.settings_outlined),
           ),
           const SizedBox(width: 8),
@@ -199,7 +199,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         title: 'Today’s transactions',
                         actionLabel: 'View all',
                         onAction: () {
-                          context.go(AppRoutes.transactions);
+                          context.goNamed(AppRoutes.transactionsName);
                         },
                       ),
                       const SizedBox(height: 10),
@@ -778,7 +778,7 @@ class _QuickActions extends StatelessWidget {
       children: [
         Expanded(
           child: FilledButton.icon(
-            onPressed: () => context.push(AppRoutes.addTransaction),
+            onPressed: () => context.pushNamed(AppRoutes.addTransactionName),
             icon: const Icon(Icons.add),
             label: const Text('Add expense'),
           ),
@@ -786,7 +786,7 @@ class _QuickActions extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () => context.push(AppRoutes.addTransaction),
+            onPressed: () => context.pushNamed(AppRoutes.addTransactionName),
             icon: const Icon(Icons.trending_up),
             label: const Text('Add income'),
           ),

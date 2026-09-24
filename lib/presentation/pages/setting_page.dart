@@ -118,7 +118,9 @@ class SettingsPage extends ConsumerWidget {
                 icon: Icons.repeat_outlined,
                 title: 'Recurring expenses',
                 subtitle: 'Manage subscriptions and recurring bills',
-                onTap: () => context.push('/recurring-expenses'),
+                onTap: () => context.pushNamed(
+                  AppRoutes.recurringExpensesName,
+                ),
               ),
             ],
           ),

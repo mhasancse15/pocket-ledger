@@ -25,7 +25,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: AppRoutes.dashboard,
-                name: 'dashboard',
+                name: AppRoutes.dashboardName,
                 builder: (context, state) => const DashboardPage(),
               ),
             ],
@@ -34,7 +34,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: AppRoutes.transactions,
-                name: 'transactions',
+                name: AppRoutes.transactionsName,
                 builder: (context, state) => const TransactionsPage(),
               ),
             ],
@@ -43,7 +43,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: AppRoutes.reports,
-                name: 'reports',
+                name: AppRoutes.reportsName,
                 builder: (context, state) => const ReportsPage(),
               ),
             ],
@@ -52,7 +52,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: AppRoutes.settings,
-                name: 'settings',
+                name: AppRoutes.settingsName,
                 builder: (context, state) => const SettingsPage(),
               ),
             ],
@@ -61,34 +61,34 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.addTransaction,
-        name: 'addTransaction',
+        name: AppRoutes.addTransactionName,
         builder: (context, state) => const AddTransactionPage(),
       ),
       GoRoute(
         path: AppRoutes.editTransaction,
-        name: 'editTransaction',
+        name: AppRoutes.editTransactionName,
         builder: (context, state) => EditTransactionPage(
           transactionId: state.pathParameters['id'] ?? '',
         ),
       ),
       GoRoute(
         path: AppRoutes.monthlyHistory,
-        name: 'monthlyHistory',
+        name: AppRoutes.monthlyHistoryName,
         builder: (context, state) => const MonthlyHistoryPage(),
       ),
       GoRoute(
         path: AppRoutes.categories,
-        name: 'categories',
+        name: AppRoutes.categoriesName,
         builder: (context, state) => const CategoriesPage(),
       ),
       GoRoute(
         path: AppRoutes.recurringExpenses,
-        name: 'recurringExpenses',
+        name: AppRoutes.recurringExpensesName,
         builder: (context, state) => const RecurringExpensesPage(),
       ),
       GoRoute(
         path: AppRoutes.previousExpanse,
-        name: 'previousExpanse',
+        name: AppRoutes.previousExpanseName,
         builder: (context, state) => const PreviousMonthSummaryPage(),
       ),
     ],

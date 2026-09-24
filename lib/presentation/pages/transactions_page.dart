@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/transaction_provider.dart';
@@ -179,7 +180,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/add-transaction'),
+        onPressed: () => context.pushNamed(AppRoutes.addTransactionName),
         icon: const Icon(Icons.add),
         label: const Text('Add transaction'),
       ),
@@ -780,7 +781,10 @@ class _TransactionCard extends StatelessWidget {
           ],
         ),
         onTap: () {
-          context.push('/edit-transaction/${transaction.id}');
+          context.pushNamed(
+            AppRoutes.editTransactionName,
+            pathParameters: {'id': transaction.id},
+          );
         },
       ),
     );

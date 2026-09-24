@@ -15,5 +15,16 @@ class AppRoutes {
   static const String categories = '/categories';
   static const String settings = '/settings';
   static const String recurringExpenses = '/recurring-expenses';
-  static const String  previousExpanse = '/previous-expenses';
+  static const String previousExpanse = '/previous-expenses';
+
+  static const String dashboardName = 'dashboard';
+  static const String transactionsName = 'transactions';
+  static const String reportsName = 'reports';
+  static const String settingsName = 'settings';
+  static const String addTransactionName = 'addTransaction';
+  static const String editTransactionName = 'editTransaction';
+  static const String monthlyHistoryName = 'monthlyHistory';
+  static const String categoriesName = 'categories';
+  static const String recurringExpensesName = 'recurringExpenses';
+  static const String previousExpanseName = 'previousExpanse';
 }

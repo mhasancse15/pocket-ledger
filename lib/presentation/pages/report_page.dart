@@ -54,7 +54,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         actions: [
           IconButton(
             onPressed: () {
-              context.go(AppRoutes.previousExpanse);
+              context.pushNamed(AppRoutes.previousExpanseName);
             },
             padding: const EdgeInsets.only(right: 16),
             icon: const Icon(Icons.history_edu_outlined),
