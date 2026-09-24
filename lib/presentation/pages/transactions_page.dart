@@ -755,7 +755,8 @@ class _TransactionCard extends StatelessWidget {
           padding: const EdgeInsets.only(top: 5),
           child: Text(
             '${transaction.categoryId} • '
-                '${_formatPaymentMethod(transaction.paymentMethod.name)}',
+                '${_formatPaymentMethod(transaction.paymentMethod.name)} • '
+                '${DateFormat('d MMM yyyy').format(transaction.date.toLocal())}',
           ),
         ),
         trailing: Column(

@@ -395,7 +395,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
               const SizedBox(height: 16),
 
-              // Note
+              // Transaction title
               TextFormField(
                 controller: _noteController,
                 enabled: !_isLoading,
@@ -403,8 +403,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                 maxLength: AppConstants.maxNoteLength,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  labelText: 'Note',
-                  hintText: 'Add a note about this transaction',
+                  labelText: 'Title',
+                  hintText: 'e.g. Grocery shopping or monthly salary',
                   prefixIcon: const Icon(Icons.notes_outlined),
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(

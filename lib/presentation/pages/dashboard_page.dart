@@ -597,35 +597,51 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _SummaryCard(
-            label: 'Income',
-            amount: income,
-            icon: Icons.arrow_downward,
-            color: Colors.green,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        final isSmallScreen = width < 420;
+        final gap = 12.0;
+
+        final twoColumnWidth = (width - gap) / 2;
+
+        final cards = [
+          SizedBox(
+            width: isSmallScreen ? twoColumnWidth : twoColumnWidth,
+            child: _SummaryCard(
+              label: 'Income',
+              amount: income,
+              icon: Icons.arrow_downward,
+              color: Colors.green,
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryCard(
-            label: 'Expense',
-            amount: expense,
-            icon: Icons.arrow_upward,
-            color: Colors.redAccent,
+          SizedBox(
+            width: isSmallScreen ? twoColumnWidth : twoColumnWidth,
+            child: _SummaryCard(
+              label: 'Expense',
+              amount: expense,
+              icon: Icons.arrow_upward,
+              color: Colors.redAccent,
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryCard(
-            label: 'Balance',
-            amount: balance,
-            icon: Icons.account_balance_wallet_outlined,
-            color: balance >= 0 ? Colors.blue : Colors.red,
+          SizedBox(
+            width: isSmallScreen ? width : twoColumnWidth,
+            child: _SummaryCard(
+              label: 'Balance',
+              amount: balance,
+              icon: Icons.account_balance_wallet_outlined,
+              color: balance >= 0 ? Colors.blue : Colors.red,
+            ),
           ),
-        ),
-      ],
+        ];
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: cards,
+        );
+      },
     );
   }
 }
@@ -645,33 +661,55 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Card(
       elevation: 0,
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: color,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 20,
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                AppUtils.formatCurrency(amount),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      AppUtils.formatCurrency(amount),
+                      maxLines: 1,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -717,7 +755,9 @@ class _TransactionCard extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        subtitle: Text(transaction.categoryId),
+        subtitle: Text(
+          'Date: ${DateFormat('d MMM yyyy').format(transaction.date.toLocal())}',
+        ),
         trailing: Text(
           '${isIncome ? '+' : '-'}'
               '${AppUtils.formatCurrency(transaction.amount)}',

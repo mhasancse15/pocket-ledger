@@ -319,13 +319,13 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
             ),
             const SizedBox(height: 16),
 
-            // Note Input
+            // Transaction title
             TextField(
               controller: _noteController,
               maxLines: 3,
               maxLength: AppConstants.maxNoteLength,
               decoration: InputDecoration(
-                labelText: 'Note (Optional)',
+                labelText: 'Title (Optional)',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

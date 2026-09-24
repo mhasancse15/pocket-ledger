@@ -144,6 +144,15 @@ class AppDatabase extends _$AppDatabase {
     return (select(recurringRuleTable)..where((r) => r.isActive.equals(true)))
         .get();
   }
+
+  Future<void> clearAllData() async {
+    await transaction(() async {
+      await delete(transactionTable).go();
+      await delete(categoryTable).go();
+      await delete(monthlyLimitTable).go();
+      await delete(recurringRuleTable).go();
+    });
+  }
 }
 
 LazyDatabase _openConnection() {
