@@ -31,6 +31,12 @@ extension DateTimeExt on DateTime {
 
 extension DoubleExt on double {
   String toFormattedCurrency({String symbol = '৳'}) {
-    return '$symbol${toStringAsFixed(2)}';
+    final value = toStringAsFixed(2);
+    final parts = value.split('.');
+    final grouped = parts.first.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match.group(1)},',
+    );
+    return '$symbol$grouped.${parts.last}';
   }
 }

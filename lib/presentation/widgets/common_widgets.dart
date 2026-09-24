@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/constants.dart';
+
 class BudgetStatusCard extends StatelessWidget {
   final String month;
   final double spent;
@@ -72,7 +74,7 @@ class BudgetStatusCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '৳${spent.toStringAsFixed(2)}',
+                      AppUtils.formatCurrency(spent),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ],
@@ -81,12 +83,14 @@ class BudgetStatusCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Limit: ৳${limit.toStringAsFixed(2)}',
+                      'Limit: ${AppUtils.formatCurrency(limit)}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      remaining >= 0 ? '৳${remaining.toStringAsFixed(2)} left' : '৳${remaining.toStringAsFixed(2)} over',
+                      remaining >= 0
+                          ? '${AppUtils.formatCurrency(remaining)} left'
+                          : '${AppUtils.formatCurrency(remaining)} over',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         color: remaining >= 0 ? Colors.green : Colors.red,
                       ),
@@ -185,7 +189,7 @@ class TransactionItemCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '$amountPrefix৳${amount.toStringAsFixed(2)}',
+              '$amountPrefix${AppUtils.formatCurrency(amount)}',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: amountColor,
                 fontWeight: FontWeight.bold,

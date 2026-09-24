@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 /// Core utilities and constants
 class AppConstants {
   // Currency
@@ -71,7 +73,8 @@ class AppConstants {
 class AppUtils {
   /// Format double as currency
   static String formatCurrency(double amount, {String symbol = '৳'}) {
-    return '$symbol${amount.toStringAsFixed(2)}';
+    final formatted = NumberFormat('#,##0.##').format(amount);
+    return '$symbol$formatted';
   }
 
   /// Parse currency string to double
