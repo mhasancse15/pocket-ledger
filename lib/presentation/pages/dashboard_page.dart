@@ -7,6 +7,7 @@ import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/monthly_limit.dart';
 import '../../domain/entities/transaction.dart';
+import '../providers/category_provider.dart';
 import '../providers/limit_provider.dart';
 import '../providers/transaction_provider.dart';
 
@@ -112,6 +113,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final transactionsAsync = ref.watch(
       monthlyTransactionsProvider(_monthKey),
     );
+    final categories = ref.watch(allCategoriesProvider).valueOrNull ?? const [];
+    final categoryNames = {
+      for (final category in categories) category.id: category.name,
+    };
 
     final limitAsync = ref.watch(
       monthlyLimitProvider(_monthKey),
@@ -213,6 +218,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _TransactionCard(
                               transaction: transaction,
+                              categoryName: categoryNames[transaction.categoryId],
                             ),
                           ),
                         ),
@@ -722,9 +728,11 @@ class _SummaryCard extends StatelessWidget {
 class _TransactionCard extends StatelessWidget {
   const _TransactionCard({
     required this.transaction,
+    this.categoryName,
   });
 
   final Transaction transaction;
+  final String? categoryName;
 
   @override
   Widget build(BuildContext context) {
@@ -748,7 +756,7 @@ class _TransactionCard extends StatelessWidget {
         title: Text(
           transaction.note?.trim().isNotEmpty == true
               ? transaction.note!
-              : transaction.categoryId,
+              : categoryName ?? transaction.categoryId,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(

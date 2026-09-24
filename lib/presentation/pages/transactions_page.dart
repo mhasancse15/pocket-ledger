@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/transaction.dart';
+import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
 
 class TransactionsPage extends ConsumerStatefulWidget {
@@ -36,6 +37,10 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   @override
   Widget build(BuildContext context) {
     final transactionsAsync = ref.watch(allTransactionsProvider);
+    final categories = ref.watch(allCategoriesProvider).valueOrNull ?? const [];
+    final categoryNames = {
+      for (final category in categories) category.id: category.name,
+    };
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -169,6 +174,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                         return _DateTransactionGroup(
                           date: entry.key,
                           transactions: entry.value,
+                          categoryNames: categoryNames,
                         );
                       },
                       childCount: groupedTransactions.length,
@@ -654,10 +660,12 @@ class _DateTransactionGroup extends StatelessWidget {
   const _DateTransactionGroup({
     required this.date,
     required this.transactions,
+    required this.categoryNames,
   });
 
   final DateTime date;
   final List<Transaction> transactions;
+  final Map<String, String> categoryNames;
 
   @override
   Widget build(BuildContext context) {
@@ -687,7 +695,10 @@ class _DateTransactionGroup extends StatelessWidget {
           ),
         ),
         ...transactions.map(
-              (transaction) => _TransactionCard(transaction: transaction),
+              (transaction) => _TransactionCard(
+                transaction: transaction,
+                categoryName: categoryNames[transaction.categoryId],
+              ),
         ),
       ],
     );
@@ -713,9 +724,11 @@ class _DateTransactionGroup extends StatelessWidget {
 class _TransactionCard extends StatelessWidget {
   const _TransactionCard({
     required this.transaction,
+    this.categoryName,
   });
 
   final Transaction transaction;
+  final String? categoryName;
 
   @override
   Widget build(BuildContext context) {
@@ -747,7 +760,7 @@ class _TransactionCard extends StatelessWidget {
         title: Text(
           transaction.note?.trim().isNotEmpty == true
               ? transaction.note!
-              : transaction.categoryId,
+              : categoryName ?? transaction.categoryId,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -755,7 +768,7 @@ class _TransactionCard extends StatelessWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 5),
           child: Text(
-            '${transaction.categoryId} • '
+            '${categoryName ?? transaction.categoryId} • '
                 '${_formatPaymentMethod(transaction.paymentMethod.name)} • '
                 '${DateFormat('d MMM yyyy').format(transaction.date.toLocal())}',
           ),
