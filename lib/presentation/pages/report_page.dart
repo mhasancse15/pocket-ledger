@@ -15,6 +15,39 @@ import '../providers/transaction_provider.dart';
 import '../widgets/empty_view.dart';
 import '../widgets/error_view.dart';
 
+/// -----------------------------------------------------------------------
+/// Design tokens
+/// Centralising spacing / radius keeps every card visually consistent and
+/// makes future tuning a one-line change instead of a find-and-replace.
+/// -----------------------------------------------------------------------
+class _Spacing {
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const xl = 20.0;
+  static const xxl = 28.0;
+}
+
+class _Radius {
+  static const sm = 12.0;
+  static const md = 16.0;
+  static const lg = 20.0;
+}
+
+/// Muted, professional palette instead of raw Material swatches — reads
+/// calmer at a glance and still gives each category clear separation.
+const _kCategoryColors = <Color>[
+  Color(0xFF2F6F5E), // teal
+  Color(0xFFB4682A), // burnt orange
+  Color(0xFF3D4E9C), // indigo
+  Color(0xFFA84470), // muted pink
+  Color(0xFFB08900), // amber
+  Color(0xFF6B4C9A), // purple
+  Color(0xFF2E6DA4), // blue
+  Color(0xFF3F8752), // green
+];
+
 class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
 
@@ -24,17 +57,6 @@ class ReportsPage extends ConsumerStatefulWidget {
 
 class _ReportsPageState extends ConsumerState<ReportsPage> {
   DateTime selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
-
-  final colors = const [
-    Colors.teal,
-    Colors.orange,
-    Colors.indigo,
-    Colors.pink,
-    Colors.amber,
-    Colors.purple,
-    Colors.blue,
-    Colors.green,
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -46,127 +68,131 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       appBar: AppBar(
         title: const Text(
           'Reports',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
+        centerTitle: false,
         actions: [
           IconButton(
             tooltip: 'Previous expense summary',
-            onPressed: () {
-              context.pushNamed(AppRoutes.previousExpanseName);
-            },
+            onPressed: () => context.pushNamed(AppRoutes.previousExpanseName),
             icon: const Icon(Icons.bar_chart_outlined),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: _Spacing.xs),
         ],
       ),
       body: transactionsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
             ErrorView(message: 'Unable to load transactions\n$error'),
-        data: (transactions) {
-          return categoriesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) =>
-                ErrorView(message: 'Unable to load categories\n$error'),
-            data: (categories) {
-              return _buildReport(context, transactions, categories, budgets);
-            },
-          );
-        },
+        data: (transactions) => categoriesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) =>
+              ErrorView(message: 'Unable to load categories\n$error'),
+          data: (categories) =>
+              _ReportBody(
+                transactions: transactions,
+                categories: categories,
+                budgets: budgets,
+                selectedMonth: selectedMonth,
+                onMonthChanged: (month) => setState(() => selectedMonth = month),
+                onRefresh: () async {
+                  ref.invalidate(allTransactionsProvider);
+                  ref.invalidate(allCategoriesProvider);
+                  ref.invalidate(budgetsProvider);
+                },
+              ),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildReport(
-    BuildContext context,
-    List<Transaction> transactions,
-    List<Category> categories,
-    List<Budget> budgets,
-  ) {
+/// Pure-data view built once the two async sources have resolved. Splitting
+/// this out of the State class keeps rebuild scope small and the file easy
+/// to scan top-to-bottom.
+class _ReportBody extends StatelessWidget {
+  const _ReportBody({
+    required this.transactions,
+    required this.categories,
+    required this.budgets,
+    required this.selectedMonth,
+    required this.onMonthChanged,
+    required this.onRefresh,
+  });
+
+  final List<Transaction> transactions;
+  final List<Category> categories;
+  final List<Budget> budgets;
+  final DateTime selectedMonth;
+  final ValueChanged<DateTime> onMonthChanged;
+  final Future<void> Function() onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
     final categoryNames = <String, String>{
       for (final category in categories) category.id: category.name,
     };
 
-    final expenses = transactions.where((transaction) {
-      final date = transaction.date.toLocal();
-
-      return transaction.type == TransactionType.expense &&
+    final expenses = transactions.where((t) {
+      final date = t.date.toLocal();
+      return t.type == TransactionType.expense &&
           date.year == selectedMonth.year &&
           date.month == selectedMonth.month;
     }).toList();
 
     final totals = <String, double>{};
-
     for (final expense in expenses) {
-      final categoryName =
-          categoryNames[expense.categoryId]?.trim().isNotEmpty == true
+      final name = categoryNames[expense.categoryId]?.trim().isNotEmpty == true
           ? categoryNames[expense.categoryId]!
           : 'Other';
-
-      totals.update(
-        categoryName,
-        (value) => value + expense.amount,
-        ifAbsent: () => expense.amount,
-      );
+      totals.update(name, (v) => v + expense.amount, ifAbsent: () => expense.amount);
     }
 
     final entries = totals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final totalExpense = expenses.fold<double>(
-      0,
-      (sum, expense) => sum + expense.amount,
-    );
+    final totalExpense = expenses.fold<double>(0, (sum, e) => sum + e.amount);
 
-    final monthBudgets = budgets.where((budget) {
-      return budget.year == selectedMonth.year &&
-          budget.month == selectedMonth.month;
+    final monthBudgets = budgets.where((b) {
+      return b.year == selectedMonth.year && b.month == selectedMonth.month;
     }).toList();
 
-    final monthlyBudgets = monthBudgets.where(
-      (budget) => budget.scope == BudgetScope.monthly,
-    );
+    final monthlyBudgets =
+    monthBudgets.where((b) => b.scope == BudgetScope.monthly);
 
     final categoryAndWalletBudgets = monthBudgets
-        .where((budget) => budget.scope != BudgetScope.monthly)
-        .fold<double>(0, (sum, budget) => sum + budget.amount);
+        .where((b) => b.scope != BudgetScope.monthly)
+        .fold<double>(0, (sum, b) => sum + b.amount);
 
     final totalBudget = monthlyBudgets.isNotEmpty
         ? monthlyBudgets.first.amount
         : categoryAndWalletBudgets;
 
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(allTransactionsProvider);
-        ref.invalidate(allCategoriesProvider);
-        ref.invalidate(budgetsProvider);
-      },
+      onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        padding: const EdgeInsets.fromLTRB(
+          _Spacing.lg,
+          _Spacing.md,
+          _Spacing.lg,
+          _Spacing.xxl,
+        ),
         children: [
-          _buildMonthSelector(context),
-
-          const SizedBox(height: 16),
-
-          _buildReportHeader(
-            context,
+          _MonthSelector(month: selectedMonth, onChanged: onMonthChanged),
+          const SizedBox(height: _Spacing.lg),
+          _SummaryHeader(
             totalExpense: totalExpense,
             transactionCount: expenses.length,
             topCategory: entries.isEmpty ? null : entries.first.key,
           ),
-
-          const SizedBox(height: 16),
-
-          _buildBudgetReport(
-            context,
+          const SizedBox(height: _Spacing.lg),
+          _BudgetCard(
             totalBudget: totalBudget,
             totalExpense: totalExpense,
             budgetCount: monthBudgets.length,
           ),
-
-          const SizedBox(height: 24),
-
+          const SizedBox(height: _Spacing.xl),
           if (entries.isEmpty)
             const EmptyView(
               icon: Icons.pie_chart_outline,
@@ -174,194 +200,157 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               message: 'Add expenses for this month to see your report.',
             )
           else ...[
-            Text(
-              'Spending breakdown',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 10),
-
-            _buildPieChart(
-              context,
-              entries: entries,
-              totalExpense: totalExpense,
-            ),
-
-            const SizedBox(height: 24),
-
-            Text(
-              'Category details',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 10),
-
-            ...entries.asMap().entries.map((entry) {
-              final name = entry.value.key;
-              final amount = entry.value.value;
-              final percentage = totalExpense == 0
-                  ? 0.0
-                  : amount / totalExpense;
-
-              final color = colors[entry.key % colors.length];
-
-              return Card(
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 10),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 19,
-                            backgroundColor: color.withOpacity(0.12),
-                            child: Icon(
-                              Icons.category_outlined,
-                              color: color,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            AppUtils.formatCurrency(amount),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: LinearProgressIndicator(
-                              value: percentage,
-                              minHeight: 7,
-                              borderRadius: BorderRadius.circular(8),
-                              color: color,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            '${(percentage * 100).round()}%',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+            _SectionHeader(title: 'Spending breakdown'),
+            const SizedBox(height: _Spacing.sm),
+            _BreakdownChart(entries: entries, totalExpense: totalExpense),
+            const SizedBox(height: _Spacing.xl),
+            _SectionHeader(title: 'Category details'),
+            const SizedBox(height: _Spacing.sm),
+            _CategoryList(entries: entries, totalExpense: totalExpense),
           ],
         ],
       ),
     );
   }
+}
 
-  Widget _buildMonthSelector(BuildContext context) {
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context)
+          .textTheme
+          .titleMedium
+          ?.copyWith(fontWeight: FontWeight.w700),
+    );
+  }
+}
+
+/// -----------------------------------------------------------------------
+/// Month selector — flat, bordered pill instead of a filled block, so it
+/// reads as a navigation control rather than competing with the summary
+/// card for visual weight.
+/// -----------------------------------------------------------------------
+class _MonthSelector extends StatelessWidget {
+  const _MonthSelector({required this.month, required this.onChanged});
+
+  final DateTime month;
+  final ValueChanged<DateTime> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: _Spacing.xs),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(_Radius.lg),
       ),
       child: Row(
         children: [
           IconButton(
-            onPressed: () {
-              setState(() {
-                selectedMonth = DateTime(
-                  selectedMonth.year,
-                  selectedMonth.month - 1,
-                );
-              });
-            },
+            onPressed: () =>
+                onChanged(DateTime(month.year, month.month - 1)),
             icon: const Icon(Icons.chevron_left),
           ),
           Expanded(
             child: Center(
               child: Text(
-                DateFormat('MMMM yyyy').format(selectedMonth),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                DateFormat('MMMM yyyy').format(month),
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ),
           IconButton(
-            onPressed: () {
-              setState(() {
-                selectedMonth = DateTime(
-                  selectedMonth.year,
-                  selectedMonth.month + 1,
-                );
-              });
-            },
+            onPressed: () =>
+                onChanged(DateTime(month.year, month.month + 1)),
             icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildReportHeader(
-    BuildContext context, {
-    required double totalExpense,
-    required int transactionCount,
-    required String? topCategory,
-  }) {
+/// -----------------------------------------------------------------------
+/// Summary header — solid surface instead of a gradient. Gradients read as
+/// decorative; a flat brand-tinted surface with clear type hierarchy reads
+/// as financial-product-grade.
+/// -----------------------------------------------------------------------
+class _SummaryHeader extends StatelessWidget {
+  const _SummaryHeader({
+    required this.totalExpense,
+    required this.transactionCount,
+    required this.topCategory,
+  });
+
+  final double totalExpense;
+  final int transactionCount;
+  final String? topCategory;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onPrimary = theme.colorScheme.onPrimary;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(_Spacing.xl),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.primary.withOpacity(0.72),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(_Radius.lg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Total expense', style: TextStyle(color: Colors.white70)),
-          const SizedBox(height: 6),
+          Text(
+            'TOTAL EXPENSE',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: onPrimary.withOpacity(0.72),
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: _Spacing.xs),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
               AppUtils.formatCurrency(totalExpense),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: onPrimary,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: _Spacing.lg),
+          Divider(color: onPrimary.withOpacity(0.16), height: 1),
+          const SizedBox(height: _Spacing.lg),
           Row(
             children: [
               Expanded(
-                child: _buildWhiteMetric(
+                child: _HeaderMetric(
+                  onColor: onPrimary,
                   label: 'Transactions',
                   value: '$transactionCount',
                 ),
               ),
+              Container(
+                width: 1,
+                height: 30,
+                color: onPrimary.withOpacity(0.16),
+              ),
+              const SizedBox(width: _Spacing.lg),
               Expanded(
-                child: _buildWhiteMetric(
+                child: _HeaderMetric(
+                  onColor: onPrimary,
                   label: 'Top category',
                   value: topCategory ?? 'N/A',
                 ),
@@ -372,297 +361,481 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       ),
     );
   }
+}
 
-  Widget _buildWhiteMetric({required String label, required String value}) {
+class _HeaderMetric extends StatelessWidget {
+  const _HeaderMetric({
+    required this.onColor,
+    required this.label,
+    required this.value,
+  });
+
+  final Color onColor;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(color: onColor.withOpacity(0.72), fontSize: 12),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: _Spacing.xs),
         Text(
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: onColor, fontWeight: FontWeight.w700),
         ),
       ],
     );
   }
+}
 
-  Widget _buildBudgetReport(
-    BuildContext context, {
-    required double totalBudget,
-    required double totalExpense,
-    required int budgetCount,
+/// -----------------------------------------------------------------------
+/// Budget card — same information, tighter visual noise: single accent
+/// color driven by status, a slim status chip with icon, and a proper
+/// legend under the progress bar instead of duplicated text blocks.
+/// -----------------------------------------------------------------------
+class _BudgetStatus {
+  const _BudgetStatus(this.label, this.color, this.icon);
+
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  static _BudgetStatus resolve({
+    required bool hasBudget,
+    required bool isExceeded,
+    required double usage,
   }) {
+    if (!hasBudget) {
+      return const _BudgetStatus('Not set', Colors.blueGrey, Icons.remove_circle_outline);
+    }
+    if (isExceeded) {
+      return const _BudgetStatus('Exceeded', Colors.red, Icons.error_outline);
+    }
+    if (usage >= 0.9) {
+      return const _BudgetStatus('Critical', Colors.orange, Icons.warning_amber_rounded);
+    }
+    if (usage >= 0.75) {
+      return _BudgetStatus('Warning', Colors.amber.shade800, Icons.info_outline);
+    }
+    return const _BudgetStatus('On track', Colors.green, Icons.check_circle_outline);
+  }
+}
+
+class _BudgetCard extends StatelessWidget {
+  const _BudgetCard({
+    required this.totalBudget,
+    required this.totalExpense,
+    required this.budgetCount,
+  });
+
+  final double totalBudget;
+  final double totalExpense;
+  final int budgetCount;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasBudget = totalBudget > 0;
-
     final remaining = totalBudget - totalExpense;
-
     final usage = hasBudget ? totalExpense / totalBudget : 0.0;
-
     final progress = usage.clamp(0.0, 1.0);
-
     final isExceeded = hasBudget && remaining < 0;
 
-    final statusColor = !hasBudget
-        ? Colors.blueGrey
-        : isExceeded
-        ? Colors.red
-        : usage >= 0.9
-        ? Colors.orange
-        : usage >= 0.75
-        ? Colors.amber.shade800
-        : Colors.green;
+    final status = _BudgetStatus.resolve(
+      hasBudget: hasBudget,
+      isExceeded: isExceeded,
+      usage: usage,
+    );
 
-    final statusText = !hasBudget
-        ? 'Not set'
-        : isExceeded
-        ? 'Exceeded'
-        : usage >= 0.9
-        ? 'Critical'
-        : usage >= 0.75
-        ? 'Warning'
-        : 'On track';
-
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(_Spacing.lg),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(_Radius.lg),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Budget report',
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      budgetCount == 0
+                          ? 'No budget configured'
+                          : '$budgetCount budget${budgetCount == 1 ? '' : 's'} configured',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _StatusChip(status: status),
+            ],
+          ),
+          const SizedBox(height: _Spacing.lg),
+          if (!hasBudget)
+            Text(
+              'Set a budget to compare your spending against a target.',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            )
+          else ...[
             Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    Icons.track_changes_outlined,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Budget report',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        budgetCount == 0
-                            ? 'No budget configured'
-                            : '$budgetCount budget${budgetCount == 1 ? '' : 's'} configured',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                  child: _BudgetValue(
+                    label: 'Budget',
+                    value: AppUtils.formatCurrency(totalBudget),
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                Expanded(
+                  child: _BudgetValue(
+                    label: 'Spent',
+                    value: AppUtils.formatCurrency(totalExpense),
+                    color: status.color,
                   ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+                Expanded(
+                  child: _BudgetValue(
+                    label: remaining >= 0 ? 'Remaining' : 'Over',
+                    value: AppUtils.formatCurrency(remaining.abs()),
+                    color: remaining >= 0 ? Colors.green : Colors.red,
                   ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            if (!hasBudget)
-              Text(
-                'Set a budget to compare your spending against a target.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
-            else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildBudgetValue(
-                      context,
-                      label: 'Budget',
-                      value: AppUtils.formatCurrency(totalBudget),
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildBudgetValue(
-                      context,
-                      label: 'Spent',
-                      value: AppUtils.formatCurrency(totalExpense),
-                      color: statusColor,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildBudgetValue(
-                      context,
-                      label: remaining >= 0 ? 'Remaining' : 'Over',
-                      value: AppUtils.formatCurrency(remaining.abs()),
-                      color: remaining >= 0 ? Colors.green : Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 18),
-
-              LinearProgressIndicator(
+            const SizedBox(height: _Spacing.lg),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(_Radius.sm),
+              child: LinearProgressIndicator(
                 value: progress,
-                minHeight: 9,
-                borderRadius: BorderRadius.circular(10),
-                color: statusColor,
-                backgroundColor: theme.colorScheme.outlineVariant,
+                minHeight: 8,
+                color: status.color,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
               ),
-
-              const SizedBox(height: 9),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${(usage * 100).round()}% used',
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+            ),
+            const SizedBox(height: _Spacing.sm),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${(usage * 100).round()}% used',
+                  style: TextStyle(color: status.color, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  remaining >= 0
+                      ? '${AppUtils.formatCurrency(remaining)} available'
+                      : 'Budget exceeded',
+                  style: TextStyle(
+                    color: remaining >= 0 ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.w600,
                   ),
-                  Text(
-                    remaining >= 0
-                        ? '${AppUtils.formatCurrency(remaining)} available'
-                        : 'Budget exceeded',
-                    style: TextStyle(
-                      color: remaining >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildBudgetValue(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Color color,
-  }) {
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final _BudgetStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: _Spacing.sm, vertical: 5),
+      decoration: BoxDecoration(
+        color: status.color.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(status.icon, size: 13, color: status.color),
+          const SizedBox(width: 4),
+          Text(
+            status.label,
+            style: TextStyle(
+              color: status.color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetValue extends StatelessWidget {
+  const _BudgetValue({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
           child: Text(
             value,
             maxLines: 1,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            style: TextStyle(color: color, fontWeight: FontWeight.w700),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildPieChart(
-    BuildContext context, {
-    required List<MapEntry<String, double>> entries,
-    required double totalExpense,
-  }) {
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            SizedBox(
-              height: 230,
-              child: PieChart(
-                PieChartData(
-                  centerSpaceRadius: 48,
-                  sectionsSpace: 3,
-                  sections: [
-                    for (var index = 0; index < entries.length; index++)
-                      PieChartSectionData(
-                        value: entries[index].value,
-                        color: colors[index % colors.length],
-                        radius: 76,
-                        title: _percentage(entries[index].value, totalExpense),
-                        titleStyle: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
-                ),
+/// -----------------------------------------------------------------------
+/// Breakdown chart — donut + legend inside one bordered surface, matching
+/// the budget card so the page reads as one system rather than a stack of
+/// differently-styled `Card`s.
+/// -----------------------------------------------------------------------
+class _BreakdownChart extends StatelessWidget {
+  const _BreakdownChart({required this.entries, required this.totalExpense});
+
+  final List<MapEntry<String, double>> entries;
+  final double totalExpense;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(_Spacing.lg),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(_Radius.lg),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 220,
+            child: PieChart(
+              PieChartData(
+                centerSpaceRadius: 52,
+                sectionsSpace: 2,
+                sections: [
+                  for (var i = 0; i < entries.length; i++)
+                    PieChartSectionData(
+                      value: entries[i].value,
+                      color: _kCategoryColors[i % _kCategoryColors.length],
+                      radius: 58,
+                      showTitle: false,
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 14,
-              runSpacing: 8,
-              children: [
-                for (var index = 0; index < entries.length; index++)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        radius: 5,
-                        backgroundColor: colors[index % colors.length],
-                      ),
-                      const SizedBox(width: 5),
-                      Text(entries[index].key),
-                    ],
-                  ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: _Spacing.lg),
+          Wrap(
+            spacing: _Spacing.lg,
+            runSpacing: _Spacing.sm,
+            children: [
+              for (var i = 0; i < entries.length; i++)
+                _LegendItem(
+                  color: _kCategoryColors[i % _kCategoryColors.length],
+                  label: entries[i].key,
+                  percentage: totalExpense == 0
+                      ? 0
+                      : (entries[i].value / totalExpense * 100).round(),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
 
-  String _percentage(double value, double total) {
-    if (total == 0) return '0%';
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    required this.percentage,
+  });
 
-    return '${(value / total * 100).round()}%';
+  final Color color;
+  final String label;
+  final int percentage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(width: 4),
+        Text(
+          '$percentage%',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// -----------------------------------------------------------------------
+/// Category list — the color dot now IS the category identifier (matching
+/// the chart), replacing a repeated generic icon that carried no meaning.
+/// -----------------------------------------------------------------------
+class _CategoryList extends StatelessWidget {
+  const _CategoryList({required this.entries, required this.totalExpense});
+
+  final List<MapEntry<String, double>> entries;
+  final double totalExpense;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(_Radius.lg),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < entries.length; i++) ...[
+            if (i > 0)
+              Divider(
+                height: 1,
+                indent: _Spacing.lg,
+                endIndent: _Spacing.lg,
+                color: theme.colorScheme.outlineVariant,
+              ),
+            _CategoryRow(
+              color: _kCategoryColors[i % _kCategoryColors.length],
+              name: entries[i].key,
+              amount: entries[i].value,
+              percentage:
+              totalExpense == 0 ? 0.0 : entries[i].value / totalExpense,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryRow extends StatelessWidget {
+  const _CategoryRow({
+    required this.color,
+    required this.name,
+    required this.amount,
+    required this.percentage,
+  });
+
+  final Color color;
+  final String name;
+  final double amount;
+  final double percentage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.all(_Spacing.lg),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: _Spacing.md),
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Text(
+                AppUtils.formatCurrency(amount),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: _Spacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(_Radius.sm),
+                  child: LinearProgressIndicator(
+                    value: percentage,
+                    minHeight: 6,
+                    color: color,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  ),
+                ),
+              ),
+              const SizedBox(width: _Spacing.sm),
+              SizedBox(
+                width: 36,
+                child: Text(
+                  '${(percentage * 100).round()}%',
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
