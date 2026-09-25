@@ -310,9 +310,6 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
       return Scaffold(
         backgroundColor: background,
         appBar: AppBar(
-          backgroundColor: background,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
           title: Text(
             'Edit transaction',
             style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
@@ -325,9 +322,6 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: background,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
         title: Text(
           'Edit transaction',
           style: TextStyle(color: textColor, fontWeight: FontWeight.w800),

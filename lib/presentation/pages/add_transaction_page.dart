@@ -175,9 +175,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: background,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
         title: Text(
           'Add transaction',
           style: TextStyle(color: textColor, fontWeight: FontWeight.w800),

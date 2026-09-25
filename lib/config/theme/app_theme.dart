@@ -21,9 +21,11 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(base.textTheme),
       scaffoldBackgroundColor: const Color(0xFFF7F8FC),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
+        foregroundColor: Color(0xFF23232B),
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation: 2,
+        shadowColor: Color(0x26000000),
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
@@ -57,9 +59,11 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(base.textTheme),
       scaffoldBackgroundColor: const Color(0xFF101114),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color(0xFF1A1B20),
+        foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation: 2,
+        shadowColor: Color(0x66000000),
       ),
       cardTheme: CardThemeData(
         color: const Color(0xFF1A1B20),

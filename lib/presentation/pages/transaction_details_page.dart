@@ -24,8 +24,6 @@ class TransactionDetailsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
         title: Text(
           'Transaction details',
           style: TextStyle(

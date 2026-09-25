@@ -123,9 +123,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return Scaffold(
       backgroundColor: pageBackground,
       appBar: AppBar(
-        backgroundColor: pageBackground,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
         toolbarHeight: 52,
         titleSpacing: 16,
         title: Text(

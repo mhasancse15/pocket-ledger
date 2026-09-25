@@ -52,9 +52,6 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
         toolbarHeight: 58,
         titleSpacing: 16,
         title: Text(
