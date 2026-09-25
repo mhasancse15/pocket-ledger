@@ -891,6 +891,7 @@ class _TargetEditorSheet extends StatefulWidget {
 class _TargetEditorSheetState extends State<_TargetEditorSheet> {
   late final TextEditingController controller;
   String? error;
+  bool isClosing = false;
 
   @override
   void initState() {
@@ -914,7 +915,13 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
       return;
     }
 
-    Navigator.pop(context, _TargetResult.save(amount));
+    close(_TargetResult.save(amount));
+  }
+
+  void close([_TargetResult? result]) {
+    if (isClosing || !mounted) return;
+    setState(() => isClosing = true);
+    Navigator.of(context).pop(result);
   }
 
   @override
@@ -973,7 +980,7 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
               SizedBox(
                 height: 52,
                 child: FilledButton.icon(
-                  onPressed: save,
+                  onPressed: isClosing ? null : save,
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                   ),
@@ -986,9 +993,9 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
                 SizedBox(
                   height: 48,
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context, const _TargetResult.remove());
-                    },
+                    onPressed: isClosing
+                        ? null
+                        : () => close(const _TargetResult.remove()),
                     icon: const Icon(Icons.delete_outline),
                     label: const Text('Remove target'),
                   ),

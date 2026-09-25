@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/utils/constants.dart';
 import '../../domain/entities/category.dart';
-import '../../domain/entities/transaction.dart';
 import '../providers/category_provider.dart';
-import '../providers/recurring_provider.dart';
-import '../providers/transaction_provider.dart';
-import '../widgets/category_helper.dart';
 import '../widgets/empty_view.dart';
 import '../widgets/error_view.dart';
 
-/// Commercial-style Categories screen. Page name unchanged.
 class CategoriesPage extends ConsumerStatefulWidget {
   const CategoriesPage({super.key});
 
@@ -21,7 +15,11 @@ class CategoriesPage extends ConsumerStatefulWidget {
 }
 
 class _CategoriesPageState extends ConsumerState<CategoriesPage> {
+  static const purple = Color(0xFF5D56AA);
+  static const textColor = Color(0xFF23232B);
+
   final searchController = TextEditingController();
+
   CategoryType selectedType = CategoryType.expense;
   String query = '';
 
@@ -31,13 +29,276 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
     super.dispose();
   }
 
+  Future<void> _legacyEditCategory([Category? existing]) async {
+    final nameController = TextEditingController(text: existing?.name ?? '');
+
+    final typeNotifier = ValueNotifier<CategoryType>(
+      existing?.type ?? selectedType,
+    );
+
+    final errorNotifier = ValueNotifier<String?>(null);
+
+    // Guards against a fast double-tap firing Navigator.pop twice, which
+    // throws "Looking up a deactivated widget's ancestor is unsafe" once
+    // the sheet is already mid-dismissal — this was the crash behind the
+    // Flutter error page showing up on button taps.
+    final isClosingNotifier = ValueNotifier<bool>(false);
+
+    (String, CategoryType)? result;
+
+    void closeSheet(
+      BuildContext sheetContext, [
+      (String, CategoryType)? value,
+    ]) {
+      if (isClosingNotifier.value || !sheetContext.mounted) return;
+      isClosingNotifier.value = true;
+
+      // Don't call FocusManager.unfocus() here. Popping the route already
+      // disposes its FocusScopeNode, which shifts focus away and closes
+      // the keyboard on its own. Manually unfocusing first raced against
+      // that teardown and was the actual cause of both the earlier
+      // '!_debugLocked' assertion and the '_dependents.isEmpty' one —
+      // it tore down the focus/overlay tree out of step with the
+      // Navigator's own InheritedElement cleanup.
+      Navigator.of(sheetContext).pop(value);
+    }
+
+    try {
+      result = await showModalBottomSheet<(String, CategoryType)>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54,
+        builder: (sheetContext) {
+          final mediaQuery = MediaQuery.of(sheetContext);
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+            child: SafeArea(
+              top: false,
+              child: Material(
+                color: Theme.of(sheetContext).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(26),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: mediaQuery.size.height * .78,
+                  ),
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    // The keyboard inset is already handled by the
+                    // AnimatedPadding above. Adding mediaQuery.viewInsets.bottom
+                    // here too was double-counting it, which is what pushed
+                    // the button row out of place (or off-screen) whenever
+                    // the keyboard was open.
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sheetHandle(context),
+                        const SizedBox(height: 22),
+                        Text(
+                          existing == null
+                              ? 'Create category'
+                              : 'Edit category',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          existing == null
+                              ? 'Create a category to organize your transactions.'
+                              : 'Update the category information.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(height: 20),
+                        ValueListenableBuilder<String?>(
+                          valueListenable: errorNotifier,
+                          builder: (context, error, _) {
+                            return TextField(
+                              controller: nameController,
+                              maxLength: 40,
+                              textCapitalization: TextCapitalization.words,
+                              decoration: InputDecoration(
+                                labelText: 'Category name',
+                                hintText: 'Example: Groceries',
+                                errorText: error,
+                                prefixIcon: Icon(
+                                  Icons.label_outline,
+                                  color: Theme.of(sheetContext)
+                                      .colorScheme
+                                      .primary,
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(sheetContext)
+                                    .colorScheme
+                                    .surface,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(sheetContext)
+                                        .colorScheme
+                                        .primary,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                              onChanged: (_) {
+                                if (errorNotifier.value != null) {
+                                  errorNotifier.value = null;
+                                }
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _bottomSheetTypeTabs(typeNotifier: typeNotifier),
+                        const SizedBox(height: 22),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: isClosingNotifier,
+                          builder: (context, isClosing, _) {
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: isClosing
+                                        ? null
+                                        : () => closeSheet(sheetContext),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                    ),
+                                    child: const Text('Cancel'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: isClosing
+                                        ? null
+                                        : () {
+                                            final name = nameController.text
+                                                .trim();
+
+                                            if (name.isEmpty) {
+                                              errorNotifier.value =
+                                                  'Enter a category name';
+                                              return;
+                                            }
+
+                                            closeSheet(sheetContext, (
+                                              name,
+                                              typeNotifier.value,
+                                            ));
+                                          },
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: Theme.of(sheetContext)
+                                          .colorScheme
+                                          .primary,
+                                      minimumSize: const Size.fromHeight(50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      existing == null ? 'Create' : 'Save',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      // The modal route future completes as soon as the pop animation starts.
+      // Defer owned-resource cleanup until the overlay has finished removing
+      // its inherited-widget dependents.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        nameController.dispose();
+        typeNotifier.dispose();
+        errorNotifier.dispose();
+        isClosingNotifier.dispose();
+      });
+    }
+
+    if (result == null || !mounted) return;
+
+    final now = DateTime.now();
+
+    final category = Category(
+      id: existing?.id ?? AppUtils.generateId(),
+      name: result.$1,
+      type: result.$2,
+      icon: existing?.icon,
+      color: existing?.color,
+      isArchived: false,
+      createdAt: existing?.createdAt ?? now,
+    );
+
+    final repository = ref.read(categoryRepositoryProvider);
+
+    final operation = existing == null
+        ? repository.addCategory(category)
+        : repository.updateCategory(category);
+
+    final outcome = await operation;
+
+    if (!mounted) return;
+
+    outcome.fold(
+      (failure) {
+        _showMessage(failure.message);
+      },
+      (_) {
+        ref.invalidate(allCategoriesProvider);
+        ref.invalidate(categoriesByTypeProvider(CategoryType.expense));
+        ref.invalidate(categoriesByTypeProvider(CategoryType.income));
+
+        _showMessage(
+          existing == null ? 'Category created' : 'Category updated',
+        );
+      },
+    );
+  }
+
   Future<void> editCategory([Category? existing]) async {
-    final result = await showDialog<CategoryEditorResult>(
+    final result = await showModalBottomSheet<(String, CategoryType)>(
       context: context,
-      builder: (_) => CategoryEditorDialog(
-        initialName: existing?.name ?? '',
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
+      builder: (_) => _CategoryEditorSheet(
+        existing: existing,
         initialType: existing?.type ?? selectedType,
-        isEditing: existing != null,
       ),
     );
 
@@ -46,8 +307,8 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
     final now = DateTime.now();
     final category = Category(
       id: existing?.id ?? AppUtils.generateId(),
-      name: result.name,
-      type: result.type,
+      name: result.$1,
+      type: result.$2,
       icon: existing?.icon,
       color: existing?.color,
       isArchived: false,
@@ -55,39 +316,46 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
     );
 
     final repository = ref.read(categoryRepositoryProvider);
-    final operation = existing == null
-        ? repository.addCategory(category)
-        : repository.updateCategory(category);
+    final outcome = existing == null
+        ? await repository.addCategory(category)
+        : await repository.updateCategory(category);
 
-    final outcome = await operation;
     if (!mounted) return;
-    outcome.fold((failure) => _message(failure.message), (_) {
+
+    outcome.fold((failure) => _showMessage(failure.message), (_) {
       ref.invalidate(allCategoriesProvider);
       ref.invalidate(categoriesByTypeProvider(CategoryType.expense));
       ref.invalidate(categoriesByTypeProvider(CategoryType.income));
-      _message(existing == null ? 'Category created' : 'Category updated');
+      _showMessage(existing == null ? 'Category created' : 'Category updated');
     });
   }
 
   Future<void> archiveCategory(Category category) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Archive category?'),
-        content: Text(
-          '“${category.name}” will remain available on historical transactions.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Archive category?'),
+          content: Text(
+            '“${category.name}” will remain available on historical transactions.',
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Archive'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: purple),
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Archive'),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed != true || !mounted) return;
@@ -96,13 +364,20 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
         .read(categoryRepositoryProvider)
         .deleteCategory(category.id);
 
-    result.fold((failure) => _message(failure.message), (_) {
-      ref.invalidate(allCategoriesProvider);
-      _message('Category archived');
-    });
+    if (!mounted) return;
+
+    result.fold(
+      (failure) {
+        _showMessage(failure.message);
+      },
+      (_) {
+        ref.invalidate(allCategoriesProvider);
+        _showMessage('Category archived');
+      },
+    );
   }
 
-  void _message(String message) {
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
@@ -110,25 +385,33 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(allCategoriesProvider);
-    final theme = Theme.of(context);
+    final categoriesAsync = ref.watch(allCategoriesProvider);
 
     return Scaffold(
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: const Text(
           'Categories',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: purple,
+        foregroundColor: Colors.white,
         onPressed: () => editCategory(),
         icon: const Icon(Icons.add),
-        label: const Text('New category'),
+        label: const Text(
+          'New category',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
-      body: categories.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            ErrorView(message: 'Unable to load categories\n$error'),
+      body: categoriesAsync.when(
+        loading: () =>
+            const Center(child: CircularProgressIndicator(color: purple)),
+        error: (error, _) {
+          return ErrorView(message: 'Unable to load categories\n$error');
+        },
         data: (items) {
           final filtered = items.where((category) {
             return category.type == selectedType &&
@@ -136,58 +419,28 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
           }).toList();
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             children: [
-              Text(
+              const Text(
                 'Organize your money',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Create categories that match the way you earn and spend.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
                 ),
               ),
               const SizedBox(height: 18),
-              TextField(
-                controller: searchController,
-                onChanged: (value) => setState(() => query = value),
-                decoration: InputDecoration(
-                  hintText: 'Search categories',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: () {
-                            searchController.clear();
-                            setState(() => query = '');
-                          },
-                          icon: const Icon(Icons.clear),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              SegmentedButton<CategoryType>(
-                segments: const [
-                  ButtonSegment(
-                    value: CategoryType.expense,
-                    label: Text('Expenses'),
-                    icon: Icon(Icons.arrow_upward),
-                  ),
-                  ButtonSegment(
-                    value: CategoryType.income,
-                    label: Text('Income'),
-                    icon: Icon(Icons.arrow_downward),
-                  ),
-                ],
-                selected: {selectedType},
-                onSelectionChanged: (value) {
-                  setState(() => selectedType = value.first);
-                },
-              ),
+              _searchField(),
+              const SizedBox(height: 12),
+              _pageTypeTabs(),
               const SizedBox(height: 18),
               if (filtered.isEmpty)
                 const EmptyView(
@@ -197,300 +450,523 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                       'Create a category to keep your transactions organized.',
                 )
               else
-                ...filtered.map(
-                  (category) => Card(
-                    elevation: 0,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 5,
-                      ),
-                      leading: CircleAvatar(
-                        backgroundColor: theme.colorScheme.primaryContainer,
-                        child: Icon(
-                          selectedType == CategoryType.income
-                              ? Icons.trending_up
-                              : Icons.category_outlined,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                      title: Text(
-                        category.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        category.isArchived ? 'Archived' : 'Active category',
-                      ),
-                      trailing: category.isArchived
-                          ? const Chip(label: Text('Archived'))
-                          : PopupMenuButton<String>(
-                              onSelected: (value) {
-                                if (value == 'edit') editCategory(category);
-                                if (value == 'archive')
-                                  archiveCategory(category);
-                              },
-                              itemBuilder: (_) => const [
-                                PopupMenuItem(
-                                  value: 'edit',
-                                  child: Text('Edit'),
-                                ),
-                                PopupMenuItem(
-                                  value: 'archive',
-                                  child: Text('Archive'),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ),
+                ...filtered.map(_categoryItem),
             ],
           );
         },
       ),
     );
   }
-}
 
-/// Commercial-style monthly history. Page name unchanged.
-class MonthlyHistoryPage extends ConsumerWidget {
-  const MonthlyHistoryPage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final transactions = ref.watch(allTransactionsProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Monthly history',
-          style: TextStyle(fontWeight: FontWeight.bold),
+  Widget _sheetHandle(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 38,
+        height: 4,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(.20),
+          borderRadius: BorderRadius.circular(10),
         ),
-      ),
-      body: transactions.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            ErrorView(message: 'Unable to load history\n$error'),
-        data: (items) {
-          final months = <DateTime>{
-            for (final item in items) DateTime(item.date.year, item.date.month),
-          }.toList()..sort((a, b) => b.compareTo(a));
-
-          if (months.isEmpty) {
-            return const EmptyView(
-              icon: Icons.calendar_month_outlined,
-              title: 'No monthly history yet',
-              message: 'Add transactions to start building your history.',
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            itemCount: months.length,
-            itemBuilder: (context, index) {
-              final month = months[index];
-              final monthItems = items.where((item) {
-                return item.date.year == month.year &&
-                    item.date.month == month.month;
-              }).toList();
-
-              final income = _total(monthItems, TransactionType.income);
-              final expense = _total(monthItems, TransactionType.expense);
-              final balance = income - expense;
-              final ratio = income <= 0
-                  ? 0.0
-                  : (expense / income).clamp(0.0, 1.0);
-
-              return Card(
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              DateFormat('MMMM yyyy').format(month),
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          Text(
-                            '${monthItems.length} transactions',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MiniMetric(
-                              label: 'Income',
-                              value: AppUtils.formatCurrency(income),
-                              color: Colors.green,
-                            ),
-                          ),
-                          Expanded(
-                            child: _MiniMetric(
-                              label: 'Expense',
-                              value: AppUtils.formatCurrency(expense),
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                          Expanded(
-                            child: _MiniMetric(
-                              label: 'Balance',
-                              value: AppUtils.formatCurrency(balance),
-                              color: balance >= 0 ? Colors.blue : Colors.red,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      LinearProgressIndicator(
-                        value: ratio,
-                        minHeight: 7,
-                        borderRadius: BorderRadius.circular(8),
-                        color: ratio >= 1 ? Colors.red : Colors.teal,
-                      ),
-                      const SizedBox(height: 7),
-                      Text(
-                        ratio == 0
-                            ? 'No expense data'
-                            : '${(ratio * 100).round()}% of income spent',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
       ),
     );
   }
 
-  double _total(List<Transaction> items, TransactionType type) {
-    return items
-        .where((item) => item.type == type)
-        .fold<double>(0, (sum, item) => sum + item.amount);
+  Widget _searchField() {
+    final theme = Theme.of(context);
+
+    return TextField(
+      controller: searchController,
+      onChanged: (value) {
+        setState(() {
+          query = value;
+        });
+      },
+      decoration: InputDecoration(
+        hintText: 'Search by category name',
+        prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
+        suffixIcon: query.isEmpty
+            ? null
+            : IconButton(
+                onPressed: () {
+                  searchController.clear();
+
+                  setState(() {
+                    query = '';
+                  });
+                },
+                icon: const Icon(Icons.clear),
+              ),
+        filled: true,
+        fillColor: theme.colorScheme.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+    );
   }
-}
 
-/// Commercial-style recurring expenses page. Page name unchanged.
-class RecurringExpensesPage extends ConsumerWidget {
-  const RecurringExpensesPage({super.key});
+  Widget _pageTypeTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _typeTabButton(
+              type: CategoryType.expense,
+              label: 'Expenses',
+              icon: Icons.north_east,
+              selectedOverride: selectedType,
+              onChanged: (value) {
+                setState(() {
+                  selectedType = value;
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: _typeTabButton(
+              type: CategoryType.income,
+              label: 'Income',
+              icon: Icons.south_west,
+              selectedOverride: selectedType,
+              onChanged: (value) {
+                setState(() {
+                  selectedType = value;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final rules = ref.watch(allRecurringRulesProvider);
+  Widget _bottomSheetTypeTabs({
+    required ValueNotifier<CategoryType> typeNotifier,
+  }) {
+    return ValueListenableBuilder<CategoryType>(
+      valueListenable: typeNotifier,
+      builder: (context, selected, _) {
+        return Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _typeTabButton(
+                  type: CategoryType.expense,
+                  label: 'Expense',
+                  icon: Icons.north_east,
+                  selectedOverride: selected,
+                  onChanged: (value) {
+                    typeNotifier.value = value;
+                  },
+                ),
+              ),
+              Expanded(
+                child: _typeTabButton(
+                  type: CategoryType.income,
+                  label: 'Income',
+                  icon: Icons.south_west,
+                  selectedOverride: selected,
+                  onChanged: (value) {
+                    typeNotifier.value = value;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Recurring expenses',
-          style: TextStyle(fontWeight: FontWeight.bold),
+  Widget _typeTabButton({
+    required CategoryType type,
+    required String label,
+    required IconData icon,
+    required ValueChanged<CategoryType> onChanged,
+    CategoryType? selectedOverride,
+  }) {
+    final currentType = selectedOverride ?? selectedType;
+    final isSelected = currentType == type;
+
+    final color = type == CategoryType.expense
+        ? const Color(0xFFE85E6F)
+        : const Color(0xFF00A578);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(13),
+      onTap: () {
+        onChanged(type);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(.10) : Colors.transparent,
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 19,
+              color: isSelected
+                  ? color
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? color
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Recurring expense form coming soon')),
-          );
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Add recurring'),
+    );
+  }
+
+  Widget _categoryItem(Category category) {
+    final isIncome = category.type == CategoryType.income;
+
+    final color = isIncome ? const Color(0xFF00A578) : const Color(0xFFE85E6F);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(17),
       ),
-      body: rules.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            ErrorView(message: 'Unable to load recurring expenses\n$error'),
-        data: (items) {
-          if (items.isEmpty) {
-            return const EmptyView(
-              icon: Icons.repeat_outlined,
-              title: 'No recurring expenses',
-              message:
-                  'Add subscriptions and regular bills to automate tracking.',
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final rule = items[index];
-
-              return Card(
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer,
-                    child: Icon(
-                      Icons.repeat,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  title: Text(
-                    rule.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 5),
-                    child: Text(
-                      '${rule.frequency.name} • next ${AppUtils.formatDate(rule.nextOccurrenceDate)}',
-                    ),
-                  ),
-                  trailing: Text(
-                    AppUtils.formatCurrency(rule.amount),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withOpacity(.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isIncome ? Icons.trending_up : Icons.category_outlined,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  category.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              );
-            },
-          );
-        },
+                const SizedBox(height: 4),
+                Text(
+                  category.isArchived
+                      ? 'Archived category'
+                      : isIncome
+                      ? 'Income category'
+                      : 'Expense category',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (category.isArchived)
+            const Chip(
+              label: Text('Archived'),
+              visualDensity: VisualDensity.compact,
+            )
+          else
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_horiz,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              onSelected: (value) {
+                if (value == 'edit') {
+                  editCategory(category);
+                }
+
+                if (value == 'archive') {
+                  archiveCategory(category);
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Edit')),
+                PopupMenuItem(value: 'archive', child: Text('Archive')),
+              ],
+            ),
+        ],
       ),
     );
   }
 }
 
-class _MiniMetric extends StatelessWidget {
-  const _MiniMetric({
-    required this.label,
-    required this.value,
-    required this.color,
+class _CategoryEditorSheet extends StatefulWidget {
+  const _CategoryEditorSheet({
+    required this.existing,
+    required this.initialType,
   });
 
-  final String label;
-  final String value;
-  final Color color;
+  final Category? existing;
+  final CategoryType initialType;
+
+  @override
+  State<_CategoryEditorSheet> createState() => _CategoryEditorSheetState();
+}
+
+class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
+  late final TextEditingController nameController;
+  late CategoryType selectedType;
+  String? error;
+  bool isClosing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.existing?.name ?? '');
+    selectedType = widget.initialType;
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
+
+  void close([(String, CategoryType)? result]) {
+    if (isClosing || !mounted) return;
+    setState(() => isClosing = true);
+    Navigator.of(context).pop(result);
+  }
+
+  void save() {
+    final name = nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => error = 'Enter a category name');
+      return;
+    }
+    close((name, selectedType));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 5),
-        Text(
-          value,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: color, fontWeight: FontWeight.bold),
+    final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final title = widget.existing == null ? 'Create category' : 'Edit category';
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+      child: SafeArea(
+        top: false,
+        child: Material(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: mediaQuery.size.height * .82,
+            ),
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withOpacity(.20),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text(
+                    title,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    widget.existing == null
+                        ? 'Create a category to organize your transactions.'
+                        : 'Update the category information.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    maxLength: 40,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      labelText: 'Category name',
+                      hintText: 'Example: Groceries',
+                      errorText: error,
+                      prefixIcon: const Icon(Icons.label_outline),
+                      filled: true,
+                      fillColor: theme.colorScheme.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    onChanged: (_) {
+                      if (error != null) setState(() => error = null);
+                    },
+                    onSubmitted: (_) => save(),
+                  ),
+                  const SizedBox(height: 12),
+                  _typeTabs(theme),
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isClosing ? null : close,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: isClosing ? null : save,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          child: Text(
+                            widget.existing == null ? 'Create' : 'Save',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _typeTabs(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          _typeTab(theme, CategoryType.expense, 'Expense', Icons.north_east),
+          _typeTab(theme, CategoryType.income, 'Income', Icons.south_west),
+        ],
+      ),
+    );
+  }
+
+  Widget _typeTab(
+    ThemeData theme,
+    CategoryType type,
+    String label,
+    IconData icon,
+  ) {
+    final selected = selectedType == type;
+    final color = type == CategoryType.expense
+        ? const Color(0xFFE85E6F)
+        : const Color(0xFF00A578);
+
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: isClosing ? null : () => setState(() => selectedType = type),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(
+            color: selected ? color.withOpacity(.10) : Colors.transparent,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 19,
+                color: selected ? color : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? color : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
