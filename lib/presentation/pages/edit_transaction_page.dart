@@ -11,10 +11,7 @@ import '../providers/category_provider.dart';
 import '../viewmodels/transaction_viewmodel.dart';
 
 class EditTransactionPage extends ConsumerStatefulWidget {
-  const EditTransactionPage({
-    required this.transactionId,
-    super.key,
-  });
+  const EditTransactionPage({required this.transactionId, super.key});
 
   final String transactionId;
 
@@ -23,11 +20,13 @@ class EditTransactionPage extends ConsumerStatefulWidget {
       _EditTransactionPageState();
 }
 
-class _EditTransactionPageState
-    extends ConsumerState<EditTransactionPage> {
-  static const purple = Color(0xFF5D56AA);
-  static const background = Color(0xFFF7F7FB);
-  static const textColor = Color(0xFF23232B);
+class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
+  Color get primary => Theme.of(context).colorScheme.primary;
+  Color get background => Theme.of(context).scaffoldBackgroundColor;
+  Color get textColor => Theme.of(context).colorScheme.onSurface;
+  Color get cardColor => Theme.of(context).colorScheme.surface;
+  Color get mutedColor => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color get borderColor => Theme.of(context).colorScheme.outlineVariant;
 
   final formKey = GlobalKey<FormState>();
 
@@ -38,8 +37,7 @@ class _EditTransactionPageState
   TransactionType transactionType = TransactionType.expense;
 
   String? selectedCategory;
-  String selectedPaymentMethod =
-      AppConstants.paymentMethods.first;
+  String selectedPaymentMethod = AppConstants.paymentMethods.first;
 
   Transaction? transaction;
 
@@ -85,8 +83,7 @@ class _EditTransactionPageState
         selectedDate = result.date;
         transactionType = result.type;
         selectedCategory = result.categoryId;
-        selectedPaymentMethod =
-            paymentMethodLabel(result.paymentMethod);
+        selectedPaymentMethod = paymentMethodLabel(result.paymentMethod);
         pageLoading = false;
       });
     } catch (error) {
@@ -110,9 +107,8 @@ class _EditTransactionPageState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: purple,
-            ),
+            colorScheme: Theme.of(context).colorScheme
+                .copyWith(primary: primary),
           ),
           child: child!,
         );
@@ -148,9 +144,7 @@ class _EditTransactionPageState
       return;
     }
 
-    final amount = double.tryParse(
-      amountController.text.trim(),
-    );
+    final amount = double.tryParse(amountController.text.trim());
 
     if (amount == null || amount <= 0) {
       showMessage('Enter a valid amount greater than ৳0.');
@@ -170,8 +164,7 @@ class _EditTransactionPageState
 
     try {
       final paymentMethod = PaymentMethod.values.firstWhere(
-            (method) =>
-        paymentMethodLabel(method) == selectedPaymentMethod,
+        (method) => paymentMethodLabel(method) == selectedPaymentMethod,
         orElse: () => PaymentMethod.cash,
       );
 
@@ -224,7 +217,7 @@ class _EditTransactionPageState
           title: const Text('Delete transaction?'),
           content: const Text(
             'This transaction will be permanently removed. '
-                'This action cannot be undone.',
+            'This action cannot be undone.',
           ),
           actions: [
             TextButton(
@@ -234,9 +227,7 @@ class _EditTransactionPageState
               child: const Text('Cancel'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
@@ -275,10 +266,7 @@ class _EditTransactionPageState
 
   void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -299,30 +287,22 @@ class _EditTransactionPageState
         return categories
             .where(
               (category) =>
-          !category.isArchived ||
-              category.id == selectedCategory,
-        )
+                  !category.isArchived || category.id == selectedCategory,
+            )
             .map(
               (category) => DropdownMenuItem<String>(
-            value: category.id,
-            child: Text(
-              category.name,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        )
+                value: category.id,
+                child: Text(category.name, overflow: TextOverflow.ellipsis),
+              ),
+            )
             .toList();
       },
     );
 
     if (pageLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: background,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: purple,
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator(color: primary)),
       );
     }
 
@@ -333,17 +313,12 @@ class _EditTransactionPageState
           backgroundColor: background,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
-          title: const Text(
+          title: Text(
             'Edit transaction',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
           ),
         ),
-        body: const Center(
-          child: Text('Transaction not found'),
-        ),
+        body: const Center(child: Text('Transaction not found')),
       );
     }
 
@@ -353,21 +328,15 @@ class _EditTransactionPageState
         backgroundColor: background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Edit transaction',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
         ),
         actions: [
           IconButton(
             tooltip: 'Delete transaction',
             onPressed: isLoading ? null : deleteTransaction,
-            icon: const Icon(
-              Icons.delete_outline,
-              color: Colors.redAccent,
-            ),
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
           ),
           const SizedBox(width: 8),
         ],
@@ -378,7 +347,7 @@ class _EditTransactionPageState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
             children: [
-              const Text(
+              Text(
                 'Update your transaction',
                 style: TextStyle(
                   color: textColor,
@@ -387,12 +356,9 @@ class _EditTransactionPageState
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Keep your income and expenses organized.',
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: mutedColor, fontSize: 14),
               ),
               const SizedBox(height: 18),
               typeSelector(),
@@ -408,25 +374,24 @@ class _EditTransactionPageState
                       label: 'Category',
                       icon: Icons.category_outlined,
                       suffix: categoriesAsync.isLoading
-                          ? const SizedBox(
-                        width: 17,
-                        height: 17,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: purple,
-                        ),
-                      )
+                          ? SizedBox(
+                              width: 17,
+                              height: 17,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: primary,
+                              ),
+                            )
                           : null,
                     ),
                     items: categoryItems,
-                    onChanged: isLoading ||
-                        categoriesAsync.isLoading
+                    onChanged: isLoading || categoriesAsync.isLoading
                         ? null
                         : (value) {
-                      setState(() {
-                        selectedCategory = value;
-                      });
-                    },
+                            setState(() {
+                              selectedCategory = value;
+                            });
+                          },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Select a category';
@@ -441,26 +406,25 @@ class _EditTransactionPageState
                     isExpanded: true,
                     decoration: inputDecoration(
                       label: 'Payment method',
-                      icon: Icons
-                          .account_balance_wallet_outlined,
+                      icon: Icons.account_balance_wallet_outlined,
                     ),
                     items: AppConstants.paymentMethods
                         .map(
                           (method) => DropdownMenuItem<String>(
-                        value: method,
-                        child: Text(formatLabel(method)),
-                      ),
-                    )
+                            value: method,
+                            child: Text(formatLabel(method)),
+                          ),
+                        )
                         .toList(),
                     onChanged: isLoading
                         ? null
                         : (value) {
-                      if (value == null) return;
+                            if (value == null) return;
 
-                      setState(() {
-                        selectedPaymentMethod = value;
-                      });
-                    },
+                            setState(() {
+                              selectedPaymentMethod = value;
+                            });
+                          },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Select a payment method';
@@ -473,10 +437,7 @@ class _EditTransactionPageState
               ),
               if (categoriesAsync.hasError)
                 Padding(
-                  padding: const EdgeInsets.only(
-                    top: 6,
-                    left: 12,
-                  ),
+                  padding: const EdgeInsets.only(top: 6, left: 12),
                   child: Text(
                     'Unable to load categories',
                     style: TextStyle(
@@ -493,35 +454,27 @@ class _EditTransactionPageState
               SizedBox(
                 height: 52,
                 child: FilledButton.icon(
-                  onPressed: isLoading
-                      ? null
-                      : updateTransaction,
+                  onPressed: isLoading ? null : updateTransaction,
                   style: FilledButton.styleFrom(
-                    backgroundColor: purple,
-                    disabledBackgroundColor:
-                    purple.withOpacity(.55),
+                    backgroundColor: primary,
+                    disabledBackgroundColor: primary.withOpacity(.55),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   icon: isLoading
-                      ? const SizedBox(
-                    width: 19,
-                    height: 19,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                      ? SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cardColor,
+                          ),
+                        )
                       : const Icon(Icons.save_outlined),
                   label: Text(
-                    isLoading
-                        ? 'Updating...'
-                        : 'Update transaction',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    isLoading ? 'Updating...' : 'Update transaction',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -536,11 +489,8 @@ class _EditTransactionPageState
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE4E4EA),
-        ),
       ),
       child: Row(
         children: [
@@ -579,15 +529,13 @@ class _EditTransactionPageState
       onTap: isLoading
           ? null
           : () {
-        changeTransactionType(type);
-      },
+              changeTransactionType(type);
+            },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
-          color: selected
-              ? color.withOpacity(0.10)
-              : Colors.transparent,
+          color: selected ? color.withOpacity(0.10) : Colors.transparent,
           borderRadius: BorderRadius.circular(13),
         ),
         child: Row(
@@ -596,16 +544,16 @@ class _EditTransactionPageState
             Icon(
               icon,
               size: 19,
-              color: selected ? color : Colors.black45,
+              color: selected
+                  ? color
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 7),
             Text(
               label,
               style: TextStyle(
-                color: selected ? color : Colors.black54,
-                fontWeight: selected
-                    ? FontWeight.bold
-                    : FontWeight.w500,
+                color: selected ? color : mutedColor,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
               ),
             ),
           ],
@@ -619,15 +567,11 @@ class _EditTransactionPageState
       controller: amountController,
       autofocus: false,
       enabled: !isLoading,
-      keyboardType: const TextInputType.numberWithOptions(
-        decimal: true,
-      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
-        FilteringTextInputFormatter.allow(
-          RegExp(r'^\d*\.?\d{0,2}'),
-        ),
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
       ],
-      style: const TextStyle(
+      style: TextStyle(
         color: textColor,
         fontSize: 22,
         fontWeight: FontWeight.w800,
@@ -636,13 +580,9 @@ class _EditTransactionPageState
         label: 'Amount',
         hint: '0.00',
         icon: Icons.payments_outlined,
-      ).copyWith(
-        prefixText: '৳ ',
-      ),
+      ).copyWith(prefixText: '৳ '),
       validator: (value) {
-        final amount = double.tryParse(
-          value?.trim() ?? '',
-        );
+        final amount = double.tryParse(value?.trim() ?? '');
 
         if (amount == null || amount <= 0) {
           return 'Enter an amount greater than ৳0';
@@ -679,9 +619,7 @@ class _EditTransactionPageState
           icon: Icons.calendar_today_outlined,
           suffix: const Icon(Icons.chevron_right),
         ),
-        child: Text(
-          DateFormat('EEE, d MMM yyyy').format(selectedDate),
-        ),
+        child: Text(DateFormat('EEE, d MMM yyyy').format(selectedDate)),
       ),
     );
   }
@@ -696,42 +634,28 @@ class _EditTransactionPageState
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(
-        icon,
-        color: purple,
-      ),
+      prefixIcon: Icon(icon, color: primary),
       suffixIcon: suffix,
       alignLabelWithHint: alignLabelWithHint,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: cardColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: Color(0xFFE4E4EA),
-        ),
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: Color(0xFFE4E4EA),
-        ),
+        borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: purple,
-          width: 1.5,
-        ),
+        borderSide: BorderSide(color: primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: Colors.redAccent,
-        ),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 14),
     );
   }
 
@@ -758,10 +682,10 @@ class _EditTransactionPageState
         .split(' ')
         .map(
           (word) => word.isEmpty
-          ? word
-          : '${word[0].toUpperCase()}'
-          '${word.substring(1)}',
-    )
+              ? word
+              : '${word[0].toUpperCase()}'
+                    '${word.substring(1)}',
+        )
         .join(' ');
   }
 }

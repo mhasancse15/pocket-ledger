@@ -14,15 +14,16 @@ class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key});
 
   @override
-  ConsumerState<AddTransactionPage> createState() =>
-      _AddTransactionPageState();
+  ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
 }
 
-class _AddTransactionPageState
-    extends ConsumerState<AddTransactionPage> {
-  static const purple = Color(0xFF5D56AA);
-  static const background = Color(0xFFF7F7FB);
-  static const textColor = Color(0xFF23232B);
+class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
+  Color get primary => Theme.of(context).colorScheme.primary;
+  Color get background => Theme.of(context).scaffoldBackgroundColor;
+  Color get textColor => Theme.of(context).colorScheme.onSurface;
+  Color get cardColor => Theme.of(context).colorScheme.surface;
+  Color get mutedColor => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color get borderColor => Theme.of(context).colorScheme.outlineVariant;
 
   final formKey = GlobalKey<FormState>();
 
@@ -61,9 +62,8 @@ class _AddTransactionPageState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: purple,
-            ),
+            colorScheme: Theme.of(context).colorScheme
+                .copyWith(primary: primary),
           ),
           child: child!,
         );
@@ -89,9 +89,7 @@ class _AddTransactionPageState
 
     if (!formKey.currentState!.validate()) return;
 
-    final amount = double.tryParse(
-      amountController.text.trim(),
-    );
+    final amount = double.tryParse(amountController.text.trim());
 
     if (amount == null || amount <= 0) {
       showMessage('Enter a valid amount greater than ৳0.');
@@ -104,7 +102,7 @@ class _AddTransactionPageState
       final now = DateTime.now();
 
       final paymentMethod = PaymentMethod.values.firstWhere(
-            (method) => method.name == selectedPaymentMethod,
+        (method) => method.name == selectedPaymentMethod,
         orElse: () => PaymentMethod.cash,
       );
 
@@ -122,9 +120,7 @@ class _AddTransactionPageState
         updatedAt: now,
       );
 
-      await ref
-          .read(transactionViewModelProvider)
-          .addTransaction(transaction);
+      await ref.read(transactionViewModelProvider).addTransaction(transaction);
 
       if (!mounted) return;
 
@@ -146,10 +142,7 @@ class _AddTransactionPageState
 
   void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -171,10 +164,10 @@ class _AddTransactionPageState
             .where((category) => !category.isArchived)
             .map(
               (category) => DropdownMenuItem<String>(
-            value: category.id,
-            child: Text(category.name),
-          ),
-        )
+                value: category.id,
+                child: Text(category.name),
+              ),
+            )
             .toList();
       },
     );
@@ -185,12 +178,9 @@ class _AddTransactionPageState
         backgroundColor: background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Add transaction',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
         ),
       ),
       body: SafeArea(
@@ -199,7 +189,7 @@ class _AddTransactionPageState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
             children: [
-              const Text(
+              Text(
                 'Record your transaction',
                 style: TextStyle(
                   color: textColor,
@@ -208,12 +198,9 @@ class _AddTransactionPageState
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Keep your income and expenses organized.',
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: mutedColor, fontSize: 14),
               ),
               const SizedBox(height: 18),
 
@@ -234,21 +221,19 @@ class _AddTransactionPageState
                       label: 'Category',
                       icon: Icons.category_outlined,
                       suffix: categoriesAsync.isLoading
-                          ? const SizedBox(
-                        width: 17,
-                        height: 17,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      )
+                          ? SizedBox(
+                              width: 17,
+                              height: 17,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : null,
                     ),
                     items: categoryItems,
                     onChanged: isLoading || categoriesAsync.isLoading
                         ? null
                         : (value) {
-                      setState(() => selectedCategory = value);
-                    },
+                            setState(() => selectedCategory = value);
+                          },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Select a category';
@@ -267,19 +252,19 @@ class _AddTransactionPageState
                     items: AppConstants.paymentMethods
                         .map(
                           (method) => DropdownMenuItem<String>(
-                        value: method,
-                        child: Text(_formatLabel(method)),
-                      ),
-                    )
+                            value: method,
+                            child: Text(_formatLabel(method)),
+                          ),
+                        )
                         .toList(),
                     onChanged: isLoading
                         ? null
                         : (value) {
-                      if (value == null) return;
-                      setState(() {
-                        selectedPaymentMethod = value;
-                      });
-                    },
+                            if (value == null) return;
+                            setState(() {
+                              selectedPaymentMethod = value;
+                            });
+                          },
                   ),
                 ],
               ),
@@ -311,27 +296,24 @@ class _AddTransactionPageState
                 child: FilledButton.icon(
                   onPressed: isLoading ? null : saveTransaction,
                   style: FilledButton.styleFrom(
-                    backgroundColor: purple,
+                    backgroundColor: primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   icon: isLoading
-                      ? const SizedBox(
-                    width: 19,
-                    height: 19,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                      ? SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cardColor,
+                          ),
+                        )
                       : const Icon(Icons.check),
                   label: Text(
                     isLoading ? 'Saving...' : 'Save transaction',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -346,11 +328,8 @@ class _AddTransactionPageState
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE4E4EA),
-        ),
       ),
       child: Row(
         children: [
@@ -396,19 +375,13 @@ class _AddTransactionPageState
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 19,
-              color: selected ? color : Colors.black45,
-            ),
+            Icon(icon, size: 19, color: selected ? color : mutedColor),
             const SizedBox(width: 7),
             Text(
               label,
               style: TextStyle(
-                color: selected ? color : Colors.black54,
-                fontWeight: selected
-                    ? FontWeight.bold
-                    : FontWeight.w500,
+                color: selected ? color : mutedColor,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
               ),
             ),
           ],
@@ -422,15 +395,11 @@ class _AddTransactionPageState
       controller: amountController,
       autofocus: true,
       enabled: !isLoading,
-      keyboardType: const TextInputType.numberWithOptions(
-        decimal: true,
-      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
-        FilteringTextInputFormatter.allow(
-          RegExp(r'^\d*\.?\d{0,2}'),
-        ),
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
       ],
-      style: const TextStyle(
+      style: TextStyle(
         color: textColor,
         fontSize: 22,
         fontWeight: FontWeight.w800,
@@ -439,9 +408,7 @@ class _AddTransactionPageState
         label: 'Amount',
         hint: '0.00',
         icon: Icons.payments_outlined,
-      ).copyWith(
-        prefixText: '৳ ',
-      ),
+      ).copyWith(prefixText: '৳ '),
       validator: (value) {
         final amount = double.tryParse(value?.trim() ?? '');
         if (amount == null || amount <= 0) {
@@ -478,9 +445,7 @@ class _AddTransactionPageState
           icon: Icons.calendar_today_outlined,
           suffix: const Icon(Icons.chevron_right),
         ),
-        child: Text(
-          DateFormat('EEE, d MMM yyyy').format(selectedDate),
-        ),
+        child: Text(DateFormat('EEE, d MMM yyyy').format(selectedDate)),
       ),
     );
   }
@@ -495,38 +460,26 @@ class _AddTransactionPageState
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(
-        icon,
-        color: purple,
-      ),
+      prefixIcon: Icon(icon, color: primary),
       suffixIcon: suffix,
       alignLabelWithHint: alignLabelWithHint,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: cardColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: Color(0xFFE4E4EA),
-        ),
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: Color(0xFFE4E4EA),
-        ),
+        borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: purple,
-          width: 1.5,
-        ),
+        borderSide: BorderSide(color: primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: Colors.redAccent,
-        ),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 14),
     );
@@ -538,9 +491,9 @@ class _AddTransactionPageState
         .split(' ')
         .map(
           (word) => word.isEmpty
-          ? word
-          : '${word[0].toUpperCase()}${word.substring(1)}',
-    )
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
         .join(' ');
   }
 }

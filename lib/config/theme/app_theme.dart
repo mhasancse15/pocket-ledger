@@ -17,7 +17,7 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: _seedColor,
         brightness: Brightness.light,
-      ),
+      ).copyWith(surface: Colors.white),
       textTheme: GoogleFonts.interTextTheme(base.textTheme),
       scaffoldBackgroundColor: const Color(0xFFF7F8FC),
       appBarTheme: const AppBarTheme(
@@ -26,21 +26,21 @@ class AppTheme {
         elevation: 0,
       ),
       cardTheme: CardThemeData(
+        color: Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: const Color(0xFFFFFFFF),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: BorderSide.none,
         ),
       ),
     );
@@ -53,7 +53,7 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: _seedColor,
         brightness: Brightness.dark,
-      ),
+      ).copyWith(surface: const Color(0xFF1A1B20)),
       textTheme: GoogleFonts.interTextTheme(base.textTheme),
       scaffoldBackgroundColor: const Color(0xFF101114),
       appBarTheme: const AppBarTheme(
@@ -62,21 +62,21 @@ class AppTheme {
         elevation: 0,
       ),
       cardTheme: CardThemeData(
+        color: const Color(0xFF1A1B20),
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF424242),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF616161)),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF616161)),
+          borderSide: BorderSide.none,
         ),
       ),
     );

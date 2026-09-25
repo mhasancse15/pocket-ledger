@@ -18,12 +18,7 @@ class PreviousMonthSummaryPage extends ConsumerWidget {
     final transactionsAsync = ref.watch(allTransactionsProvider);
 
     final currentMonthLimitAsync = ref.watch(
-      monthlyLimitProvider(
-        (
-        now.year,
-        now.month,
-        ),
-      ),
+      monthlyLimitProvider((now.year, now.month)),
     );
 
     return Scaffold(
@@ -34,15 +29,11 @@ class PreviousMonthSummaryPage extends ConsumerWidget {
         ),
       ),
       body: transactionsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
-        error: (error, _) => _ErrorState(
-          message: 'Unable to load expense data\n$error',
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) =>
+            _ErrorState(message: 'Unable to load expense data\n$error'),
         data: (transactions) {
-          final currentLimit =
-              currentMonthLimitAsync.valueOrNull?.amount;
+          final currentLimit = currentMonthLimitAsync.valueOrNull?.amount;
 
           return _ExpenseSummaryContent(
             transactions: transactions,
@@ -68,15 +59,9 @@ class _ExpenseSummaryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentMonth = DateTime(
-      currentDate.year,
-      currentDate.month,
-    );
+    final currentMonth = DateTime(currentDate.year, currentDate.month);
 
-    final previousMonth = DateTime(
-      currentDate.year,
-      currentDate.month - 1,
-    );
+    final previousMonth = DateTime(currentDate.year, currentDate.month - 1);
 
     final currentMonthExpense = _getMonthlyExpense(currentMonth);
 
@@ -86,7 +71,7 @@ class _ExpenseSummaryContent extends StatelessWidget {
 
     final currentYearTotal = currentYearExpenses.fold<double>(
       0,
-          (sum, transaction) => sum + transaction.amount,
+      (sum, transaction) => sum + transaction.amount,
     );
 
     final monthsPassed = currentDate.month;
@@ -97,15 +82,13 @@ class _ExpenseSummaryContent extends StatelessWidget {
     final monthlyTotals = _getMonthlyTotals();
     final highestMonth = _getHighestExpenseMonth(monthlyTotals);
 
-    final difference =
-        currentMonthExpense - previousMonthExpense;
+    final difference = currentMonthExpense - previousMonthExpense;
 
     final percentageChange = previousMonthExpense == 0
         ? 0.0
         : difference / previousMonthExpense * 100;
 
-    final targetUsage = currentMonthLimit == null ||
-        currentMonthLimit! <= 0
+    final targetUsage = currentMonthLimit == null || currentMonthLimit! <= 0
         ? 0.0
         : currentMonthExpense / currentMonthLimit!;
 
@@ -125,9 +108,8 @@ class _ExpenseSummaryContent extends StatelessWidget {
 
         Text(
           'Current month comparison',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
 
@@ -152,9 +134,8 @@ class _ExpenseSummaryContent extends StatelessWidget {
 
         Text(
           'This year’s expense graph',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Text(
@@ -193,30 +174,21 @@ class _ExpenseSummaryContent extends StatelessWidget {
   double _getMonthlyExpense(DateTime month) {
     return transactions
         .where((transaction) {
-      final date = transaction.date.toLocal();
+          final date = transaction.date.toLocal();
 
-      return transaction.type == TransactionType.expense &&
-          date.year == month.year &&
-          date.month == month.month;
-    })
-        .fold<double>(
-      0,
-          (sum, transaction) => sum + transaction.amount,
-    );
+          return transaction.type == TransactionType.expense &&
+              date.year == month.year &&
+              date.month == month.month;
+        })
+        .fold<double>(0, (sum, transaction) => sum + transaction.amount);
   }
 
   List<double> _getMonthlyTotals() {
-    return List<double>.generate(
-      12,
-          (index) {
-        final month = DateTime(
-          currentDate.year,
-          index + 1,
-        );
+    return List<double>.generate(12, (index) {
+      final month = DateTime(currentDate.year, index + 1);
 
-        return _getMonthlyExpense(month);
-      },
-    );
+      return _getMonthlyExpense(month);
+    });
   }
 
   String? _getHighestExpenseMonth(List<double> totals) {
@@ -232,16 +204,13 @@ class _ExpenseSummaryContent extends StatelessWidget {
       }
     }
 
-    return DateFormat('MMMM').format(
-      DateTime(currentDate.year, highestIndex + 1),
-    );
+    return DateFormat('MMMM')
+        .format(DateTime(currentDate.year, highestIndex + 1));
   }
 }
 
 class _YearHeader extends StatelessWidget {
-  const _YearHeader({
-    required this.year,
-  });
+  const _YearHeader({required this.year});
 
   final int year;
 
@@ -274,10 +243,7 @@ class _YearHeader extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Year-to-date overview',
-                style: theme.textTheme.bodySmall,
-              ),
+              Text('Year-to-date overview', style: theme.textTheme.bodySmall),
               const SizedBox(height: 4),
               Text(
                 '$year expense summary',
@@ -324,10 +290,7 @@ class _YearSummaryCard extends StatelessWidget {
         children: [
           const Text(
             'Total expense this year',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
@@ -381,8 +344,7 @@ class _ComparisonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spendingIncreased = difference > 0;
-    final comparisonColor =
-    spendingIncreased ? Colors.red : Colors.green;
+    final comparisonColor = spendingIncreased ? Colors.red : Colors.green;
 
     return Card(
       elevation: 0,
@@ -413,9 +375,7 @@ class _ComparisonCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  spendingIncreased
-                      ? Icons.trending_up
-                      : Icons.trending_down,
+                  spendingIncreased ? Icons.trending_up : Icons.trending_down,
                   color: comparisonColor,
                 ),
                 const SizedBox(width: 8),
@@ -432,7 +392,7 @@ class _ComparisonCard extends StatelessWidget {
                 ),
                 Text(
                   '${difference >= 0 ? '+' : '-'}'
-                      '${AppUtils.formatCurrency(difference.abs())}',
+                  '${AppUtils.formatCurrency(difference.abs())}',
                   style: TextStyle(
                     color: comparisonColor,
                     fontWeight: FontWeight.bold,
@@ -445,7 +405,7 @@ class _ComparisonCard extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Text(
                 '${percentageChange.abs().toStringAsFixed(1)}% '
-                    '${spendingIncreased ? 'increase' : 'decrease'}',
+                '${spendingIncreased ? 'increase' : 'decrease'}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -472,10 +432,7 @@ class _ComparisonValue extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 6),
         Text(
           AppUtils.formatCurrency(value),
@@ -512,11 +469,7 @@ class _CurrentTargetCard extends StatelessWidget {
             children: [
               Icon(Icons.track_changes_outlined),
               SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'No target set for the current month.',
-                ),
-              ),
+              Expanded(child: Text('No target set for the current month.')),
             ],
           ),
         ),
@@ -547,17 +500,13 @@ class _CurrentTargetCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Current month target',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
                 Text(
                   '${(usage * 100).round()}%',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -573,10 +522,7 @@ class _CurrentTargetCard extends StatelessWidget {
               exceeded
                   ? '${AppUtils.formatCurrency(remaining.abs())} over target'
                   : '${AppUtils.formatCurrency(remaining)} remaining',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -649,9 +595,8 @@ class _YearlyExpenseChart extends StatelessWidget {
                       }
 
                       return Text(
-                        DateFormat('MMM').format(
-                          DateTime(2026, monthIndex + 1),
-                        ),
+                        DateFormat('MMM')
+                            .format(DateTime(2026, monthIndex + 1)),
                         style: Theme.of(context).textTheme.bodySmall,
                       );
                     },
@@ -659,9 +604,7 @@ class _YearlyExpenseChart extends StatelessWidget {
                 ),
               ),
               barGroups: [
-                for (var index = 0;
-                index < monthlyTotals.length;
-                index++)
+                for (var index = 0; index < monthlyTotals.length; index++)
                   BarChartGroupData(
                     x: index,
                     barRods: [
@@ -671,10 +614,8 @@ class _YearlyExpenseChart extends StatelessWidget {
                         borderRadius: BorderRadius.circular(5),
                         color: index + 1 == currentMonth
                             ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.35),
+                            : Theme.of(context).colorScheme.primary
+                                  .withOpacity(0.35),
                       ),
                     ],
                   ),
@@ -747,11 +688,7 @@ class _InsightCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 28,
-            ),
+            Icon(icon, color: color, size: 28),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -769,7 +706,7 @@ class _InsightCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     'Year-to-date expense: '
-                        '${AppUtils.formatCurrency(currentYearTotal)}',
+                    '${AppUtils.formatCurrency(currentYearTotal)}',
                     style: theme.textTheme.bodySmall,
                   ),
                 ],
@@ -783,10 +720,7 @@ class _InsightCard extends StatelessWidget {
 }
 
 class _WhiteMetric extends StatelessWidget {
-  const _WhiteMetric({
-    required this.label,
-    required this.value,
-  });
+  const _WhiteMetric({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -798,10 +732,7 @@ class _WhiteMetric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 4),
         Text(
@@ -819,9 +750,7 @@ class _WhiteMetric extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({
-    required this.message,
-  });
+  const _ErrorState({required this.message});
 
   final String message;
 
@@ -830,10 +759,7 @@ class _ErrorState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-        ),
+        child: Text(message, textAlign: TextAlign.center),
       ),
     );
   }

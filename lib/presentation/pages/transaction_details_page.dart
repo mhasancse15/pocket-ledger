@@ -11,18 +11,9 @@ import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
 
 class TransactionDetailsPage extends ConsumerWidget {
-  const TransactionDetailsPage({
-    required this.transactionId,
-    super.key,
-  });
+  const TransactionDetailsPage({required this.transactionId, super.key});
 
   final String transactionId;
-
-  static const Color purple = Color(0xFF5D56AA);
-  static const Color background = Color(0xFFF7F7FB);
-  static const Color darkText = Color(0xFF202027);
-  static const Color mutedText = Color(0xFF72727D);
-  static const Color borderColor = Color(0xFFE6E6EC);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,14 +22,14 @@ class TransactionDetailsPage extends ConsumerWidget {
         ref.watch(allCategoriesProvider).valueOrNull ?? <Category>[];
 
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Transaction details',
           style: TextStyle(
-            color: darkText,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -57,9 +48,7 @@ class TransactionDetailsPage extends ConsumerWidget {
                 onPressed: () {
                   context.pushNamed(
                     AppRoutes.editTransactionName,
-                    pathParameters: {
-                      'id': transaction.id,
-                    },
+                    pathParameters: {'id': transaction.id},
                   );
                 },
               );
@@ -70,14 +59,13 @@ class TransactionDetailsPage extends ConsumerWidget {
         ],
       ),
       body: transactionsAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(
-            color: purple,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
-        error: (error, stackTrace) => _ErrorView(
-          message: 'Unable to load transaction\n$error',
-        ),
+        error: (error, stackTrace) =>
+            _ErrorView(message: 'Unable to load transaction\n$error'),
         data: (transactions) {
           final transaction = _findTransaction(transactions);
 
@@ -87,7 +75,7 @@ class TransactionDetailsPage extends ConsumerWidget {
 
           final categoryName =
               _findCategoryName(categories, transaction.categoryId) ??
-                  transaction.categoryId;
+              transaction.categoryId;
 
           return _TransactionDetailsBody(
             transaction: transaction,
@@ -95,9 +83,7 @@ class TransactionDetailsPage extends ConsumerWidget {
             onEdit: () {
               context.pushNamed(
                 AppRoutes.editTransactionName,
-                pathParameters: {
-                  'id': transaction.id,
-                },
+                pathParameters: {'id': transaction.id},
               );
             },
           );
@@ -116,10 +102,7 @@ class TransactionDetailsPage extends ConsumerWidget {
     return null;
   }
 
-  String? _findCategoryName(
-      List<Category> categories,
-      String categoryId,
-      ) {
+  String? _findCategoryName(List<Category> categories, String categoryId) {
     for (final category in categories) {
       if (category.id == categoryId) {
         return category.name;
@@ -141,11 +124,6 @@ class _TransactionDetailsBody extends StatelessWidget {
   final String categoryName;
   final VoidCallback onEdit;
 
-  static const Color purple = Color(0xFF5D56AA);
-  static const Color darkText = Color(0xFF202027);
-  static const Color mutedText = Color(0xFF72727D);
-  static const Color borderColor = Color(0xFFE6E6EC);
-
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == TransactionType.income;
@@ -165,10 +143,10 @@ class _TransactionDetailsBody extends StatelessWidget {
           accentColor: accentColor,
         ),
         const SizedBox(height: 18),
-        const Text(
+        Text(
           'Transaction information',
           style: TextStyle(
-            color: darkText,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 19,
             fontWeight: FontWeight.w800,
           ),
@@ -186,7 +164,7 @@ class _TransactionDetailsBody extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: onEdit,
             style: FilledButton.styleFrom(
-              backgroundColor: purple,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -195,10 +173,7 @@ class _TransactionDetailsBody extends StatelessWidget {
             icon: const Icon(Icons.edit_outlined),
             label: const Text(
               'Edit transaction',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -207,10 +182,10 @@ class _TransactionDetailsBody extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(
-      BuildContext context, {
-        required bool isIncome,
-        required Color accentColor,
-      }) {
+    BuildContext context, {
+    required bool isIncome,
+    required Color accentColor,
+  }) {
     final amount =
         '${isIncome ? '+' : '-'}${AppUtils.formatCurrency(transaction.amount)}';
 
@@ -218,10 +193,7 @@ class _TransactionDetailsBody extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            accentColor,
-            accentColor.withOpacity(.72),
-          ],
+          colors: [accentColor, accentColor.withOpacity(.72)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -241,7 +213,7 @@ class _TransactionDetailsBody extends StatelessWidget {
                 ),
                 child: Icon(
                   isIncome ? Icons.south_west : Icons.north_east,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   size: 28,
                 ),
               ),
@@ -277,10 +249,7 @@ class _TransactionDetailsBody extends StatelessWidget {
           const SizedBox(height: 24),
           const Text(
             'Amount',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 4),
           FittedBox(
@@ -301,20 +270,16 @@ class _TransactionDetailsBody extends StatelessWidget {
   }
 
   Widget _buildInformationCard(
-      BuildContext context, {
-        required Color accentColor,
-        required DateTime date,
-        required String? note,
-      }) {
+    BuildContext context, {
+    required Color accentColor,
+    required DateTime date,
+    required String? note,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: borderColor),
       ),
       child: Column(
         children: [
@@ -329,21 +294,21 @@ class _TransactionDetailsBody extends StatelessWidget {
             icon: Icons.calendar_today_outlined,
             label: 'Date',
             value: DateFormat('d MMM yyyy').format(date),
-            color: purple,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const Divider(height: 1),
           _DetailRow(
             icon: Icons.access_time_outlined,
             label: 'Time',
             value: DateFormat('h:mm a').format(date),
-            color: purple,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const Divider(height: 1),
           _DetailRow(
             icon: Icons.account_balance_wallet_outlined,
             label: 'Payment method',
             value: _formatLabel(transaction.paymentMethod.name),
-            color: purple,
+            color: Theme.of(context).colorScheme.primary,
           ),
           if (note != null && note.isNotEmpty) ...[
             const Divider(height: 1),
@@ -351,7 +316,7 @@ class _TransactionDetailsBody extends StatelessWidget {
               icon: Icons.notes_outlined,
               label: 'Note',
               value: note,
-              color: purple,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ],
         ],
@@ -365,9 +330,9 @@ class _TransactionDetailsBody extends StatelessWidget {
         .split(' ')
         .map(
           (word) => word.isEmpty
-          ? word
-          : '${word[0].toUpperCase()}${word.substring(1)}',
-    )
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
         .join(' ');
   }
 }
@@ -385,9 +350,6 @@ class _DetailRow extends StatelessWidget {
   final String value;
   final Color color;
 
-  static const Color darkText = Color(0xFF202027);
-  static const Color mutedText = Color(0xFF72727D);
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -402,11 +364,7 @@ class _DetailRow extends StatelessWidget {
               color: color.withOpacity(.10),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: color,
-            ),
+            child: Icon(icon, size: 20, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -415,8 +373,8 @@ class _DetailRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: mutedText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
@@ -425,8 +383,8 @@ class _DetailRow extends StatelessWidget {
                   value,
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: darkText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -448,18 +406,14 @@ class _NotFoundView extends StatelessWidget {
     return const Center(
       child: Text(
         'Transaction not found',
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w600),
       ),
     );
   }
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-  });
+  const _ErrorView({required this.message});
 
   final String message;
 
@@ -471,23 +425,14 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 52,
-              color: Colors.redAccent,
-            ),
+            const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
             const SizedBox(height: 12),
             const Text(
               'Unable to load transaction',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
+            Text(message, textAlign: TextAlign.center),
           ],
         ),
       ),

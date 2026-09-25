@@ -55,18 +55,18 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
       ),
       body: budgetsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: 'Unable to load budgets\n$error',
-        ),
+        error: (error, _) =>
+            _ErrorState(message: 'Unable to load budgets\n$error'),
         data: (allBudgets) {
-          final monthBudgets = allBudgets
-              .where(
-                (budget) =>
-            budget.year == _month.year &&
-                budget.month == _month.month,
-          )
-              .toList()
-            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          final monthBudgets =
+              allBudgets
+                  .where(
+                    (budget) =>
+                        budget.year == _month.year &&
+                        budget.month == _month.month,
+                  )
+                  .toList()
+                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -90,9 +90,8 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
                     Expanded(
                       child: Text(
                         'Budgets for this month',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Text(
@@ -106,7 +105,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
                   _EmptyBudgetState(onAdd: _openBudgetEditor)
                 else
                   ...monthBudgets.map(
-                        (budget) => Padding(
+                    (budget) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _BudgetCard(
                         budget: budget,
@@ -119,10 +118,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
                     ),
                   ),
                 const SizedBox(height: 12),
-                _MonthComparison(
-                  transactions: transactions,
-                  month: _month,
-                ),
+                _MonthComparison(transactions: transactions, month: _month),
               ],
             ),
           );
@@ -163,9 +159,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
       year: _month.year,
       month: _month.month,
       scope: result.scope,
-      scopeKey: result.scope == BudgetScope.monthly
-          ? 'all'
-          : result.scopeKey!,
+      scopeKey: result.scope == BudgetScope.monthly ? 'all' : result.scopeKey!,
       amount: result.amount,
       rollover: result.rollover,
       createdAt: existing?.createdAt ?? now,
@@ -180,9 +174,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            existing == null ? 'Budget created' : 'Budget updated',
-          ),
+          content: Text(existing == null ? 'Budget created' : 'Budget updated'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -199,10 +191,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
     }
   }
 
-  Future<void> _deleteBudget(
-      Budget budget,
-      List<Category> categories,
-      ) async {
+  Future<void> _deleteBudget(Budget budget, List<Category> categories) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -251,20 +240,15 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
   }
 
   String _budgetLabel(Budget budget, List<Category> categories) {
-    final month = DateFormat('MMMM yyyy').format(
-      DateTime(budget.year, budget.month),
-    );
+    final month = DateFormat('MMMM yyyy')
+        .format(DateTime(budget.year, budget.month));
 
     switch (budget.scope) {
       case BudgetScope.monthly:
         return 'Monthly budget • $month';
       case BudgetScope.category:
-        final category = categories.where(
-              (item) => item.id == budget.scopeKey,
-        );
-        final name = category.isEmpty
-            ? budget.scopeKey
-            : category.first.name;
+        final category = categories.where((item) => item.id == budget.scopeKey);
+        final name = category.isEmpty ? budget.scopeKey : category.first.name;
         return 'Category budget • $name • $month';
       case BudgetScope.wallet:
         return 'Wallet budget • ${_formatLabel(budget.scopeKey)} • $month';
@@ -277,9 +261,9 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
         .split(' ')
         .map(
           (word) => word.isEmpty
-          ? word
-          : '${word[0].toUpperCase()}${word.substring(1)}',
-    )
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
         .join(' ');
   }
 }
@@ -364,27 +348,25 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
         .where((category) => category.type == CategoryType.expense)
         .map(
           (category) => DropdownMenuItem<String>(
-        value: category.id,
-        child: Text(category.name),
-      ),
-    )
+            value: category.id,
+            child: Text(category.name),
+          ),
+        )
         .toList();
 
     final paymentItems = PaymentMethod.values
         .map(
           (method) => DropdownMenuItem<String>(
-        value: method.name,
-        child: Text(_formatLabel(method.name)),
-      ),
-    )
+            value: method.name,
+            child: Text(_formatLabel(method.name)),
+          ),
+        )
         .toList();
 
     return SafeArea(
       child: Material(
         color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(28),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         clipBehavior: Clip.antiAlias,
         child: ConstrainedBox(
           constraints: BoxConstraints(
@@ -392,12 +374,7 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
           ),
           child: ListView(
             shrinkWrap: true,
-            padding: EdgeInsets.fromLTRB(
-              20,
-              12,
-              20,
-              keyboardInset + 24,
-            ),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, keyboardInset + 24),
             children: [
               Text(
                 widget.existing == null ? 'Add budget' : 'Edit budget',
@@ -497,9 +474,7 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Rollover unused amount'),
-                subtitle: const Text(
-                  'Carry unused budget into the next month',
-                ),
+                subtitle: const Text('Carry unused budget into the next month'),
                 value: rollover,
                 onChanged: (value) {
                   setState(() => rollover = value);
@@ -511,14 +486,10 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
                 child: FilledButton.icon(
                   onPressed: submit,
                   icon: Icon(
-                    widget.existing == null
-                        ? Icons.add
-                        : Icons.save_outlined,
+                    widget.existing == null ? Icons.add : Icons.save_outlined,
                   ),
                   label: Text(
-                    widget.existing == null
-                        ? 'Create budget'
-                        : 'Save changes',
+                    widget.existing == null ? 'Create budget' : 'Save changes',
                   ),
                 ),
               ),
@@ -543,9 +514,9 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
         .split(' ')
         .map(
           (word) => word.isEmpty
-          ? word
-          : '${word[0].toUpperCase()}${word.substring(1)}',
-    )
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
         .join(' ');
   }
 }
@@ -602,9 +573,8 @@ class _MonthHeader extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 DateFormat('MMMM yyyy').format(month),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -629,12 +599,12 @@ class _BudgetSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalBudget = budgets.fold<double>(
       0,
-          (sum, budget) => sum + _effectiveAmount(budget),
+      (sum, budget) => sum + _effectiveAmount(budget),
     );
 
     final totalSpent = budgets.fold<double>(
       0,
-          (sum, budget) => sum + _spent(budget),
+      (sum, budget) => sum + _spent(budget),
     );
 
     final remaining = totalBudget - totalSpent;
@@ -658,17 +628,13 @@ class _BudgetSummaryCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Monthly budget status',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
                 Text(
                   '${(usage * 100).round()}% used',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -712,34 +678,32 @@ class _BudgetSummaryCard extends StatelessWidget {
   double _spent(Budget budget) {
     return transactions
         .where((item) {
-      final date = item.date.toLocal();
-      final sameMonth = date.year == budget.year &&
-          date.month == budget.month;
+          final date = item.date.toLocal();
+          final sameMonth =
+              date.year == budget.year && date.month == budget.month;
 
-      final scopeMatches = budget.scope == BudgetScope.monthly ||
-          budget.scope == BudgetScope.category &&
-              item.categoryId == budget.scopeKey ||
-          budget.scope == BudgetScope.wallet &&
-              item.paymentMethod.name == budget.scopeKey;
+          final scopeMatches =
+              budget.scope == BudgetScope.monthly ||
+              budget.scope == BudgetScope.category &&
+                  item.categoryId == budget.scopeKey ||
+              budget.scope == BudgetScope.wallet &&
+                  item.paymentMethod.name == budget.scopeKey;
 
-      return sameMonth &&
-          item.type == TransactionType.expense &&
-          scopeMatches;
-    })
+          return sameMonth &&
+              item.type == TransactionType.expense &&
+              scopeMatches;
+        })
         .fold<double>(0, (sum, item) => sum + item.amount);
   }
 
   double _effectiveAmount(Budget budget) {
     if (!budget.rollover) return budget.amount;
 
-    final previousMonth = DateTime(
-      budget.year,
-      budget.month - 1,
-    );
+    final previousMonth = DateTime(budget.year, budget.month - 1);
 
     final previous = allBudgets.where(
-          (candidate) =>
-      candidate.scope == budget.scope &&
+      (candidate) =>
+          candidate.scope == budget.scope &&
           candidate.scopeKey == budget.scopeKey &&
           candidate.year == previousMonth.year &&
           candidate.month == previousMonth.month,
@@ -797,10 +761,7 @@ class _BudgetCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: color.withOpacity(0.12),
-                  child: Icon(
-                    Icons.track_changes_outlined,
-                    color: color,
-                  ),
+                  child: Icon(Icons.track_changes_outlined, color: color),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -811,9 +772,7 @@ class _BudgetCard extends StatelessWidget {
                         _label(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -829,14 +788,8 @@ class _BudgetCard extends StatelessWidget {
                     if (value == 'delete') onDelete();
                   },
                   itemBuilder: (_) => const [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Text('Edit'),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete'),
-                    ),
+                    PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(value: 'delete', child: Text('Delete')),
                   ],
                 ),
               ],
@@ -878,10 +831,7 @@ class _BudgetCard extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Text(
                 '${(usage * 100).round()}% used',
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: color, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -891,16 +841,15 @@ class _BudgetCard extends StatelessWidget {
   }
 
   String _label() {
-    final month = DateFormat('MMM yyyy').format(
-      DateTime(budget.year, budget.month),
-    );
+    final month = DateFormat('MMM yyyy')
+        .format(DateTime(budget.year, budget.month));
 
     switch (budget.scope) {
       case BudgetScope.monthly:
         return 'Monthly budget • $month';
       case BudgetScope.category:
         final match = categories.where(
-              (category) => category.id == budget.scopeKey,
+          (category) => category.id == budget.scopeKey,
         );
         return 'Category • ${match.isEmpty ? budget.scopeKey : match.first.name}';
       case BudgetScope.wallet:
@@ -911,34 +860,32 @@ class _BudgetCard extends StatelessWidget {
   double _spent() {
     return transactions
         .where((item) {
-      final date = item.date.toLocal();
-      final sameMonth = date.year == budget.year &&
-          date.month == budget.month;
+          final date = item.date.toLocal();
+          final sameMonth =
+              date.year == budget.year && date.month == budget.month;
 
-      final scopeMatches = budget.scope == BudgetScope.monthly ||
-          budget.scope == BudgetScope.category &&
-              item.categoryId == budget.scopeKey ||
-          budget.scope == BudgetScope.wallet &&
-              item.paymentMethod.name == budget.scopeKey;
+          final scopeMatches =
+              budget.scope == BudgetScope.monthly ||
+              budget.scope == BudgetScope.category &&
+                  item.categoryId == budget.scopeKey ||
+              budget.scope == BudgetScope.wallet &&
+                  item.paymentMethod.name == budget.scopeKey;
 
-      return sameMonth &&
-          item.type == TransactionType.expense &&
-          scopeMatches;
-    })
+          return sameMonth &&
+              item.type == TransactionType.expense &&
+              scopeMatches;
+        })
         .fold<double>(0, (sum, item) => sum + item.amount);
   }
 
   double _effectiveAmount() {
     if (!budget.rollover) return budget.amount;
 
-    final previousMonth = DateTime(
-      budget.year,
-      budget.month - 1,
-    );
+    final previousMonth = DateTime(budget.year, budget.month - 1);
 
     final previous = allBudgets.where(
-          (candidate) =>
-      candidate.scope == budget.scope &&
+      (candidate) =>
+          candidate.scope == budget.scope &&
           candidate.scopeKey == budget.scopeKey &&
           candidate.year == previousMonth.year &&
           candidate.month == previousMonth.month,
@@ -949,21 +896,22 @@ class _BudgetCard extends StatelessWidget {
     final previousBudget = previous.first;
     final previousSpent = transactions
         .where((item) {
-      final date = item.date.toLocal();
-      final sameMonth = date.year == previousBudget.year &&
-          date.month == previousBudget.month;
+          final date = item.date.toLocal();
+          final sameMonth =
+              date.year == previousBudget.year &&
+              date.month == previousBudget.month;
 
-      final scopeMatches =
-          previousBudget.scope == BudgetScope.monthly ||
+          final scopeMatches =
+              previousBudget.scope == BudgetScope.monthly ||
               previousBudget.scope == BudgetScope.category &&
                   item.categoryId == previousBudget.scopeKey ||
               previousBudget.scope == BudgetScope.wallet &&
                   item.paymentMethod.name == previousBudget.scopeKey;
 
-      return sameMonth &&
-          item.type == TransactionType.expense &&
-          scopeMatches;
-    })
+          return sameMonth &&
+              item.type == TransactionType.expense &&
+              scopeMatches;
+        })
         .fold<double>(0, (sum, item) => sum + item.amount);
 
     final unused = previousBudget.amount - previousSpent;
@@ -972,10 +920,7 @@ class _BudgetCard extends StatelessWidget {
 }
 
 class _MonthComparison extends StatelessWidget {
-  const _MonthComparison({
-    required this.transactions,
-    required this.month,
-  });
+  const _MonthComparison({required this.transactions, required this.month});
 
   final List<Transaction> transactions;
   final DateTime month;
@@ -983,9 +928,7 @@ class _MonthComparison extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final current = _total(month);
-    final previous = _total(
-      DateTime(month.year, month.month - 1),
-    );
+    final previous = _total(DateTime(month.year, month.month - 1));
     final difference = current - previous;
     final isImproved = difference <= 0;
 
@@ -998,18 +941,16 @@ class _MonthComparison extends StatelessWidget {
           children: [
             Text(
               'Current vs previous month',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: _SummaryValue(
-                    label: DateFormat('MMM yyyy').format(
-                      DateTime(month.year, month.month - 1),
-                    ),
+                    label: DateFormat('MMM yyyy')
+                        .format(DateTime(month.year, month.month - 1)),
                     value: AppUtils.formatCurrency(previous),
                     color: Colors.orange,
                   ),
@@ -1044,7 +985,7 @@ class _MonthComparison extends StatelessWidget {
                 ),
                 Text(
                   '${difference >= 0 ? '+' : '-'}'
-                      '${AppUtils.formatCurrency(difference.abs())}',
+                  '${AppUtils.formatCurrency(difference.abs())}',
                   style: TextStyle(
                     color: isImproved ? Colors.green : Colors.red,
                     fontWeight: FontWeight.bold,
@@ -1061,21 +1002,17 @@ class _MonthComparison extends StatelessWidget {
   double _total(DateTime value) {
     return transactions
         .where((item) {
-      final date = item.date.toLocal();
-      return item.type == TransactionType.expense &&
-          date.year == value.year &&
-          date.month == value.month;
-    })
+          final date = item.date.toLocal();
+          return item.type == TransactionType.expense &&
+              date.year == value.year &&
+              date.month == value.month;
+        })
         .fold<double>(0, (sum, item) => sum + item.amount);
   }
 }
 
 class _SummaryValue extends StatelessWidget {
-  const _SummaryValue({
-    required this.label,
-    required this.value,
-    this.color,
-  });
+  const _SummaryValue({required this.label, required this.value, this.color});
 
   final String label;
   final String value;
@@ -1099,10 +1036,7 @@ class _SummaryValue extends StatelessWidget {
           child: Text(
             value,
             maxLines: 1,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
           ),
         ),
       ],
@@ -1162,10 +1096,7 @@ class _ErrorState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-        ),
+        child: Text(message, textAlign: TextAlign.center),
       ),
     );
   }

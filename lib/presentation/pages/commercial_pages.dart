@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../core/utils/constants.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
@@ -60,15 +61,12 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
 
     final outcome = await operation;
     if (!mounted) return;
-    outcome.fold(
-          (failure) => _message(failure.message),
-          (_) {
-        ref.invalidate(allCategoriesProvider);
-        ref.invalidate(categoriesByTypeProvider(CategoryType.expense));
-        ref.invalidate(categoriesByTypeProvider(CategoryType.income));
-        _message(existing == null ? 'Category created' : 'Category updated');
-      },
-    );
+    outcome.fold((failure) => _message(failure.message), (_) {
+      ref.invalidate(allCategoriesProvider);
+      ref.invalidate(categoriesByTypeProvider(CategoryType.expense));
+      ref.invalidate(categoriesByTypeProvider(CategoryType.income));
+      _message(existing == null ? 'Category created' : 'Category updated');
+    });
   }
 
   Future<void> archiveCategory(Category category) async {
@@ -98,21 +96,15 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
         .read(categoryRepositoryProvider)
         .deleteCategory(category.id);
 
-    result.fold(
-          (failure) => _message(failure.message),
-          (_) {
-        ref.invalidate(allCategoriesProvider);
-        _message('Category archived');
-      },
-    );
+    result.fold((failure) => _message(failure.message), (_) {
+      ref.invalidate(allCategoriesProvider);
+      _message('Category archived');
+    });
   }
 
   void _message(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -135,7 +127,8 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
       ),
       body: categories.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorView(message: 'Unable to load categories\n$error'),
+        error: (error, _) =>
+            ErrorView(message: 'Unable to load categories\n$error'),
         data: (items) {
           final filtered = items.where((category) {
             return category.type == selectedType &&
@@ -168,12 +161,12 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                   suffixIcon: query.isEmpty
                       ? null
                       : IconButton(
-                    onPressed: () {
-                      searchController.clear();
-                      setState(() => query = '');
-                    },
-                    icon: const Icon(Icons.clear),
-                  ),
+                          onPressed: () {
+                            searchController.clear();
+                            setState(() => query = '');
+                          },
+                          icon: const Icon(Icons.clear),
+                        ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -200,11 +193,12 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                 const EmptyView(
                   icon: Icons.category_outlined,
                   title: 'No categories found',
-                  message: 'Create a category to keep your transactions organized.',
+                  message:
+                      'Create a category to keep your transactions organized.',
                 )
               else
                 ...filtered.map(
-                      (category) => Card(
+                  (category) => Card(
                     elevation: 0,
                     margin: const EdgeInsets.only(bottom: 10),
                     child: ListTile(
@@ -231,21 +225,22 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                       trailing: category.isArchived
                           ? const Chip(label: Text('Archived'))
                           : PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'edit') editCategory(category);
-                          if (value == 'archive') archiveCategory(category);
-                        },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Edit'),
-                          ),
-                          PopupMenuItem(
-                            value: 'archive',
-                            child: Text('Archive'),
-                          ),
-                        ],
-                      ),
+                              onSelected: (value) {
+                                if (value == 'edit') editCategory(category);
+                                if (value == 'archive')
+                                  archiveCategory(category);
+                              },
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Edit'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'archive',
+                                  child: Text('Archive'),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),
@@ -274,13 +269,12 @@ class MonthlyHistoryPage extends ConsumerWidget {
       ),
       body: transactions.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorView(message: 'Unable to load history\n$error'),
+        error: (error, _) =>
+            ErrorView(message: 'Unable to load history\n$error'),
         data: (items) {
           final months = <DateTime>{
-            for (final item in items)
-              DateTime(item.date.year, item.date.month),
-          }.toList()
-            ..sort((a, b) => b.compareTo(a));
+            for (final item in items) DateTime(item.date.year, item.date.month),
+          }.toList()..sort((a, b) => b.compareTo(a));
 
           if (months.isEmpty) {
             return const EmptyView(
@@ -303,7 +297,9 @@ class MonthlyHistoryPage extends ConsumerWidget {
               final income = _total(monthItems, TransactionType.income);
               final expense = _total(monthItems, TransactionType.expense);
               final balance = income - expense;
-              final ratio = income <= 0 ? 0.0 : (expense / income).clamp(0.0, 1.0);
+              final ratio = income <= 0
+                  ? 0.0
+                  : (expense / income).clamp(0.0, 1.0);
 
               return Card(
                 elevation: 0,
@@ -318,9 +314,7 @@ class MonthlyHistoryPage extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               DateFormat('MMMM yyyy').format(month),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -388,10 +382,6 @@ class MonthlyHistoryPage extends ConsumerWidget {
   }
 }
 
-
-
-
-
 /// Commercial-style recurring expenses page. Page name unchanged.
 class RecurringExpensesPage extends ConsumerWidget {
   const RecurringExpensesPage({super.key});
@@ -418,15 +408,15 @@ class RecurringExpensesPage extends ConsumerWidget {
       ),
       body: rules.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorView(
-          message: 'Unable to load recurring expenses\n$error',
-        ),
+        error: (error, _) =>
+            ErrorView(message: 'Unable to load recurring expenses\n$error'),
         data: (items) {
           if (items.isEmpty) {
             return const EmptyView(
               icon: Icons.repeat_outlined,
               title: 'No recurring expenses',
-              message: 'Add subscriptions and regular bills to automate tracking.',
+              message:
+                  'Add subscriptions and regular bills to automate tracking.',
             );
           }
 
@@ -445,8 +435,9 @@ class RecurringExpensesPage extends ConsumerWidget {
                     vertical: 8,
                   ),
                   leading: CircleAvatar(
-                    backgroundColor:
-                    Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer,
                     child: Icon(
                       Icons.repeat,
                       color: Theme.of(context).colorScheme.primary,
@@ -476,12 +467,6 @@ class RecurringExpensesPage extends ConsumerWidget {
   }
 }
 
-
-
-
-
-
-
 class _MiniMetric extends StatelessWidget {
   const _MiniMetric({
     required this.label,
@@ -503,18 +488,9 @@ class _MiniMetric extends StatelessWidget {
         Text(
           value,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
         ),
       ],
     );
   }
 }
-
-
-
-
-
-

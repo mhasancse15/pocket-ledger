@@ -57,7 +57,7 @@ class ReportsPage extends ConsumerStatefulWidget {
 
 class _ReportsPageState extends ConsumerState<ReportsPage> {
   DateTime selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
-
+  Color get cardColor => Theme.of(context).colorScheme.surface;
   @override
   Widget build(BuildContext context) {
     final transactionsAsync = ref.watch(allTransactionsProvider);
@@ -88,19 +88,18 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) =>
               ErrorView(message: 'Unable to load categories\n$error'),
-          data: (categories) =>
-              _ReportBody(
-                transactions: transactions,
-                categories: categories,
-                budgets: budgets,
-                selectedMonth: selectedMonth,
-                onMonthChanged: (month) => setState(() => selectedMonth = month),
-                onRefresh: () async {
-                  ref.invalidate(allTransactionsProvider);
-                  ref.invalidate(allCategoriesProvider);
-                  ref.invalidate(budgetsProvider);
-                },
-              ),
+          data: (categories) => _ReportBody(
+            transactions: transactions,
+            categories: categories,
+            budgets: budgets,
+            selectedMonth: selectedMonth,
+            onMonthChanged: (month) => setState(() => selectedMonth = month),
+            onRefresh: () async {
+              ref.invalidate(allTransactionsProvider);
+              ref.invalidate(allCategoriesProvider);
+              ref.invalidate(budgetsProvider);
+            },
+          ),
         ),
       ),
     );
@@ -145,7 +144,11 @@ class _ReportBody extends StatelessWidget {
       final name = categoryNames[expense.categoryId]?.trim().isNotEmpty == true
           ? categoryNames[expense.categoryId]!
           : 'Other';
-      totals.update(name, (v) => v + expense.amount, ifAbsent: () => expense.amount);
+      totals.update(
+        name,
+        (v) => v + expense.amount,
+        ifAbsent: () => expense.amount,
+      );
     }
 
     final entries = totals.entries.toList()
@@ -157,8 +160,9 @@ class _ReportBody extends StatelessWidget {
       return b.year == selectedMonth.year && b.month == selectedMonth.month;
     }).toList();
 
-    final monthlyBudgets =
-    monthBudgets.where((b) => b.scope == BudgetScope.monthly);
+    final monthlyBudgets = monthBudgets.where(
+      (b) => b.scope == BudgetScope.monthly,
+    );
 
     final categoryAndWalletBudgets = monthBudgets
         .where((b) => b.scope != BudgetScope.monthly)
@@ -223,18 +227,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
+      style: Theme.of(context).textTheme.titleMedium
           ?.copyWith(fontWeight: FontWeight.w700),
     );
   }
 }
 
 /// -----------------------------------------------------------------------
-/// Month selector — flat, bordered pill instead of a filled block, so it
-/// reads as a navigation control rather than competing with the summary
-/// card for visual weight.
+/// Month selector — a flat white card matching the rest of the page.
 /// -----------------------------------------------------------------------
 class _MonthSelector extends StatelessWidget {
   const _MonthSelector({required this.month, required this.onChanged});
@@ -248,29 +248,29 @@ class _MonthSelector extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: _Spacing.xs),
+      height: 60,
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(_Radius.lg),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           IconButton(
-            onPressed: () =>
-                onChanged(DateTime(month.year, month.month - 1)),
+            onPressed: () => onChanged(DateTime(month.year, month.month - 1)),
             icon: const Icon(Icons.chevron_left),
           ),
           Expanded(
             child: Center(
               child: Text(
                 DateFormat('MMMM yyyy').format(month),
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
           IconButton(
-            onPressed: () =>
-                onChanged(DateTime(month.year, month.month + 1)),
+            onPressed: () => onChanged(DateTime(month.year, month.month + 1)),
             icon: const Icon(Icons.chevron_right),
           ),
         ],
@@ -413,18 +413,34 @@ class _BudgetStatus {
     required double usage,
   }) {
     if (!hasBudget) {
-      return const _BudgetStatus('Not set', Colors.blueGrey, Icons.remove_circle_outline);
+      return const _BudgetStatus(
+        'Not set',
+        Colors.blueGrey,
+        Icons.remove_circle_outline,
+      );
     }
     if (isExceeded) {
       return const _BudgetStatus('Exceeded', Colors.red, Icons.error_outline);
     }
     if (usage >= 0.9) {
-      return const _BudgetStatus('Critical', Colors.orange, Icons.warning_amber_rounded);
+      return const _BudgetStatus(
+        'Critical',
+        Colors.orange,
+        Icons.warning_amber_rounded,
+      );
     }
     if (usage >= 0.75) {
-      return _BudgetStatus('Warning', Colors.amber.shade800, Icons.info_outline);
+      return _BudgetStatus(
+        'Warning',
+        Colors.amber.shade800,
+        Icons.info_outline,
+      );
     }
-    return const _BudgetStatus('On track', Colors.green, Icons.check_circle_outline);
+    return const _BudgetStatus(
+      'On track',
+      Colors.green,
+      Icons.check_circle_outline,
+    );
   }
 }
 
@@ -459,7 +475,6 @@ class _BudgetCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(_Radius.lg),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,8 +487,9 @@ class _BudgetCard extends StatelessWidget {
                   children: [
                     Text(
                       'Budget report',
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -494,8 +510,9 @@ class _BudgetCard extends StatelessWidget {
           if (!hasBudget)
             Text(
               'Set a budget to compare your spending against a target.',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             )
           else ...[
             Row(
@@ -539,7 +556,10 @@ class _BudgetCard extends StatelessWidget {
               children: [
                 Text(
                   '${(usage * 100).round()}% used',
-                  style: TextStyle(color: status.color, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: status.color,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   remaining >= 0
@@ -643,7 +663,6 @@ class _BreakdownChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(_Radius.lg),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -712,10 +731,8 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           '$percentage%',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: color, fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -740,7 +757,6 @@ class _CategoryList extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(_Radius.lg),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -756,8 +772,9 @@ class _CategoryList extends StatelessWidget {
               color: _kCategoryColors[i % _kCategoryColors.length],
               name: entries[i].key,
               amount: entries[i].value,
-              percentage:
-              totalExpense == 0 ? 0.0 : entries[i].value / totalExpense,
+              percentage: totalExpense == 0
+                  ? 0.0
+                  : entries[i].value / totalExpense,
             ),
           ],
         ],
