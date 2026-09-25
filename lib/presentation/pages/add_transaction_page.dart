@@ -1,122 +1,130 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../core/utils/constants.dart';
-import '../../domain/entities/transaction.dart';
-import '../../domain/entities/category.dart';
-import '../viewmodels/transaction_viewmodel.dart';
-import '../providers/category_provider.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/constants.dart';
+import '../../domain/entities/category.dart';
+import '../../domain/entities/transaction.dart';
+import '../providers/category_provider.dart';
+import '../viewmodels/transaction_viewmodel.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key});
 
   @override
-  ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
+  ConsumerState<AddTransactionPage> createState() =>
+      _AddTransactionPageState();
 }
 
-class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
-  final _formKey = GlobalKey<FormState>();
+class _AddTransactionPageState
+    extends ConsumerState<AddTransactionPage> {
+  static const purple = Color(0xFF5D56AA);
+  static const background = Color(0xFFF7F7FB);
+  static const textColor = Color(0xFF23232B);
 
-  late final TextEditingController _amountController;
-  late final TextEditingController _noteController;
+  final formKey = GlobalKey<FormState>();
 
-  late DateTime _selectedDate;
-  late TransactionType _transactionType;
+  late final TextEditingController amountController;
+  late final TextEditingController noteController;
 
-  String? _selectedCategory;
-  late String _selectedPaymentMethod;
-
-  bool _isLoading = false;
+  DateTime selectedDate = DateTime.now();
+  TransactionType transactionType = TransactionType.expense;
+  String? selectedCategory;
+  late String selectedPaymentMethod;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
 
-    _amountController = TextEditingController();
-    _noteController = TextEditingController();
-
-    _selectedDate = DateTime.now();
-    _transactionType = TransactionType.expense;
-    _selectedPaymentMethod = AppConstants.paymentMethods.first;
+    amountController = TextEditingController();
+    noteController = TextEditingController();
+    selectedPaymentMethod = AppConstants.paymentMethods.first;
   }
 
   @override
   void dispose() {
-    _amountController.dispose();
-    _noteController.dispose();
+    amountController.dispose();
+    noteController.dispose();
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
+  Future<void> selectDate() async {
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       helpText: 'Select transaction date',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: purple,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (pickedDate == null || !mounted) return;
 
     setState(() {
-      _selectedDate = pickedDate;
+      selectedDate = pickedDate;
     });
   }
 
-  void _changeTransactionType(TransactionType type) {
+  void changeTransactionType(TransactionType type) {
     setState(() {
-      _transactionType = type;
-
-      // Categories are different for income and expenses.
-      _selectedCategory = null;
+      transactionType = type;
+      selectedCategory = null;
     });
   }
 
-  Future<void> _saveTransaction() async {
+  Future<void> saveTransaction() async {
     FocusManager.instance.primaryFocus?.unfocus();
 
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!formKey.currentState!.validate()) return;
 
-    final amount = double.tryParse(_amountController.text.trim());
+    final amount = double.tryParse(
+      amountController.text.trim(),
+    );
 
     if (amount == null || amount <= 0) {
-      _showMessage('Enter a valid amount greater than ৳0.');
+      showMessage('Enter a valid amount greater than ৳0.');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
       final now = DateTime.now();
 
       final paymentMethod = PaymentMethod.values.firstWhere(
-        (method) => method.name == _selectedPaymentMethod,
+            (method) => method.name == selectedPaymentMethod,
         orElse: () => PaymentMethod.cash,
       );
 
       final transaction = Transaction(
         id: AppUtils.generateId(),
-        type: _transactionType,
+        type: transactionType,
         amount: amount,
-        categoryId: _selectedCategory!,
-        date: _selectedDate,
+        categoryId: selectedCategory!,
+        date: selectedDate,
         paymentMethod: paymentMethod,
-        note: _noteController.text.trim().isEmpty
+        note: noteController.text.trim().isEmpty
             ? null
-            : _noteController.text.trim(),
+            : noteController.text.trim(),
         createdAt: now,
         updatedAt: now,
       );
 
-      await ref.read(transactionViewModelProvider).addTransaction(transaction);
+      await ref
+          .read(transactionViewModelProvider)
+          .addTransaction(transaction);
 
       if (!mounted) return;
 
@@ -130,32 +138,30 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       context.pop(true);
     } catch (error) {
       if (!mounted) return;
-
-      _showMessage('Could not save transaction: $error');
+      showMessage('Could not save transaction: $error');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  void _showMessage(String message) {
+  void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final categoryType = _transactionType == TransactionType.expense
-        ? CategoryType.expense
-        : CategoryType.income;
-
-    final categoriesAsync = ref.watch(categoriesByTypeProvider(categoryType));
+    final categoriesAsync = ref.watch(
+      categoriesByTypeProvider(
+        transactionType == TransactionType.expense
+            ? CategoryType.expense
+            : CategoryType.income,
+      ),
+    );
 
     final categoryItems = categoriesAsync.when(
       loading: () => <DropdownMenuItem<String>>[],
@@ -165,136 +171,117 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
             .where((category) => !category.isArchived)
             .map(
               (category) => DropdownMenuItem<String>(
-                value: category.id,
-                child: Text(category.name),
-              ),
-            )
+            value: category.id,
+            child: Text(category.name),
+          ),
+        )
             .toList();
       },
     );
 
     return Scaffold(
+      backgroundColor: background,
       appBar: AppBar(
+        backgroundColor: background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: const Text(
           'Add transaction',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
       body: SafeArea(
         child: Form(
-          key: _formKey,
+          key: formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
             children: [
-              Text(
+              const Text(
                 'Record your transaction',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
+              const SizedBox(height: 4),
+              const Text(
                 'Keep your income and expenses organized.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
-              // Transaction type
-              SegmentedButton<TransactionType>(
-                segments: const [
-                  ButtonSegment(
-                    value: TransactionType.expense,
-                    label: Text('Expense'),
-                    icon: Icon(Icons.arrow_upward),
+              _typeSelector(),
+
+              const SizedBox(height: 14),
+
+              _amountField(),
+
+              const SizedBox(height: 12),
+
+              Column(
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    isExpanded: true,
+                    decoration: _inputDecoration(
+                      label: 'Category',
+                      icon: Icons.category_outlined,
+                      suffix: categoriesAsync.isLoading
+                          ? const SizedBox(
+                        width: 17,
+                        height: 17,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                          : null,
+                    ),
+                    items: categoryItems,
+                    onChanged: isLoading || categoriesAsync.isLoading
+                        ? null
+                        : (value) {
+                      setState(() => selectedCategory = value);
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Select a category';
+                      }
+                      return null;
+                    },
                   ),
-                  ButtonSegment(
-                    value: TransactionType.income,
-                    label: Text('Income'),
-                    icon: Icon(Icons.arrow_downward),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedPaymentMethod,
+                    isExpanded: true,
+                    decoration: _inputDecoration(
+                      label: 'Payment method',
+                      icon: Icons.account_balance_wallet_outlined,
+                    ),
+                    items: AppConstants.paymentMethods
+                        .map(
+                          (method) => DropdownMenuItem<String>(
+                        value: method,
+                        child: Text(_formatLabel(method)),
+                      ),
+                    )
+                        .toList(),
+                    onChanged: isLoading
+                        ? null
+                        : (value) {
+                      if (value == null) return;
+                      setState(() {
+                        selectedPaymentMethod = value;
+                      });
+                    },
                   ),
                 ],
-                selected: {_transactionType},
-                onSelectionChanged: _isLoading
-                    ? null
-                    : (selection) {
-                        _changeTransactionType(selection.first);
-                      },
-              ),
-
-              const SizedBox(height: 24),
-
-              // Amount
-              TextFormField(
-                controller: _amountController,
-                autofocus: true,
-                enabled: !_isLoading,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                ],
-                decoration: InputDecoration(
-                  labelText: 'Amount',
-                  hintText: '0.00',
-                  prefixText: '${AppConstants.defaultCurrency} ',
-                  prefixIcon: const Icon(Icons.payments_outlined),
-                  helperText: 'Enter the transaction amount',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                validator: (value) {
-                  final amount = double.tryParse(value?.trim() ?? '');
-
-                  if (amount == null || amount <= 0) {
-                    return 'Enter an amount greater than ৳0';
-                  }
-
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Category
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  prefixIcon: const Icon(Icons.category_outlined),
-                  suffixIcon: categoriesAsync.isLoading
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                items: categoryItems,
-                onChanged: _isLoading || categoriesAsync.isLoading
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _selectedCategory = value;
-                        });
-                      },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Select a category';
-                  }
-
-                  return null;
-                },
               ),
 
               if (categoriesAsync.hasError)
@@ -303,111 +290,48 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   child: Text(
                     'Unable to load categories',
                     style: TextStyle(
-                      color: theme.colorScheme.error,
+                      color: Theme.of(context).colorScheme.error,
                       fontSize: 12,
                     ),
                   ),
                 ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // Payment method
-              DropdownButtonFormField<String>(
-                value: _selectedPaymentMethod,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: 'Payment method',
-                  prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                items: AppConstants.paymentMethods
-                    .map(
-                      (method) => DropdownMenuItem<String>(
-                        value: method,
-                        child: Text(_formatLabel(method)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: _isLoading
-                    ? null
-                    : (value) {
-                        if (value == null) return;
+              _dateField(),
 
-                        setState(() {
-                          _selectedPaymentMethod = value;
-                        });
-                      },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Select a payment method';
-                  }
+              const SizedBox(height: 12),
 
-                  return null;
-                },
-              ),
+              _noteField(),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
-              // Date
-              InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: _isLoading ? null : _selectDate,
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Transaction date',
-                    prefixIcon: const Icon(Icons.calendar_today_outlined),
-                    suffixIcon: const Icon(Icons.chevron_right),
-                    border: OutlineInputBorder(
+              SizedBox(
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: isLoading ? null : saveTransaction,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: purple,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(
-                    DateFormat('EEE, d MMM yyyy').format(_selectedDate),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Transaction title
-              TextFormField(
-                controller: _noteController,
-                enabled: !_isLoading,
-                maxLines: 4,
-                maxLength: AppConstants.maxNoteLength,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'e.g. Grocery shopping or monthly salary',
-                  prefixIcon: const Icon(Icons.notes_outlined),
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Save button
-              SizedBox(
-                height: 54,
-                child: FilledButton.icon(
-                  onPressed: _isLoading ? null : _saveTransaction,
-                  icon: _isLoading
+                  icon: isLoading
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
+                    width: 19,
+                    height: 19,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                       : const Icon(Icons.check),
                   label: Text(
-                    _isLoading ? 'Saving transaction...' : 'Save transaction',
+                    isLoading ? 'Saving...' : 'Save transaction',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -418,15 +342,205 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     );
   }
 
+  Widget _typeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE4E4EA),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _typeButton(
+              type: TransactionType.expense,
+              icon: Icons.north_east,
+              label: 'Expense',
+            ),
+          ),
+          Expanded(
+            child: _typeButton(
+              type: TransactionType.income,
+              icon: Icons.south_west,
+              label: 'Income',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _typeButton({
+    required TransactionType type,
+    required IconData icon,
+    required String label,
+  }) {
+    final selected = transactionType == type;
+    final color = type == TransactionType.expense
+        ? const Color(0xFFE85E6F)
+        : const Color(0xFF00A578);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(13),
+      onTap: isLoading ? null : () => changeTransactionType(type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: selected ? color.withOpacity(0.10) : Colors.transparent,
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 19,
+              color: selected ? color : Colors.black45,
+            ),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? color : Colors.black54,
+                fontWeight: selected
+                    ? FontWeight.bold
+                    : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _amountField() {
+    return TextFormField(
+      controller: amountController,
+      autofocus: true,
+      enabled: !isLoading,
+      keyboardType: const TextInputType.numberWithOptions(
+        decimal: true,
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(
+          RegExp(r'^\d*\.?\d{0,2}'),
+        ),
+      ],
+      style: const TextStyle(
+        color: textColor,
+        fontSize: 22,
+        fontWeight: FontWeight.w800,
+      ),
+      decoration: _inputDecoration(
+        label: 'Amount',
+        hint: '0.00',
+        icon: Icons.payments_outlined,
+      ).copyWith(
+        prefixText: '৳ ',
+      ),
+      validator: (value) {
+        final amount = double.tryParse(value?.trim() ?? '');
+        if (amount == null || amount <= 0) {
+          return 'Enter an amount greater than ৳0';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _noteField() {
+    return TextFormField(
+      controller: noteController,
+      enabled: !isLoading,
+      maxLines: 3,
+      maxLength: AppConstants.maxNoteLength,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: _inputDecoration(
+        label: 'Title or note',
+        hint: 'Example: Grocery shopping or monthly salary',
+        icon: Icons.notes_outlined,
+        alignLabelWithHint: true,
+      ),
+    );
+  }
+
+  Widget _dateField() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
+      onTap: isLoading ? null : selectDate,
+      child: InputDecorator(
+        decoration: _inputDecoration(
+          label: 'Transaction date',
+          icon: Icons.calendar_today_outlined,
+          suffix: const Icon(Icons.chevron_right),
+        ),
+        child: Text(
+          DateFormat('EEE, d MMM yyyy').format(selectedDate),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required IconData icon,
+    String? hint,
+    Widget? suffix,
+    bool alignLabelWithHint = false,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: Icon(
+        icon,
+        color: purple,
+      ),
+      suffixIcon: suffix,
+      alignLabelWithHint: alignLabelWithHint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: Color(0xFFE4E4EA),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: Color(0xFFE4E4EA),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: purple,
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+    );
+  }
+
   String _formatLabel(String value) {
     return value
         .replaceAll('_', ' ')
         .split(' ')
         .map(
           (word) => word.isEmpty
-              ? word
-              : '${word[0].toUpperCase()}${word.substring(1)}',
-        )
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1)}',
+    )
         .join(' ');
   }
 }
