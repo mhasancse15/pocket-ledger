@@ -50,24 +50,20 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: const Color(0xFFF7F7FB),
       appBar: AppBar(
+        backgroundColor: const Color(0xFFF7F7FB),
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        titleSpacing: 20,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Transactions',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-            Text(
-              'Review and manage your activity',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+        toolbarHeight: 58,
+        titleSpacing: 16,
+        title: const Text(
+          'Transactions',
+          style: TextStyle(
+            color: Color(0xFF23232B),
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         actions: [
           IconButton(
@@ -89,7 +85,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
           final filteredTransactions = _filterTransactions(transactions);
           final total = filteredTransactions.fold<double>(
             0,
-            (sum, transaction) => sum + transaction.amount,
+                (sum, transaction) => sum + transaction.amount,
           );
 
           final groupedTransactions = _groupByDate(filteredTransactions);
@@ -98,7 +94,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: Column(
                     children: [
                       _MonthSelector(
@@ -186,6 +182,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () => context.pushNamed(AppRoutes.addTransactionName),
         icon: const Icon(Icons.add),
         label: const Text('Add transaction'),
@@ -200,37 +197,37 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       final date = transaction.date.toLocal();
       final sameMonth =
           _dateRange != null ||
-          (date.year == _selectedMonth.year &&
-              date.month == _selectedMonth.month);
+              (date.year == _selectedMonth.year &&
+                  date.month == _selectedMonth.month);
       final dateMatches =
           _dateRange == null ||
-          !date.isBefore(_dateRange!.start) &&
-              !date.isAfter(
-                DateTime(
-                  _dateRange!.end.year,
-                  _dateRange!.end.month,
-                  _dateRange!.end.day,
-                  23,
-                  59,
-                  59,
-                ),
-              );
+              !date.isBefore(_dateRange!.start) &&
+                  !date.isAfter(
+                    DateTime(
+                      _dateRange!.end.year,
+                      _dateRange!.end.month,
+                      _dateRange!.end.day,
+                      23,
+                      59,
+                      59,
+                    ),
+                  );
 
       final categoryMatches =
           _selectedCategory == null ||
-          transaction.categoryId == _selectedCategory;
+              transaction.categoryId == _selectedCategory;
 
       final paymentMatches =
           _selectedPaymentMethod == null ||
-          transaction.paymentMethod.name == _selectedPaymentMethod;
+              transaction.paymentMethod.name == _selectedPaymentMethod;
 
       final typeMatches =
           _selectedType == null || transaction.type == _selectedType;
 
       final queryMatches =
           normalizedQuery.isEmpty ||
-          transaction.categoryId.toLowerCase().contains(normalizedQuery) ||
-          (transaction.note ?? '').toLowerCase().contains(normalizedQuery);
+              transaction.categoryId.toLowerCase().contains(normalizedQuery) ||
+              (transaction.note ?? '').toLowerCase().contains(normalizedQuery);
       final minimumMatches =
           _minimumAmount == null || transaction.amount >= _minimumAmount!;
       final maximumMatches =
@@ -252,8 +249,8 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   }
 
   Map<DateTime, List<Transaction>> _groupByDate(
-    List<Transaction> transactions,
-  ) {
+      List<Transaction> transactions,
+      ) {
     final grouped = <DateTime, List<Transaction>>{};
 
     for (final transaction in transactions) {
@@ -283,260 +280,260 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     String? amountError;
 
     final categories =
-        transactions
-            .map((transaction) => transaction.categoryId)
-            .toSet()
-            .toList()
-          ..sort();
+    transactions
+        .map((transaction) => transaction.categoryId)
+        .toSet()
+        .toList()
+      ..sort();
 
     final result =
-        await showModalBottomSheet<
-          ({
-            String? category,
-            String? paymentMethod,
-            TransactionType? type,
-            DateTimeRange? range,
-            double? minimum,
-            double? maximum,
-          })
-        >(
-          context: context,
-          isScrollControlled: true,
-          showDragHandle: true,
-          builder: (context) {
-            return StatefulBuilder(
-              builder: (context, setModalState) {
-                final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    await showModalBottomSheet<
+        ({
+        String? category,
+        String? paymentMethod,
+        TransactionType? type,
+        DateTimeRange? range,
+        double? minimum,
+        double? maximum,
+        })
+    >(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
-                return SafeArea(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + bottomInset),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + bottomInset),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Filter transactions',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                setModalState(() {
-                                  draftCategory = null;
-                                  draftPaymentMethod = null;
-                                  draftType = null;
-                                  draftRange = null;
-                                  amountError = null;
-                                  minController.clear();
-                                  maxController.clear();
-                                });
-                              },
-                              child: const Text('Reset'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
                         Text(
-                          'Transaction type',
-                          style: Theme.of(context).textTheme.titleSmall,
+                          'Filter transactions',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            _FilterChoiceChip(
-                              label: 'All',
-                              selected: draftType == null,
-                              onSelected: () {
-                                setModalState(() => draftType = null);
-                              },
-                            ),
-                            _FilterChoiceChip(
-                              label: 'Expenses',
-                              selected: draftType == TransactionType.expense,
-                              onSelected: () {
-                                setModalState(
+                        TextButton(
+                          onPressed: () {
+                            setModalState(() {
+                              draftCategory = null;
+                              draftPaymentMethod = null;
+                              draftType = null;
+                              draftRange = null;
+                              amountError = null;
+                              minController.clear();
+                              maxController.clear();
+                            });
+                          },
+                          child: const Text('Reset'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Transaction type',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        _FilterChoiceChip(
+                          label: 'All',
+                          selected: draftType == null,
+                          onSelected: () {
+                            setModalState(() => draftType = null);
+                          },
+                        ),
+                        _FilterChoiceChip(
+                          label: 'Expenses',
+                          selected: draftType == TransactionType.expense,
+                          onSelected: () {
+                            setModalState(
                                   () => draftType = TransactionType.expense,
-                                );
-                              },
-                            ),
-                            _FilterChoiceChip(
-                              label: 'Income',
-                              selected: draftType == TransactionType.income,
-                              onSelected: () {
-                                setModalState(
-                                  () => draftType = TransactionType.income,
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        DropdownButtonFormField<String>(
-                          value: draftCategory,
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            prefixIcon: Icon(Icons.category_outlined),
-                          ),
-                          hint: const Text('All categories'),
-                          items: categories
-                              .map(
-                                (category) => DropdownMenuItem<String>(
-                                  value: category,
-                                  child: Text(category),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setModalState(() => draftCategory = value);
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            final picked = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime.now(),
-                              initialDateRange: draftRange,
                             );
-                            if (picked != null) {
-                              setModalState(() => draftRange = picked);
-                            }
-                          },
-                          icon: const Icon(Icons.date_range_outlined),
-                          label: Text(
-                            draftRange == null
-                                ? 'Any date range'
-                                : '${DateFormat('d MMM').format(draftRange!.start)} - '
-                                      '${DateFormat('d MMM yyyy').format(draftRange!.end)}',
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: minController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                decoration: const InputDecoration(
-                                  labelText: 'Minimum amount',
-                                  prefixText: '৳ ',
-                                ),
-                                onChanged: (_) {
-                                  if (amountError != null) {
-                                    setModalState(() => amountError = null);
-                                  }
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: maxController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                decoration: const InputDecoration(
-                                  labelText: 'Maximum amount',
-                                  prefixText: '৳ ',
-                                ),
-                                onChanged: (_) {
-                                  if (amountError != null) {
-                                    setModalState(() => amountError = null);
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (amountError != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            amountError!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        DropdownButtonFormField<String>(
-                          value: draftPaymentMethod,
-                          decoration: const InputDecoration(
-                            labelText: 'Payment method',
-                            prefixIcon: Icon(Icons.payments_outlined),
-                          ),
-                          hint: const Text('All payment methods'),
-                          items: PaymentMethod.values
-                              .map(
-                                (method) => DropdownMenuItem<String>(
-                                  value: method.name,
-                                  child: Text(_formatLabel(method.name)),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setModalState(() => draftPaymentMethod = value);
                           },
                         ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: () {
-                              final minimum = double.tryParse(
-                                minController.text.trim(),
-                              );
-                              final maximum = double.tryParse(
-                                maxController.text.trim(),
-                              );
-
-                              if ((minController.text.trim().isNotEmpty &&
-                                      (minimum == null || !minimum.isFinite)) ||
-                                  (maxController.text.trim().isNotEmpty &&
-                                      (maximum == null || !maximum.isFinite))) {
-                                setModalState(
-                                  () => amountError = 'Enter valid numbers for the amount filters.',
-                                );
-                                return;
+                        _FilterChoiceChip(
+                          label: 'Income',
+                          selected: draftType == TransactionType.income,
+                          onSelected: () {
+                            setModalState(
+                                  () => draftType = TransactionType.income,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      value: draftCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        prefixIcon: Icon(Icons.category_outlined),
+                      ),
+                      hint: const Text('All categories'),
+                      items: categories
+                          .map(
+                            (category) => DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(category),
+                        ),
+                      )
+                          .toList(),
+                      onChanged: (value) {
+                        setModalState(() => draftCategory = value);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          initialDateRange: draftRange,
+                        );
+                        if (picked != null) {
+                          setModalState(() => draftRange = picked);
+                        }
+                      },
+                      icon: const Icon(Icons.date_range_outlined),
+                      label: Text(
+                        draftRange == null
+                            ? 'Any date range'
+                            : '${DateFormat('d MMM').format(draftRange!.start)} - '
+                            '${DateFormat('d MMM yyyy').format(draftRange!.end)}',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: minController,
+                            keyboardType:
+                            const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Minimum amount',
+                              prefixText: '৳ ',
+                            ),
+                            onChanged: (_) {
+                              if (amountError != null) {
+                                setModalState(() => amountError = null);
                               }
-                              if (minimum != null &&
-                                  maximum != null &&
-                                  minimum > maximum) {
-                                setModalState(
-                                  () => amountError = 'Minimum amount cannot exceed maximum amount.',
-                                );
-                                return;
-                              }
-
-                              Navigator.of(context).pop((
-                                category: draftCategory,
-                                paymentMethod: draftPaymentMethod,
-                                type: draftType,
-                                range: draftRange,
-                                minimum: minimum,
-                                maximum: maximum,
-                              ));
                             },
-                            child: const Text('Apply filters'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: maxController,
+                            keyboardType:
+                            const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Maximum amount',
+                              prefixText: '৳ ',
+                            ),
+                            onChanged: (_) {
+                              if (amountError != null) {
+                                setModalState(() => amountError = null);
+                              }
+                            },
                           ),
                         ),
                       ],
                     ),
-                  ),
-                );
-              },
+                    if (amountError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        amountError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    DropdownButtonFormField<String>(
+                      value: draftPaymentMethod,
+                      decoration: const InputDecoration(
+                        labelText: 'Payment method',
+                        prefixIcon: Icon(Icons.payments_outlined),
+                      ),
+                      hint: const Text('All payment methods'),
+                      items: PaymentMethod.values
+                          .map(
+                            (method) => DropdownMenuItem<String>(
+                          value: method.name,
+                          child: Text(_formatLabel(method.name)),
+                        ),
+                      )
+                          .toList(),
+                      onChanged: (value) {
+                        setModalState(() => draftPaymentMethod = value);
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {
+                          final minimum = double.tryParse(
+                            minController.text.trim(),
+                          );
+                          final maximum = double.tryParse(
+                            maxController.text.trim(),
+                          );
+
+                          if ((minController.text.trim().isNotEmpty &&
+                              (minimum == null || !minimum.isFinite)) ||
+                              (maxController.text.trim().isNotEmpty &&
+                                  (maximum == null || !maximum.isFinite))) {
+                            setModalState(
+                                  () => amountError = 'Enter valid numbers for the amount filters.',
+                            );
+                            return;
+                          }
+                          if (minimum != null &&
+                              maximum != null &&
+                              minimum > maximum) {
+                            setModalState(
+                                  () => amountError = 'Minimum amount cannot exceed maximum amount.',
+                            );
+                            return;
+                          }
+
+                          Navigator.of(context).pop((
+                          category: draftCategory,
+                          paymentMethod: draftPaymentMethod,
+                          type: draftType,
+                          range: draftRange,
+                          minimum: minimum,
+                          maximum: maximum,
+                          ));
+                        },
+                        child: const Text('Apply filters'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );
+      },
+    );
     await Future<void>.delayed(const Duration(milliseconds: 250));
     minController.dispose();
     maxController.dispose();
@@ -593,12 +590,12 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       final result = await ref
           .read(transactionRepositoryProvider)
           .addTransaction(
-            transaction.copyWith(
-              id: AppUtils.generateId(),
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
+        transaction.copyWith(
+          id: AppUtils.generateId(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
       if (!mounted) return;
       result.fold((failure) => _showMessage(failure.message), (_) {
         ref.invalidate(allTransactionsProvider);
@@ -671,9 +668,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         .split(' ')
         .map(
           (word) => word.isEmpty
-              ? word
-              : '${word[0].toUpperCase()}${word.substring(1)}',
-        )
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1)}',
+    )
         .join(' ');
   }
 }
@@ -691,30 +688,35 @@ class _MonthSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = DateFormat('MMMM yyyy').format(selectedMonth);
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      height: 60,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE6E6EB)),
       ),
       child: Row(
         children: [
           IconButton(
             onPressed: onPrevious,
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_left, size: 27),
           ),
           Expanded(
             child: Center(
               child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                DateFormat('MMMM yyyy').format(selectedMonth),
+                style: const TextStyle(
+                  color: Color(0xFF23232B),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
-          IconButton(onPressed: onNext, icon: const Icon(Icons.chevron_right)),
+          IconButton(
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right, size: 27),
+          ),
         ],
       ),
     );
@@ -832,7 +834,7 @@ class _SearchField extends StatelessWidget {
         ..selection = TextSelection.collapsed(offset: value.length),
       onChanged: onChanged,
       decoration: InputDecoration(
-        hintText: 'Search by note or category',
+        hintText: 'Search transactions',
         prefixIcon: const Icon(Icons.search),
         suffixIcon: Badge(
           isLabelVisible: activeFilterCount > 0,
@@ -840,6 +842,23 @@ class _SearchField extends StatelessWidget {
           child: IconButton(
             onPressed: onFilterPressed,
             icon: const Icon(Icons.tune),
+          ),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE6E6EB)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE6E6EB)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(
+            color: Color(0xFF5D56AA),
+            width: 1.5,
           ),
         ),
       ),
@@ -913,32 +932,42 @@ class _DateTransactionGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dateLabel = _dateLabel(date);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 8),
-          child: Row(
-            children: [
-              Text(
-                dateLabel,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
-            ],
+          child: Text(
+            _dateLabel(date),
+            style: const TextStyle(
+              color: Color(0xFF23232B),
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
-        ...transactions.map(
-          (transaction) => _TransactionCard(
-            transaction: transaction,
-            categoryName: categoryNames[transaction.categoryId],
-            onLongPress: () => onTransactionLongPress(transaction),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: const Color(0xFFE6E6EB)),
+          ),
+          child: Column(
+            children: [
+              for (var index = 0; index < transactions.length; index++) ...[
+                _TransactionCard(
+                  transaction: transactions[index],
+                  categoryName: categoryNames[transactions[index].categoryId],
+                  onLongPress: () => onTransactionLongPress(transactions[index]),
+                ),
+                if (index < transactions.length - 1)
+                  const Divider(
+                    height: 1,
+                    color: Color(0xFFE0E0E4),
+                  ),
+              ],
+            ],
           ),
         ),
       ],
@@ -950,14 +979,10 @@ class _DateTransactionGroup extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final transactionDate = DateTime(date.year, date.month, date.day);
 
-    if (transactionDate == today) {
-      return 'Today';
-    }
-
+    if (transactionDate == today) return 'Today';
     if (transactionDate == today.subtract(const Duration(days: 1))) {
       return 'Yesterday';
     }
-
     return DateFormat('EEE, d MMM').format(date);
   }
 }
@@ -975,85 +1000,85 @@ class _TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isIncome = transaction.type == TransactionType.income;
-    final color = isIncome ? Colors.green : Colors.redAccent;
+    final color = isIncome
+        ? const Color(0xFF00A578)
+        : const Color(0xFFE85E6F);
+    final category = categoryName ?? transaction.categoryId;
+    final title = transaction.note?.trim().isNotEmpty == true
+        ? transaction.note!
+        : category;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.45),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(
-            isIncome ? Icons.south_west : Icons.north_east,
-            color: color,
-          ),
-        ),
-        title: Text(
-          transaction.note?.trim().isNotEmpty == true
-              ? transaction.note!
-              : categoryName ?? transaction.categoryId,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 5),
-          child: Text(
-            '${categoryName ?? transaction.categoryId} • '
-            '${_formatPaymentMethod(transaction.paymentMethod.name)} • '
-            '${DateFormat('d MMM yyyy').format(transaction.date.toLocal())}',
-          ),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        context.pushNamed(
+          AppRoutes.transactionDetailsName,
+          pathParameters: {'id': transaction.id},
+        );
+      },
+      onLongPress: onLongPress,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
           children: [
-            Text(
-              '${isIncome ? '+' : '-'}'
-              '${AppUtils.formatCurrency(transaction.amount)}',
-              style: TextStyle(
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(
+                isIncome ? Icons.south_west : Icons.north_east,
                 color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+                size: 25,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              DateFormat('h:mm a').format(transaction.date.toLocal()),
-              style: theme.textTheme.bodySmall,
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF23232B),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$category • ${DateFormat('d MMM').format(transaction.date.toLocal())}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${isIncome ? '+' : '-'}${AppUtils.formatCurrency(transaction.amount)}',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
-        onTap: () {
-          context.pushNamed(
-            AppRoutes.transactionDetailsName,
-            pathParameters: {'id': transaction.id},
-          );
-        },
-        onLongPress: onLongPress,
       ),
     );
-  }
-
-  static String _formatPaymentMethod(String value) {
-    return value
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map(
-          (word) => word.isEmpty
-              ? word
-              : '${word[0].toUpperCase()}${word.substring(1)}',
-        )
-        .join(' ');
   }
 }
 
@@ -1083,33 +1108,39 @@ class _EmptyTransactionsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 72,
-              color: theme.colorScheme.primary.withOpacity(0.55),
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8E7FF),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(
+                Icons.receipt_long_outlined,
+                size: 30,
+                color: Color(0xFF5D56AA),
+              ),
             ),
-            const SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 12),
+            const Text(
               'No transactions found',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
+                color: Color(0xFF23232B),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
-              'Try changing your filters or add your first transaction for this month.',
+              'Try changing your filters or add a transaction.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
