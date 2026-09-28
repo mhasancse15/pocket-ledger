@@ -136,6 +136,18 @@ class SettingsPage extends ConsumerWidget {
             ],
           ),
           _SettingsSection(
+            title: 'Dashboard',
+            subtitle: 'Choose which sections appear on your dashboard',
+            children: [
+              _SettingsTile(
+                icon: Icons.dashboard_customize_outlined,
+                title: 'Customize dashboard',
+                subtitle: 'Choose which sections are shown',
+                onTap: () => _showDashboardSections(context, ref),
+              ),
+            ],
+          ),
+          _SettingsSection(
             title: 'Data',
             subtitle: 'Protect and manage your finance data',
             children: [
@@ -205,6 +217,80 @@ class SettingsPage extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$feature will be available soon'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+Future<void> _showDashboardSections(BuildContext context, WidgetRef ref) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (sheetContext) => _DashboardSectionsSheet(
+      onChanged: (section, visible) =>
+          _setDashboardSectionVisibility(sheetContext, ref, section, visible),
+    ),
+  );
+}
+
+class _DashboardSectionsSheet extends ConsumerWidget {
+  const _DashboardSectionsSheet({required this.onChanged});
+
+  final Future<void> Function(DashboardSection section, bool visible) onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesNotifierProvider);
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+              child: Text(
+                'Dashboard sections',
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            for (final section in DashboardSection.values)
+              SwitchListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                title: Text(section.label),
+                value: preferences[section.preferenceKey] as bool? ?? true,
+                onChanged: (visible) => onChanged(section, visible),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _setDashboardSectionVisibility(
+  BuildContext context,
+  WidgetRef ref,
+  DashboardSection section,
+  bool visible,
+) async {
+  try {
+    await ref
+        .read(preferencesNotifierProvider.notifier)
+        .setDashboardSectionVisible(section, visible);
+  } catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Unable to update dashboard: $error'),
         behavior: SnackBarBehavior.floating,
       ),
     );

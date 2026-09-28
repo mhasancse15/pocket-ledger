@@ -5,11 +5,17 @@ import 'package:intl/intl.dart';
 
 import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
+import '../../domain/entities/budget.dart';
 import '../../domain/entities/monthly_limit.dart';
+import '../../domain/entities/recurring_rule.dart';
 import '../../domain/entities/transaction.dart';
+import '../../domain/usecases/budget_calculations.dart';
 import '../providers/budget_notification_provider.dart';
+import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/limit_provider.dart';
+import '../providers/preferences_provider.dart';
+import '../providers/recurring_provider.dart';
 import '../providers/transaction_provider.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
@@ -116,6 +122,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final transactionsAsync = ref.watch(monthlyTransactionsProvider(monthKey));
     final limitAsync = ref.watch(monthlyLimitProvider(monthKey));
+    final budgets = ref.watch(budgetsProvider).valueOrNull ?? const <Budget>[];
+    final recurringRules =
+        ref.watch(activeRecurringRulesProvider).valueOrNull ?? const [];
+    final preferences = ref.watch(preferencesNotifierProvider);
     final categories = ref.watch(allCategoriesProvider).valueOrNull ?? const [];
 
     final categoryNames = <String, String>{
@@ -162,6 +172,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             final visibleTransactions = isCurrentMonth
                 ? _todayTransactions(transactions)
                 : _monthTransactions(transactions).take(4).toList();
+            final monthBudgets = budgets
+                .where(
+                  (budget) =>
+                      budget.year == selectedMonth.year &&
+                      budget.month == selectedMonth.month,
+                )
+                .toList();
+            final expenseTransactions = transactions
+                .where((item) => item.type == TransactionType.expense)
+                .toList();
+            final upcomingRules =
+                recurringRules
+                    .where(
+                      (rule) => rule.nextOccurrenceDate.isAfter(
+                        DateTime.now().subtract(const Duration(days: 1)),
+                      ),
+                    )
+                    .toList()
+                  ..sort(
+                    (a, b) =>
+                        a.nextOccurrenceDate.compareTo(b.nextOccurrenceDate),
+                  );
 
             return RefreshIndicator(
               color: primary,
@@ -169,6 +201,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ref.invalidate(monthlyTransactionsProvider(monthKey));
                 ref.invalidate(monthlyLimitProvider(monthKey));
                 ref.invalidate(allCategoriesProvider);
+                ref.invalidate(budgetsProvider);
+                ref.invalidate(activeRecurringRulesProvider);
               },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -176,31 +210,83 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 children: [
                   _monthSelector(),
                   const SizedBox(height: 14),
-                  _balanceCard(
-                    balance: balance,
-                    income: income,
-                    expense: expense,
-                  ),
-                  const SizedBox(height: 16),
-                  _budgetSection(expense: expense, target: target),
-                  const SizedBox(height: 22),
-                  _sectionHeader(
-                    title: isCurrentMonth
-                        ? "Today's transactions"
-                        : 'Recent transactions',
-                    subtitle: isCurrentMonth
-                        ? 'Your spending activity today'
-                        : DateFormat('MMMM yyyy').format(selectedMonth),
-                    actionLabel: 'View all',
-                    onAction: () {
-                      context.goNamed(AppRoutes.transactionsName);
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  _transactionsCard(
-                    transactions: visibleTransactions,
-                    categoryNames: categoryNames,
-                  ),
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.balance,
+                  )) ...[
+                    _balanceCard(
+                      balance: balance,
+                      income: income,
+                      expense: expense,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.monthlyTarget,
+                  )) ...[
+                    _budgetSection(expense: expense, target: target),
+                    const SizedBox(height: 22),
+                  ],
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.budgetStatus,
+                  )) ...[
+                    _budgetStatusSection(
+                      budgets: monthBudgets,
+                      allBudgets: budgets,
+                      transactions: transactions,
+                      categoryNames: categoryNames,
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.todayTransactions,
+                  )) ...[
+                    _sectionHeader(
+                      title: isCurrentMonth
+                          ? "Today's transactions"
+                          : 'Recent transactions',
+                      subtitle: isCurrentMonth
+                          ? 'Your spending activity today'
+                          : DateFormat('MMMM yyyy').format(selectedMonth),
+                      actionLabel: 'View all',
+                      onAction: () {
+                        context.goNamed(AppRoutes.transactionsName);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    _transactionsCard(
+                      transactions: visibleTransactions,
+                      categoryNames: categoryNames,
+                    ),
+                    const SizedBox(height: 28),
+                  ],
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.categorySummary,
+                  )) ...[
+                    _categorySummarySection(
+                      transactions: expenseTransactions,
+                      categoryNames: categoryNames,
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.upcomingBills,
+                  )) ...[
+                    _upcomingBillsSection(upcomingRules.take(3).toList()),
+                    const SizedBox(height: 22),
+                  ],
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.savingsGoals,
+                  )) ...[
+                    _savingsGoalsSection(),
+                    const SizedBox(height: 22),
+                  ],
                   const SizedBox(height: 32),
                   _sectionHeader(
                     title: 'Quick actions',
@@ -576,6 +662,352 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
         ],
       ),
+    );
+  }
+
+  bool _isSectionVisible(
+    Map<String, dynamic> preferences,
+    DashboardSection section,
+  ) {
+    return preferences[section.preferenceKey] as bool? ?? true;
+  }
+
+  Widget _budgetStatusSection({
+    required List<Budget> budgets,
+    required List<Budget> allBudgets,
+    required List<Transaction> transactions,
+    required Map<String, String> categoryNames,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          title: 'Budget status',
+          subtitle: DateFormat('MMMM yyyy').format(selectedMonth),
+          actionLabel: 'View all',
+          onAction: () => context.pushNamed(AppRoutes.budgetsName),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: budgets.isEmpty
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No budgets for this month',
+                      style: TextStyle(color: mutedColor, fontSize: 14),
+                    ),
+                    TextButton(
+                      onPressed: () => context.pushNamed(AppRoutes.budgetsName),
+                      child: const Text('Create a budget'),
+                    ),
+                  ],
+                )
+              : Column(
+                  children: [
+                    for (
+                      var index = 0;
+                      index < budgets.length && index < 3;
+                      index++
+                    ) ...[
+                      if (index > 0) Divider(color: borderColor),
+                      _budgetStatusRow(
+                        budgets[index],
+                        allBudgets,
+                        transactions,
+                        categoryNames,
+                      ),
+                    ],
+                    if (budgets.length > 3)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: () =>
+                              context.pushNamed(AppRoutes.budgetsName),
+                          child: Text('+${budgets.length - 3} more budgets'),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _budgetStatusRow(
+    Budget budget,
+    List<Budget> allBudgets,
+    List<Transaction> transactions,
+    Map<String, String> categoryNames,
+  ) {
+    final spent = calculateBudgetSpent(
+      budget: budget,
+      transactions: transactions,
+    );
+    final limit = calculateEffectiveBudgetLimit(
+      budget: budget,
+      allBudgets: allBudgets,
+      transactions: transactions,
+    );
+    final percentage = limit > 0 ? spent / limit : 0.0;
+    final progressColor = percentage >= 1
+        ? Colors.redAccent
+        : percentage >= 0.9
+        ? Colors.orange
+        : primary;
+    final name = switch (budget.scope) {
+      BudgetScope.monthly => 'Monthly budget',
+      BudgetScope.category => categoryNames[budget.scopeKey] ?? budget.scopeKey,
+      BudgetScope.wallet => _readableScopeKey(budget.scopeKey),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${AppUtils.formatCurrency(spent)} / ${AppUtils.formatCurrency(limit)}',
+                style: TextStyle(color: mutedColor, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: percentage.clamp(0.0, 1.0),
+              minHeight: 7,
+              backgroundColor: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(progressColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _readableScopeKey(String value) {
+    return value
+        .split(RegExp(r'[_\s-]+'))
+        .where((word) => word.isNotEmpty)
+        .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
+  }
+
+  Widget _categorySummarySection({
+    required List<Transaction> transactions,
+    required Map<String, String> categoryNames,
+  }) {
+    final totals = <String, double>{};
+    for (final transaction in transactions) {
+      totals.update(
+        transaction.categoryId,
+        (amount) => amount + transaction.amount,
+        ifAbsent: () => transaction.amount,
+      );
+    }
+    final entries = totals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final topEntries = entries.take(4).toList();
+    final highest = topEntries.isEmpty ? 0.0 : topEntries.first.value;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          title: 'Category summary',
+          subtitle: DateFormat('MMMM yyyy').format(selectedMonth),
+          actionLabel: 'View all',
+          onAction: () => context.goNamed(AppRoutes.reportsName),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: topEntries.isEmpty
+              ? Text(
+                  'Expense categories will appear here.',
+                  style: TextStyle(color: mutedColor),
+                )
+              : Column(
+                  children: [
+                    for (var index = 0; index < topEntries.length; index++) ...[
+                      if (index > 0) const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              categoryNames[topEntries[index].key] ??
+                                  topEntries[index].key,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            AppUtils.formatCurrency(topEntries[index].value),
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 7),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: highest > 0
+                              ? topEntries[index].value / highest
+                              : 0,
+                          minHeight: 6,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                          valueColor: AlwaysStoppedAnimation(primary),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _upcomingBillsSection(List<RecurringRule> rules) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          title: 'Upcoming bills',
+          subtitle: 'Your next recurring payments',
+          actionLabel: 'View all',
+          onAction: () => context.pushNamed(AppRoutes.recurringExpensesName),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: rules.isEmpty
+              ? Text(
+                  'No upcoming recurring bills.',
+                  style: TextStyle(color: mutedColor),
+                )
+              : Column(
+                  children: [
+                    for (var index = 0; index < rules.length; index++) ...[
+                      if (index > 0) Divider(color: borderColor),
+                      Row(
+                        children: [
+                          Icon(Icons.event_note_outlined, color: primary),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  rules[index].title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  DateFormat('d MMM').format(
+                                    rules[index].nextOccurrenceDate.toLocal(),
+                                  ),
+                                  style: TextStyle(
+                                    color: mutedColor,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            AppUtils.formatCurrency(rules[index].amount),
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _savingsGoalsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          title: 'Savings goals',
+          subtitle: 'Track progress toward what matters',
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.savings_outlined, color: primary, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Savings goals are not available yet.',
+                  style: TextStyle(color: mutedColor),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

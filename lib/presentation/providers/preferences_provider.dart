@@ -1,6 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum DashboardSection {
+  balance('dashboardBalanceVisible', 'Balance'),
+  monthlyTarget('dashboardMonthlyTargetVisible', 'Monthly target'),
+  budgetStatus('dashboardBudgetStatusVisible', 'Budget status'),
+  todayTransactions(
+    'dashboardTodayTransactionsVisible',
+    "Today's transactions",
+  ),
+  categorySummary('dashboardCategorySummaryVisible', 'Category summary'),
+  upcomingBills('dashboardUpcomingBillsVisible', 'Upcoming bills'),
+  savingsGoals('dashboardSavingsGoalsVisible', 'Savings goals');
+
+  const DashboardSection(this.preferenceKey, this.label);
+
+  final String preferenceKey;
+  final String label;
+}
+
 class PreferencesStore {
   Future<SharedPreferences> get _preferences => SharedPreferences.getInstance();
 
@@ -15,6 +33,9 @@ class PreferencesStore {
           preferences.getBool('budgetNotificationsEnabled') ?? false,
       'monthlyTargetNotificationsEnabled':
           preferences.getBool('monthlyTargetNotificationsEnabled') ?? false,
+      for (final section in DashboardSection.values)
+        section.preferenceKey:
+            preferences.getBool(section.preferenceKey) ?? true,
     };
   }
 
@@ -25,6 +46,11 @@ class PreferencesStore {
 
   Future<void> setMonthlyTargetNotificationsEnabled(bool value) =>
       _setBool('monthlyTargetNotificationsEnabled', value);
+
+  Future<void> setDashboardSectionVisible(
+    DashboardSection section,
+    bool value,
+  ) => _setBool(section.preferenceKey, value);
 
   Future<void> _setBool(String key, bool value) async {
     final saved = await (await _preferences).setBool(key, value);
@@ -61,6 +87,8 @@ class PreferencesNotifier extends StateNotifier<Map<String, dynamic>> {
         'currencySymbol': '৳',
         'budgetNotificationsEnabled': false,
         'monthlyTargetNotificationsEnabled': false,
+        for (final section in DashboardSection.values)
+          section.preferenceKey: true,
       }) {
     ready = _load();
   }
@@ -88,6 +116,15 @@ class PreferencesNotifier extends StateNotifier<Map<String, dynamic>> {
     await ready;
     await _store.setMonthlyTargetNotificationsEnabled(value);
     state = {...state, 'monthlyTargetNotificationsEnabled': value};
+  }
+
+  Future<void> setDashboardSectionVisible(
+    DashboardSection section,
+    bool value,
+  ) async {
+    await ready;
+    await _store.setDashboardSectionVisible(section, value);
+    state = {...state, section.preferenceKey: value};
   }
 }
 

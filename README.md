@@ -11,6 +11,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 - View income, expenses, and balance for a selected month.
 - Review today's transactions for the current month or recent transactions for another month.
 - See monthly target progress and use quick actions to add income or expenses.
+- Customize dashboard visibility for balance, monthly target, budget status, transactions, category summary, upcoming recurring bills, and savings goals.
 - Navigate between months and open the full transaction list.
 
 ### Transactions
@@ -73,7 +74,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 | Categories | Create, edit, search, and archive transaction categories |
 | Recurring expenses | View stored recurring rules |
 | Export data | Filter and share transaction exports in CSV or PDF |
-| Settings | Theme, notification preferences, data management, and links to management screens |
+| Settings | Theme, dashboard customization, notification preferences, data management, and links to management screens |
 
 ## Technology
 
