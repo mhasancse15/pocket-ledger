@@ -6,6 +6,7 @@ import '../../presentation/pages/budget_page.dart';
 import '../../presentation/pages/commercial_pages.dart';
 import '../../presentation/pages/dashboard_page.dart';
 import '../../presentation/pages/edit_transaction_page.dart';
+import '../../presentation/pages/export_data_page.dart';
 import '../../presentation/pages/monthly_history_page.dart';
 import '../../presentation/pages/previous_month_summary_page.dart';
 import '../../presentation/pages/report_page.dart';
@@ -105,6 +106,11 @@ class AppRouter {
         name: AppRoutes.budgetsName,
         builder: (context, state) => const BudgetPage(),
       ),
+      GoRoute(
+        path: AppRoutes.export,
+        name: AppRoutes.exportDataName,
+        builder: (context, state) => const ExportDataPage(),
+      )
     ],
     errorBuilder: (context, state) =>
         const Scaffold(body: Center(child: Text('Page not found'))),

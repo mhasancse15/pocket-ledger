@@ -137,7 +137,7 @@ class SettingsPage extends ConsumerWidget {
                 icon: Icons.file_download_outlined,
                 title: 'Export data',
                 subtitle: 'Export transactions as CSV or PDF',
-                onTap: () => _comingSoon(context, 'Export data'),
+                onTap: () => context.pushNamed(AppRoutes.exportDataName),
               ),
               _SettingsTile(
                 icon: Icons.backup_outlined,

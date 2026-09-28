@@ -31,4 +31,6 @@ class AppRoutes {
   static const String transactionDetailsName = 'transactionDetails';
   static const String budgets = '/budgets';
   static const String budgetsName = 'budgets';
+  static const String exportDataName = 'exportData';
+  static const String export = '/exportData';
 }
