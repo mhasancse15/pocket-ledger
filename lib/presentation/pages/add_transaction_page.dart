@@ -18,6 +18,239 @@ class AddTransactionPage extends ConsumerStatefulWidget {
 }
 
 class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
+  String _categoryLabel(List<Category> categories) {
+    if (selectedCategory == null) return 'Select a category';
+
+    for (final category in categories) {
+      if (category.id == selectedCategory) return category.name;
+    }
+
+    return 'Select a category';
+  }
+
+  Widget _selectionField({
+    required String label,
+    required String value,
+    required IconData icon,
+    bool showLoading = false,
+    required VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(color: mutedColor, fontSize: 11),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (showLoading)
+                SizedBox(
+                  width: 17,
+                  height: 17,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: mutedColor,
+                  ),
+                )
+              else
+                Icon(Icons.keyboard_arrow_down_rounded, color: mutedColor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectCategory(List<Category> categories) async {
+    final selected = await _showSelectionPicker<String>(
+      title: 'Category',
+      subtitle: 'Choose a category for this transaction.',
+      selectedValue: selectedCategory,
+      options: categories
+          .map(
+            (category) => _TransactionPickerOption(
+              value: category.id,
+              title: category.name,
+              subtitle: transactionType == TransactionType.expense
+                  ? 'Expense category'
+                  : 'Income category',
+              icon: Icons.category_outlined,
+            ),
+          )
+          .toList(),
+    );
+
+    if (selected == null || !mounted) return;
+    _setSelectedCategory(selected);
+  }
+
+  Future<void> _selectPaymentMethod() async {
+    final selected = await _showSelectionPicker<String>(
+      title: 'Payment method',
+      subtitle: 'Choose how this transaction was paid.',
+      selectedValue: selectedPaymentMethod,
+      options: PaymentMethod.values
+          .map(
+            (method) => _TransactionPickerOption(
+              value: method.name,
+              title: _paymentMethodLabel(method),
+              subtitle: 'Payment method',
+              icon: Icons.account_balance_wallet_outlined,
+            ),
+          )
+          .toList(),
+    );
+
+    if (selected == null || !mounted) return;
+    _setSelectedPaymentMethod(selected);
+  }
+
+  Future<T?> _showSelectionPicker<T>({
+    required String title,
+    required String subtitle,
+    required T? selectedValue,
+    required List<_TransactionPickerOption<T>> options,
+  }) {
+    final theme = Theme.of(context);
+
+    return showModalBottomSheet<T>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...options.map((option) {
+              final selected = option.value == selectedValue;
+              final color = theme.colorScheme.primary;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: selected
+                      ? color.withValues(alpha: 0.08)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                  child: InkWell(
+                    onTap: () => Navigator.of(sheetContext).pop(option.value),
+                    borderRadius: BorderRadius.circular(15),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 11,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: Icon(option.icon, color: color, size: 21),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  option.title,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: selected
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  option.subtitle,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            selected ? Icons.check_circle : Icons.chevron_right,
+                            color: selected
+                                ? color
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
   Color get primary => Theme.of(context).colorScheme.primary;
   Color get background => Theme.of(context).scaffoldBackgroundColor;
   Color get textColor => Theme.of(context).colorScheme.onSurface;
@@ -42,7 +275,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
     amountController = TextEditingController();
     noteController = TextEditingController();
-    selectedPaymentMethod = AppConstants.paymentMethods.first;
+    selectedPaymentMethod = PaymentMethod.cash.name;
   }
 
   @override
@@ -89,6 +322,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
     if (!formKey.currentState!.validate()) return;
 
+    if (selectedCategory == null) {
+      showMessage('Select a category.');
+      return;
+    }
+
     final amount = double.tryParse(amountController.text.trim());
 
     if (amount == null || amount <= 0) {
@@ -103,7 +341,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
       final paymentMethod = PaymentMethod.values.firstWhere(
         (method) => method.name == selectedPaymentMethod,
-        orElse: () => PaymentMethod.cash,
       );
 
       final transaction = Transaction(
@@ -146,6 +383,14 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     );
   }
 
+  void _setSelectedCategory(String value) {
+    setState(() => selectedCategory = value);
+  }
+
+  void _setSelectedPaymentMethod(String value) {
+    setState(() => selectedPaymentMethod = value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(
@@ -156,21 +401,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       ),
     );
 
-    final categoryItems = categoriesAsync.when(
-      loading: () => <DropdownMenuItem<String>>[],
-      error: (_, __) => <DropdownMenuItem<String>>[],
-      data: (categories) {
-        return categories
-            .where((category) => !category.isArchived)
-            .map(
-              (category) => DropdownMenuItem<String>(
-                value: category.id,
-                child: Text(category.name),
-              ),
-            )
-            .toList();
-      },
-    );
+    final categories =
+        categoriesAsync.valueOrNull
+            ?.where((category) => !category.isArchived)
+            .toList() ??
+        const <Category>[];
 
     return Scaffold(
       backgroundColor: background,
@@ -209,61 +444,31 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
 
               const SizedBox(height: 12),
 
-              Column(
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    isExpanded: true,
-                    decoration: _inputDecoration(
-                      label: 'Category',
-                      icon: Icons.category_outlined,
-                      suffix: categoriesAsync.isLoading
-                          ? SizedBox(
-                              width: 17,
-                              height: 17,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : null,
-                    ),
-                    items: categoryItems,
-                    onChanged: isLoading || categoriesAsync.isLoading
-                        ? null
-                        : (value) {
-                            setState(() => selectedCategory = value);
-                          },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Select a category';
-                      }
-                      return null;
-                    },
+              _selectionField(
+                label: 'Category',
+                value: categoriesAsync.isLoading
+                    ? 'Loading categories...'
+                    : _categoryLabel(categories),
+                icon: Icons.category_outlined,
+                showLoading: categoriesAsync.isLoading,
+                onTap:
+                    isLoading ||
+                        categoriesAsync.isLoading ||
+                        categoriesAsync.hasError ||
+                        categories.isEmpty
+                    ? null
+                    : () => _selectCategory(categories),
+              ),
+              const SizedBox(height: 12),
+              _selectionField(
+                label: 'Payment method',
+                value: _paymentMethodLabel(
+                  PaymentMethod.values.firstWhere(
+                    (method) => method.name == selectedPaymentMethod,
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedPaymentMethod,
-                    isExpanded: true,
-                    decoration: _inputDecoration(
-                      label: 'Payment method',
-                      icon: Icons.account_balance_wallet_outlined,
-                    ),
-                    items: AppConstants.paymentMethods
-                        .map(
-                          (method) => DropdownMenuItem<String>(
-                            value: method,
-                            child: Text(_formatLabel(method)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: isLoading
-                        ? null
-                        : (value) {
-                            if (value == null) return;
-                            setState(() {
-                              selectedPaymentMethod = value;
-                            });
-                          },
-                  ),
-                ],
+                ),
+                icon: Icons.account_balance_wallet_outlined,
+                onTap: isLoading ? null : _selectPaymentMethod,
               ),
 
               if (categoriesAsync.hasError)
@@ -271,6 +476,19 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
                   padding: const EdgeInsets.only(top: 6, left: 12),
                   child: Text(
                     'Unable to load categories',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              if (!categoriesAsync.isLoading &&
+                  !categoriesAsync.hasError &&
+                  categories.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 12),
+                  child: Text(
+                    'No categories available for this transaction type.',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 12,
@@ -482,15 +700,28 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     );
   }
 
-  String _formatLabel(String value) {
-    return value
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map(
-          (word) => word.isEmpty
-              ? word
-              : '${word[0].toUpperCase()}${word.substring(1)}',
-        )
-        .join(' ');
+  String _paymentMethodLabel(PaymentMethod method) {
+    return switch (method) {
+      PaymentMethod.cash => 'Cash',
+      PaymentMethod.bankTransfer => 'Bank Transfer',
+      PaymentMethod.debitCard => 'Debit Card',
+      PaymentMethod.creditCard => 'Credit Card',
+      PaymentMethod.mobileWallet => 'Mobile Wallet',
+      PaymentMethod.other => 'Other',
+    };
   }
+}
+
+class _TransactionPickerOption<T> {
+  const _TransactionPickerOption({
+    required this.value,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final T value;
+  final String title;
+  final String subtitle;
+  final IconData icon;
 }

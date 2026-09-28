@@ -344,25 +344,6 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
     final theme = Theme.of(context);
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
-    final categoryItems = widget.categories
-        .where((category) => category.type == CategoryType.expense)
-        .map(
-          (category) => DropdownMenuItem<String>(
-            value: category.id,
-            child: Text(category.name),
-          ),
-        )
-        .toList();
-
-    final paymentItems = PaymentMethod.values
-        .map(
-          (method) => DropdownMenuItem<String>(
-            value: method.name,
-            child: Text(_formatLabel(method.name)),
-          ),
-        )
-        .toList();
-
     return SafeArea(
       child: Material(
         color: theme.colorScheme.surface,
@@ -390,70 +371,28 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
                 ),
               ),
               const SizedBox(height: 22),
-              DropdownButtonFormField<BudgetScope>(
-                value: scope,
-                decoration: InputDecoration(
-                  labelText: 'Budget type',
-                  prefixIcon: const Icon(Icons.tune_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: BudgetScope.monthly,
-                    child: Text('Monthly budget'),
-                  ),
-                  DropdownMenuItem(
-                    value: BudgetScope.category,
-                    child: Text('Category budget'),
-                  ),
-                  DropdownMenuItem(
-                    value: BudgetScope.wallet,
-                    child: Text('Payment method budget'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() {
-                    scope = value;
-                    scopeKey = null;
-                    error = null;
-                  });
-                },
+              _selectionField(
+                label: 'Budget type',
+                value: _scopeLabel(scope),
+                icon: Icons.tune_outlined,
+                onTap: _selectScope,
               ),
               if (scope != BudgetScope.monthly) ...[
                 const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: scopeKey,
-                  decoration: InputDecoration(
-                    labelText: scope == BudgetScope.category
-                        ? 'Category'
-                        : 'Payment method',
-                    prefixIcon: Icon(
-                      scope == BudgetScope.category
-                          ? Icons.category_outlined
-                          : Icons.account_balance_wallet_outlined,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  items: scope == BudgetScope.category
-                      ? categoryItems
-                      : paymentItems,
-                  onChanged: (value) {
-                    setState(() {
-                      scopeKey = value;
-                      error = null;
-                    });
-                  },
+                _selectionField(
+                  label: scope == BudgetScope.category
+                      ? 'Category'
+                      : 'Payment method',
+                  value: _scopeKeyLabel(),
+                  icon: scope == BudgetScope.category
+                      ? Icons.category_outlined
+                      : Icons.account_balance_wallet_outlined,
+                  onTap: _selectScopeKey,
                 ),
               ],
               const SizedBox(height: 14),
               TextField(
                 controller: amountController,
-                autofocus: widget.existing == null,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -508,6 +447,294 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
     );
   }
 
+  String _scopeLabel(BudgetScope value) {
+    return switch (value) {
+      BudgetScope.monthly => 'Monthly budget',
+      BudgetScope.category => 'Category budget',
+      BudgetScope.wallet => 'Payment method budget',
+    };
+  }
+
+  String _scopeKeyLabel() {
+    if (scopeKey == null) {
+      return scope == BudgetScope.category
+          ? 'Select a category'
+          : 'Select a payment method';
+    }
+
+    if (scope == BudgetScope.category) {
+      for (final category in widget.categories) {
+        if (category.id == scopeKey) return category.name;
+      }
+      return scopeKey!;
+    }
+
+    return _formatLabel(scopeKey!);
+  }
+
+  Widget _selectionField({
+    required String label,
+    required String value,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectScope() async {
+    final selected = await _showPicker<BudgetScope>(
+      title: 'Budget type',
+      subtitle: 'Choose what this budget tracks.',
+      options: [
+        _BudgetPickerOption(
+          value: BudgetScope.monthly,
+          title: 'Monthly budget',
+          subtitle: 'Set a limit for all expenses',
+          icon: Icons.calendar_month_outlined,
+        ),
+        _BudgetPickerOption(
+          value: BudgetScope.category,
+          title: 'Category budget',
+          subtitle: 'Track spending in one category',
+          icon: Icons.category_outlined,
+        ),
+        _BudgetPickerOption(
+          value: BudgetScope.wallet,
+          title: 'Payment method budget',
+          subtitle: 'Track spending by payment method',
+          icon: Icons.account_balance_wallet_outlined,
+        ),
+      ],
+      selectedValue: scope,
+    );
+
+    if (selected == null || !mounted) return;
+    setState(() {
+      scope = selected;
+      scopeKey = null;
+      error = null;
+    });
+  }
+
+  Future<void> _selectScopeKey() async {
+    final List<_BudgetPickerOption<String>> options;
+    if (scope == BudgetScope.category) {
+      options = widget.categories
+          .where((category) => category.type == CategoryType.expense)
+          .map(
+            (category) => _BudgetPickerOption(
+              value: category.id,
+              title: category.name,
+              subtitle: 'Expense category',
+              icon: Icons.category_outlined,
+            ),
+          )
+          .toList();
+    } else {
+      options = PaymentMethod.values
+          .map(
+            (method) => _BudgetPickerOption(
+              value: method.name,
+              title: _formatLabel(method.name),
+              subtitle: 'Payment method',
+              icon: Icons.account_balance_wallet_outlined,
+            ),
+          )
+          .toList();
+    }
+
+    final selected = await _showPicker<String>(
+      title: scope == BudgetScope.category ? 'Category' : 'Payment method',
+      subtitle: scope == BudgetScope.category
+          ? 'Choose an expense category for this budget.'
+          : 'Choose which payment method this budget tracks.',
+      options: options,
+      selectedValue: scopeKey,
+    );
+
+    if (selected == null || !mounted) return;
+    setState(() {
+      scopeKey = selected;
+      error = null;
+    });
+  }
+
+  Future<T?> _showPicker<T>({
+    required String title,
+    required String subtitle,
+    required List<_BudgetPickerOption<T>> options,
+    required T? selectedValue,
+  }) {
+    final theme = Theme.of(context);
+
+    return showModalBottomSheet<T>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (options.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'No expense categories available.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ...options.map((option) {
+              final selected = option.value == selectedValue;
+              final color = theme.colorScheme.primary;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: selected
+                      ? color.withValues(alpha: 0.08)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                  child: InkWell(
+                    onTap: () => Navigator.of(sheetContext).pop(option.value),
+                    borderRadius: BorderRadius.circular(15),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 11,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: Icon(option.icon, color: color, size: 21),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  option.title,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: selected
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  option.subtitle,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            selected ? Icons.check_circle : Icons.chevron_right,
+                            color: selected
+                                ? color
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _formatLabel(String value) {
     return value
         .replaceAll('_', ' ')
@@ -519,6 +746,20 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
         )
         .join(' ');
   }
+}
+
+class _BudgetPickerOption<T> {
+  const _BudgetPickerOption({
+    required this.value,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final T value;
+  final String title;
+  final String subtitle;
+  final IconData icon;
 }
 
 class _BudgetDraft {

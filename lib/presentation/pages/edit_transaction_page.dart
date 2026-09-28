@@ -144,6 +144,11 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
       return;
     }
 
+    if (selectedCategory == null) {
+      showMessage('Select a category.');
+      return;
+    }
+
     final amount = double.tryParse(amountController.text.trim());
 
     if (amount == null || amount <= 0) {
@@ -280,24 +285,14 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
       ),
     );
 
-    final categoryItems = categoriesAsync.when(
-      loading: () => <DropdownMenuItem<String>>[],
-      error: (_, __) => <DropdownMenuItem<String>>[],
-      data: (categories) {
-        return categories
-            .where(
+    final categories =
+        categoriesAsync.valueOrNull
+            ?.where(
               (category) =>
                   !category.isArchived || category.id == selectedCategory,
             )
-            .map(
-              (category) => DropdownMenuItem<String>(
-                value: category.id,
-                child: Text(category.name, overflow: TextOverflow.ellipsis),
-              ),
-            )
-            .toList();
-      },
-    );
+            .toList() ??
+        const <Category>[];
 
     if (pageLoading) {
       return Scaffold(
@@ -359,81 +354,46 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
               const SizedBox(height: 14),
               amountField(),
               const SizedBox(height: 12),
-              Column(
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    isExpanded: true,
-                    decoration: inputDecoration(
-                      label: 'Category',
-                      icon: Icons.category_outlined,
-                      suffix: categoriesAsync.isLoading
-                          ? SizedBox(
-                              width: 17,
-                              height: 17,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: primary,
-                              ),
-                            )
-                          : null,
-                    ),
-                    items: categoryItems,
-                    onChanged: isLoading || categoriesAsync.isLoading
-                        ? null
-                        : (value) {
-                            setState(() {
-                              selectedCategory = value;
-                            });
-                          },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Select a category';
-                      }
-
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedPaymentMethod,
-                    isExpanded: true,
-                    decoration: inputDecoration(
-                      label: 'Payment method',
-                      icon: Icons.account_balance_wallet_outlined,
-                    ),
-                    items: AppConstants.paymentMethods
-                        .map(
-                          (method) => DropdownMenuItem<String>(
-                            value: method,
-                            child: Text(formatLabel(method)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: isLoading
-                        ? null
-                        : (value) {
-                            if (value == null) return;
-
-                            setState(() {
-                              selectedPaymentMethod = value;
-                            });
-                          },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Select a payment method';
-                      }
-
-                      return null;
-                    },
-                  ),
-                ],
+              selectionField(
+                label: 'Category',
+                value: categoriesAsync.isLoading
+                    ? 'Loading categories...'
+                    : categoryLabel(categories),
+                icon: Icons.category_outlined,
+                showLoading: categoriesAsync.isLoading,
+                onTap:
+                    isLoading ||
+                        categoriesAsync.isLoading ||
+                        categoriesAsync.hasError ||
+                        categories.isEmpty
+                    ? null
+                    : () => selectCategory(categories),
+              ),
+              const SizedBox(height: 12),
+              selectionField(
+                label: 'Payment method',
+                value: selectedPaymentMethod,
+                icon: Icons.account_balance_wallet_outlined,
+                onTap: isLoading ? null : selectPaymentMethod,
               ),
               if (categoriesAsync.hasError)
                 Padding(
                   padding: const EdgeInsets.only(top: 6, left: 12),
                   child: Text(
                     'Unable to load categories',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              if (!categoriesAsync.isLoading &&
+                  !categoriesAsync.hasError &&
+                  categories.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 12),
+                  child: Text(
+                    'No categories available for this transaction type.',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 12,
@@ -503,6 +463,252 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  String categoryLabel(List<Category> categories) {
+    if (selectedCategory == null) return 'Select a category';
+
+    for (final category in categories) {
+      if (category.id == selectedCategory) return category.name;
+    }
+
+    return 'Select a category';
+  }
+
+  Widget selectionField({
+    required String label,
+    required String value,
+    required IconData icon,
+    bool showLoading = false,
+    required VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(color: mutedColor, fontSize: 11),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (showLoading)
+                SizedBox(
+                  width: 17,
+                  height: 17,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: mutedColor,
+                  ),
+                )
+              else
+                Icon(Icons.keyboard_arrow_down_rounded, color: mutedColor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> selectCategory(List<Category> categories) async {
+    final selected = await showSelectionPicker<String>(
+      title: 'Category',
+      subtitle: 'Choose a category for this transaction.',
+      selectedValue: selectedCategory,
+      options: categories
+          .map(
+            (category) => _EditTransactionPickerOption(
+              value: category.id,
+              title: category.name,
+              subtitle: category.isArchived
+                  ? 'Archived category'
+                  : transactionType == TransactionType.expense
+                  ? 'Expense category'
+                  : 'Income category',
+              icon: Icons.category_outlined,
+            ),
+          )
+          .toList(),
+    );
+
+    if (selected == null || !mounted) return;
+    setState(() => selectedCategory = selected);
+  }
+
+  Future<void> selectPaymentMethod() async {
+    final selected = await showSelectionPicker<String>(
+      title: 'Payment method',
+      subtitle: 'Choose how this transaction was paid.',
+      selectedValue: selectedPaymentMethod,
+      options: AppConstants.paymentMethods
+          .map(
+            (method) => _EditTransactionPickerOption(
+              value: method,
+              title: formatLabel(method),
+              subtitle: 'Payment method',
+              icon: Icons.account_balance_wallet_outlined,
+            ),
+          )
+          .toList(),
+    );
+
+    if (selected == null || !mounted) return;
+    setState(() => selectedPaymentMethod = selected);
+  }
+
+  Future<T?> showSelectionPicker<T>({
+    required String title,
+    required String subtitle,
+    required T? selectedValue,
+    required List<_EditTransactionPickerOption<T>> options,
+  }) {
+    final theme = Theme.of(context);
+
+    return showModalBottomSheet<T>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (options.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'No categories available.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ...options.map((option) {
+              final selected = option.value == selectedValue;
+              final color = theme.colorScheme.primary;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: selected
+                      ? color.withValues(alpha: 0.08)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                  child: InkWell(
+                    onTap: () => Navigator.of(sheetContext).pop(option.value),
+                    borderRadius: BorderRadius.circular(15),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 11,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: Icon(option.icon, color: color, size: 21),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  option.title,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: selected
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  option.subtitle,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            selected ? Icons.check_circle : Icons.chevron_right,
+                            color: selected
+                                ? color
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -682,4 +888,18 @@ class _EditTransactionPageState extends ConsumerState<EditTransactionPage> {
         )
         .join(' ');
   }
+}
+
+class _EditTransactionPickerOption<T> {
+  const _EditTransactionPickerOption({
+    required this.value,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final T value;
+  final String title;
+  final String subtitle;
+  final IconData icon;
 }
