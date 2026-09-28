@@ -7,6 +7,7 @@ import '../../core/utils/constants.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/limit_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../widgets/financial_summary_card.dart';
 
 class PreviousMonthSummaryPage extends ConsumerWidget {
   const PreviousMonthSummaryPage({super.key});
@@ -272,54 +273,21 @@ class _YearSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.primary.withOpacity(0.72),
-          ],
+    return FinancialSummaryCard(
+      label: 'Total expense this year',
+      amount: total,
+      metrics: [
+        FinancialSummaryMetric(
+          label: 'Monthly average',
+          value: AppUtils.formatCurrency(average),
+          icon: Icons.calendar_view_month,
         ),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Total expense this year',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            AppUtils.formatCurrency(total),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              Expanded(
-                child: _WhiteMetric(
-                  label: 'Monthly average',
-                  value: AppUtils.formatCurrency(average),
-                ),
-              ),
-              Expanded(
-                child: _WhiteMetric(
-                  label: 'Highest month',
-                  value: highestMonth ?? 'N/A',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        FinancialSummaryMetric(
+          label: 'Highest month',
+          value: highestMonth ?? 'N/A',
+          icon: Icons.trending_up,
+        ),
+      ],
     );
   }
 }
@@ -715,36 +683,6 @@ class _InsightCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _WhiteMetric extends StatelessWidget {
-  const _WhiteMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
     );
   }
 }

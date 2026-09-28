@@ -14,6 +14,7 @@ import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/empty_view.dart';
 import '../widgets/error_view.dart';
+import '../widgets/financial_summary_card.dart';
 
 /// -----------------------------------------------------------------------
 /// Design tokens
@@ -302,98 +303,19 @@ class _SummaryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onPrimary = theme.colorScheme.onPrimary;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(_Spacing.xl),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(_Radius.lg),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'TOTAL EXPENSE',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: onPrimary.withOpacity(0.72),
-              letterSpacing: 0.6,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: _Spacing.xs),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              AppUtils.formatCurrency(totalExpense),
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: onPrimary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: _Spacing.lg),
-          Divider(color: onPrimary.withOpacity(0.16), height: 1),
-          const SizedBox(height: _Spacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: _HeaderMetric(
-                  onColor: onPrimary,
-                  label: 'Transactions',
-                  value: '$transactionCount',
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 30,
-                color: onPrimary.withOpacity(0.16),
-              ),
-              const SizedBox(width: _Spacing.lg),
-              Expanded(
-                child: _HeaderMetric(
-                  onColor: onPrimary,
-                  label: 'Top category',
-                  value: topCategory ?? 'N/A',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderMetric extends StatelessWidget {
-  const _HeaderMetric({
-    required this.onColor,
-    required this.label,
-    required this.value,
-  });
-
-  final Color onColor;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: onColor.withOpacity(0.72), fontSize: 12),
+    return FinancialSummaryCard(
+      label: 'Total expense',
+      amount: totalExpense,
+      metrics: [
+        FinancialSummaryMetric(
+          label: 'Records',
+          value: '$transactionCount',
+          icon: Icons.receipt_long_outlined,
         ),
-        const SizedBox(height: _Spacing.xs),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: onColor, fontWeight: FontWeight.w700),
+        FinancialSummaryMetric(
+          label: 'Top category',
+          value: topCategory ?? 'N/A',
+          icon: Icons.category_outlined,
         ),
       ],
     );

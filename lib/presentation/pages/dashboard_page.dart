@@ -17,6 +17,7 @@ import '../providers/limit_provider.dart';
 import '../providers/preferences_provider.dart';
 import '../providers/recurring_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../widgets/financial_summary_card.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -218,6 +219,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       balance: balance,
                       income: income,
                       expense: expense,
+                      transactionCount: transactions.length,
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -355,125 +357,26 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     required double balance,
     required double income,
     required double expense,
+    required int transactionCount,
   }) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-      decoration: BoxDecoration(
-        color: primary,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withOpacity(0.24),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Available balance',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 5),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              AppUtils.formatCurrency(balance),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 34,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -1,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _heroMetric(
-                    icon: Icons.south_west,
-                    label: 'Income',
-                    value: AppUtils.formatCurrency(income),
-                  ),
-                ),
-              ),
-
-              Container(
-                width: 1,
-                height: 54,
-                color: Colors.white.withOpacity(0.20),
-              ),
-
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _heroMetric(
-                    icon: Icons.north_east,
-                    label: 'Expense',
-                    value: AppUtils.formatCurrency(expense),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _heroMetric({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.16),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 22),
+    return FinancialSummaryCard(
+      label: 'Available balance',
+      amount: balance,
+      metrics: [
+        FinancialSummaryMetric(
+          label: 'Income',
+          value: AppUtils.formatCurrency(income),
+          icon: Icons.south_west,
         ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const SizedBox(height: 3),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 105),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        FinancialSummaryMetric(
+          label: 'Expense',
+          value: AppUtils.formatCurrency(expense),
+          icon: Icons.north_east,
+        ),
+        FinancialSummaryMetric(
+          label: 'Records',
+          value: '$transactionCount',
+          icon: Icons.receipt_long_outlined,
         ),
       ],
     );

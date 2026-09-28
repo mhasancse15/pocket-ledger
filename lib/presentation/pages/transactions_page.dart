@@ -9,6 +9,7 @@ import '../../domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../widgets/financial_summary_card.dart';
 
 class TransactionsPage extends ConsumerStatefulWidget {
   const TransactionsPage({super.key});
@@ -989,254 +990,37 @@ class _SummaryCard extends StatelessWidget {
   final int transactionCount;
   final TransactionType? selectedType;
 
-  static const Color _cardStart = Color(0xFF6D65C4);
-  static const Color _cardEnd = Color(0xFF4B438F);
-
   @override
   Widget build(BuildContext context) {
-    final String mainLabel;
-    final double mainAmount;
+    final label = switch (selectedType) {
+      TransactionType.income => 'Filtered income',
+      TransactionType.expense => 'Filtered expense',
+      null => 'Available balance',
+    };
+    final amount = switch (selectedType) {
+      TransactionType.income => income,
+      TransactionType.expense => expense,
+      null => balance,
+    };
 
-    if (selectedType == TransactionType.income) {
-      mainLabel = 'Filtered income';
-      mainAmount = income;
-    } else if (selectedType == TransactionType.expense) {
-      mainLabel = 'Filtered expense';
-      mainAmount = expense;
-    } else {
-      mainLabel = 'Available balance';
-      mainAmount = balance;
-    }
-
-    return Container(
-      width: double.infinity,
-      height: 205,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_cardStart, _cardEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return FinancialSummaryCard(
+      label: label,
+      amount: amount,
+      metrics: [
+        FinancialSummaryMetric(
+          label: 'Income',
+          value: AppUtils.formatCurrency(income),
+          icon: Icons.south_west,
         ),
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: _cardStart.withOpacity(.24),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -45,
-            top: -60,
-            child: Container(
-              width: 155,
-              height: 155,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.07),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 22,
-            bottom: -78,
-            child: Container(
-              width: 155,
-              height: 155,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.05),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            left: -65,
-            bottom: -95,
-            child: Container(
-              width: 170,
-              height: 170,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.035),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'POCKET LEDGER',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.25,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.contactless_outlined,
-                      color: Colors.white70,
-                      size: 25,
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  mainLabel,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    AppUtils.formatCurrency(mainAmount),
-                    maxLines: 1,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 31,
-                      height: 1.1,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _moneyMetric(
-                        label: 'Income',
-                        amount: income,
-                        icon: Icons.south_west,
-                      ),
-                    ),
-                    _divider(),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _moneyMetric(
-                        label: 'Expense',
-                        amount: expense,
-                        icon: Icons.north_east,
-                      ),
-                    ),
-                    _divider(),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _textMetric(
-                        label: 'Records',
-                        value: '$transactionCount',
-                        icon: Icons.receipt_long_outlined,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() {
-    return Container(
-      width: 1,
-      height: 35,
-      color: Colors.white.withOpacity(.20),
-    );
-  }
-
-  Widget _moneyMetric({
-    required String label,
-    required double amount,
-    required IconData icon,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.white70),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label.toUpperCase(),
-                maxLines: 1,
-                style: const TextStyle(
-                  color: Colors.white60,
-                  fontSize: 9,
-                  letterSpacing: .6,
-                ),
-              ),
-              const SizedBox(height: 3),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  AppUtils.formatCurrency(amount),
-                  maxLines: 1,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        FinancialSummaryMetric(
+          label: 'Expense',
+          value: AppUtils.formatCurrency(expense),
+          icon: Icons.north_east,
         ),
-      ],
-    );
-  }
-
-  Widget _textMetric({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.white70),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label.toUpperCase(),
-                maxLines: 1,
-                style: const TextStyle(
-                  color: Colors.white60,
-                  fontSize: 9,
-                  letterSpacing: .6,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                value,
-                maxLines: 1,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
+        FinancialSummaryMetric(
+          label: 'Records',
+          value: '$transactionCount',
+          icon: Icons.receipt_long_outlined,
         ),
       ],
     );

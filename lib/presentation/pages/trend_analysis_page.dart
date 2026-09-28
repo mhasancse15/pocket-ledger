@@ -11,6 +11,7 @@ import '../../domain/entities/transaction.dart';
 import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/error_view.dart';
+import '../widgets/financial_summary_card.dart';
 
 typedef _MonthlyTrend = ({
   DateTime month,
@@ -341,110 +342,26 @@ class _TrendAnalysisPageState extends ConsumerState<TrendAnalysisPage> {
     required double expense,
     required double balance,
   }) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.primary;
     final savingsRate = income <= 0 ? 0.0 : balance / income * 100;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Six-month net balance',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          const SizedBox(height: 5),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              AppUtils.formatCurrency(balance),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 31,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Divider(color: Colors.white.withValues(alpha: 0.16), height: 1),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _whiteMetric(
-                  label: 'Income',
-                  value: AppUtils.formatCurrency(income),
-                  icon: Icons.south_west,
-                ),
-              ),
-              _metricDivider(),
-              Expanded(
-                child: _whiteMetric(
-                  label: 'Expense',
-                  value: AppUtils.formatCurrency(expense),
-                  icon: Icons.north_east,
-                ),
-              ),
-              _metricDivider(),
-              Expanded(
-                child: _whiteMetric(
-                  label: 'Savings rate',
-                  value: '${savingsRate.toStringAsFixed(1)}%',
-                  icon: Icons.savings_outlined,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _metricDivider() => Container(
-    width: 1,
-    height: 40,
-    margin: const EdgeInsets.symmetric(horizontal: 10),
-    color: Colors.white.withValues(alpha: 0.2),
-  );
-
-  Widget _whiteMetric({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white70, size: 17),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(color: Colors.white70, fontSize: 10),
-              ),
-              const SizedBox(height: 3),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return FinancialSummaryCard(
+      label: 'Six-month net balance',
+      amount: balance,
+      metrics: [
+        FinancialSummaryMetric(
+          label: 'Income',
+          value: AppUtils.formatCurrency(income),
+          icon: Icons.south_west,
+        ),
+        FinancialSummaryMetric(
+          label: 'Expense',
+          value: AppUtils.formatCurrency(expense),
+          icon: Icons.north_east,
+        ),
+        FinancialSummaryMetric(
+          label: 'Savings rate',
+          value: '${savingsRate.toStringAsFixed(1)}%',
+          icon: Icons.savings_outlined,
         ),
       ],
     );
