@@ -8,6 +8,9 @@ class LocalNotificationService {
   final FlutterLocalNotificationsPlugin plugin =
       FlutterLocalNotificationsPlugin();
 
+  void Function(String payload)? _onNotificationTap;
+  String? _pendingPayload;
+
   static const AndroidNotificationChannel budgetChannel =
       AndroidNotificationChannel(
         'budget_alerts',
@@ -26,12 +29,42 @@ class LocalNotificationService {
       ),
     );
 
-    await plugin.initialize(settings: settings);
+    await plugin.initialize(
+      settings: settings,
+      onDidReceiveNotificationResponse: (response) {
+        final payload = response.payload;
+        if (payload != null) _dispatchNotificationTap(payload);
+      },
+    );
     await plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(budgetChannel);
+
+    final launchDetails = await plugin.getNotificationAppLaunchDetails();
+    final payload = launchDetails?.notificationResponse?.payload;
+    if (launchDetails?.didNotificationLaunchApp == true && payload != null) {
+      _dispatchNotificationTap(payload);
+    }
+  }
+
+  void setNotificationTapHandler(void Function(String payload) handler) {
+    _onNotificationTap = handler;
+    final pendingPayload = _pendingPayload;
+    if (pendingPayload != null) {
+      _pendingPayload = null;
+      handler(pendingPayload);
+    }
+  }
+
+  void _dispatchNotificationTap(String payload) {
+    final handler = _onNotificationTap;
+    if (handler == null) {
+      _pendingPayload = payload;
+    } else {
+      handler(payload);
+    }
   }
 
   Future<bool> requestPermission() async {

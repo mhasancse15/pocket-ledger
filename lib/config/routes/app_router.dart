@@ -121,6 +121,16 @@ class AppRouter {
     errorBuilder: (context, state) =>
         const Scaffold(body: Center(child: Text('Page not found'))),
   );
+
+  static void openNotification(String payload) {
+    if (payload.startsWith('budget:') &&
+        payload.substring('budget:'.length).isNotEmpty) {
+      router.goNamed(AppRoutes.budgetsName);
+    } else if (payload.startsWith('target:') &&
+        payload.substring('target:'.length).isNotEmpty) {
+      router.goNamed(AppRoutes.dashboardName);
+    }
+  }
 }
 
 class AppShell extends StatelessWidget {

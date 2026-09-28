@@ -28,7 +28,11 @@ class _PocketLedgerAppState extends ConsumerState<PocketLedgerApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(reportWidgetBudgetNotificationCheck(ref));
+      if (!mounted) return;
+      LocalNotificationService.instance.setNotificationTapHandler(
+        AppRouter.openNotification,
+      );
+      unawaited(reportWidgetBudgetNotificationCheck(ref));
     });
   }
 
