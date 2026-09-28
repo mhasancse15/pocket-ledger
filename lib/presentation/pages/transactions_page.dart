@@ -536,16 +536,13 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     maxController.dispose();
 
     if (!mounted || result == null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {
-        _selectedCategory = result.category;
-        _selectedPaymentMethod = result.paymentMethod;
-        _selectedType = result.type;
-        _dateRange = result.range;
-        _minimumAmount = result.minimum;
-        _maximumAmount = result.maximum;
-      });
+    setState(() {
+      _selectedCategory = result.category;
+      _selectedPaymentMethod = result.paymentMethod;
+      _selectedType = result.type;
+      _dateRange = result.range;
+      _minimumAmount = result.minimum;
+      _maximumAmount = result.maximum;
     });
   }
 
