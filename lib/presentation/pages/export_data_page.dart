@@ -153,14 +153,6 @@ class _ExportDataPageState
       },
     ).toList();
 
-    final validCategoryId =
-    availableCategories.any(
-          (category) =>
-      category.id == categoryId,
-    )
-        ? categoryId
-        : null;
-
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -189,40 +181,13 @@ class _ExportDataPageState
           const SizedBox(height: 18),
           _formatSelector(),
           const SizedBox(height: 14),
-          DropdownButtonFormField<ExportPeriod>(
-            value: period,
-            isExpanded: true,
-            decoration: _inputDecoration(
-              label: 'Export period',
-              icon: Icons.date_range_outlined,
-            ),
-            items: const [
-              DropdownMenuItem(
-                value: ExportPeriod.currentMonth,
-                child: Text('Current month'),
-              ),
-              DropdownMenuItem(
-                value: ExportPeriod.selectedMonth,
-                child: Text('Selected month'),
-              ),
-              DropdownMenuItem(
-                value: ExportPeriod.customRange,
-                child: Text('Custom date range'),
-              ),
-              DropdownMenuItem(
-                value: ExportPeriod.all,
-                child: Text('All transactions'),
-              ),
-            ],
-            onChanged: exporting
+          _selectionField(
+            label: 'Export period',
+            value: _periodLabel(),
+            icon: Icons.date_range_outlined,
+            onTap: exporting
                 ? null
-                : (value) {
-              if (value == null) return;
-
-              setState(() {
-                period = value;
-              });
-            },
+                : _showPeriodPicker,
           ),
           if (period ==
               ExportPeriod.selectedMonth) ...[
@@ -235,66 +200,25 @@ class _ExportDataPageState
             _dateRangeSelector(),
           ],
           const SizedBox(height: 12),
-          DropdownButtonFormField<TransactionType?>(
-            value: transactionType,
-            isExpanded: true,
-            decoration: _inputDecoration(
-              label: 'Transaction type',
-              icon: Icons.swap_vert,
-            ),
-            items: const [
-              DropdownMenuItem<TransactionType?>(
-                value: null,
-                child: Text('All transactions'),
-              ),
-              DropdownMenuItem<TransactionType?>(
-                value: TransactionType.expense,
-                child: Text('Expenses only'),
-              ),
-              DropdownMenuItem<TransactionType?>(
-                value: TransactionType.income,
-                child: Text('Income only'),
-              ),
-            ],
-            onChanged: exporting
+          _selectionField(
+            label: 'Transaction type',
+            value: _transactionTypeLabel(),
+            icon: Icons.swap_vert,
+            onTap: exporting
                 ? null
-                : (value) {
-              setState(() {
-                transactionType = value;
-                categoryId = null;
-              });
-            },
+                : _showTransactionTypePicker,
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String?>(
-            value: validCategoryId,
-            isExpanded: true,
-            decoration: _inputDecoration(
-              label: 'Category',
-              icon: Icons.category_outlined,
-            ),
-            items: [
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text('All categories'),
-              ),
-              ...availableCategories.map(
-                    (category) =>
-                    DropdownMenuItem<String?>(
-                      value: category.id,
-                      child: Text(
-                        category.name,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-              ),
-            ],
-            onChanged: exporting
+          _selectionField(
+            label: 'Category',
+            value: _categoryLabel(categories),
+            icon: Icons.category_outlined,
+            onTap: exporting
                 ? null
-                : (value) {
-              setState(() {
-                categoryId = value;
-              });
+                : () {
+              _showCategoryPicker(
+                availableCategories,
+              );
             },
           ),
           const SizedBox(height: 18),
@@ -489,8 +413,88 @@ class _ExportDataPageState
     );
   }
 
+  Widget _selectionField({
+    required String label,
+    required String value,
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: borderColor,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: purple.withOpacity(.10),
+                  borderRadius:
+                  BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: purple,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: mutedColor,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow:
+                      TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight:
+                        FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.black45,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _monthSelector() {
-    return Ink(
+    return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -568,11 +572,31 @@ class _ExportDataPageState
           ? null
           : _selectDateRange,
       child: InputDecorator(
-        decoration: _inputDecoration(
-          label: 'Date range',
-          icon: Icons.calendar_today_outlined,
-          suffix: const Icon(
+        decoration: InputDecoration(
+          labelText: 'Date range',
+          prefixIcon: const Icon(
+            Icons.calendar_today_outlined,
+            color: purple,
+          ),
+          suffixIcon: const Icon(
             Icons.chevron_right,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius:
+            BorderRadius.circular(15),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius:
+            BorderRadius.circular(15),
+            borderSide: const BorderSide(
+              color: borderColor,
+            ),
+          ),
+          contentPadding:
+          const EdgeInsets.symmetric(
+            vertical: 14,
           ),
         ),
         child: Text(
@@ -624,6 +648,480 @@ class _ExportDataPageState
     });
   }
 
+  Future<void> _showPeriodPicker() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(26),
+        ),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            4,
+            16,
+            24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Export period',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Choose which transactions to export.',
+                style: TextStyle(
+                  color: mutedColor,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _bottomSheetOption(
+                title: 'Current month',
+                subtitle: DateFormat(
+                  'MMMM yyyy',
+                ).format(DateTime.now()),
+                icon: Icons.today_outlined,
+                selected:
+                period ==
+                    ExportPeriod.currentMonth,
+                onTap: () {
+                  _closeSheetAndUpdate(
+                    sheetContext,
+                        () {
+                      period =
+                          ExportPeriod.currentMonth;
+                    },
+                  );
+                },
+              ),
+              _bottomSheetOption(
+                title: 'Selected month',
+                subtitle:
+                'Choose a specific month',
+                icon:
+                Icons.calendar_month_outlined,
+                selected:
+                period ==
+                    ExportPeriod.selectedMonth,
+                onTap: () {
+                  _closeSheetAndUpdate(
+                    sheetContext,
+                        () {
+                      period =
+                          ExportPeriod.selectedMonth;
+                    },
+                  );
+                },
+              ),
+              _bottomSheetOption(
+                title: 'Custom date range',
+                subtitle:
+                'Select a start and end date',
+                icon: Icons.date_range_outlined,
+                selected:
+                period ==
+                    ExportPeriod.customRange,
+                onTap: () {
+                  _closeSheetAndUpdate(
+                    sheetContext,
+                        () {
+                      period =
+                          ExportPeriod.customRange;
+                    },
+                  );
+                },
+              ),
+              _bottomSheetOption(
+                title: 'All transactions',
+                subtitle:
+                'Export your complete history',
+                icon: Icons.history_outlined,
+                selected:
+                period == ExportPeriod.all,
+                onTap: () {
+                  _closeSheetAndUpdate(
+                    sheetContext,
+                        () {
+                      period = ExportPeriod.all;
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showTransactionTypePicker() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(26),
+        ),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            4,
+            16,
+            24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Transaction type',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Choose the transaction type to export.',
+                style: TextStyle(
+                  color: mutedColor,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _bottomSheetOption(
+                title: 'All transactions',
+                subtitle:
+                'Include income and expenses',
+                icon: Icons.swap_vert,
+                selected:
+                transactionType == null,
+                onTap: () {
+                  _closeSheetAndUpdate(
+                    sheetContext,
+                        () {
+                      transactionType = null;
+                      categoryId = null;
+                    },
+                  );
+                },
+              ),
+              _bottomSheetOption(
+                title: 'Expenses only',
+                subtitle:
+                'Export expense transactions',
+                icon: Icons.north_east,
+                iconColor:
+                const Color(0xFFE85E6F),
+                selected:
+                transactionType ==
+                    TransactionType.expense,
+                onTap: () {
+                  _closeSheetAndUpdate(
+                    sheetContext,
+                        () {
+                      transactionType =
+                          TransactionType.expense;
+                      categoryId = null;
+                    },
+                  );
+                },
+              ),
+              _bottomSheetOption(
+                title: 'Income only',
+                subtitle:
+                'Export income transactions',
+                icon: Icons.south_west,
+                iconColor:
+                const Color(0xFF00A578),
+                selected:
+                transactionType ==
+                    TransactionType.income,
+                onTap: () {
+                  _closeSheetAndUpdate(
+                    sheetContext,
+                        () {
+                      transactionType =
+                          TransactionType.income;
+                      categoryId = null;
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showCategoryPicker(
+      List<Category> categories,
+      ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(26),
+        ),
+      ),
+      builder: (sheetContext) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight:
+            MediaQuery.sizeOf(context).height *
+                .72,
+          ),
+          child: Column(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  4,
+                  20,
+                  8,
+                ),
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Category',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 20,
+                        fontWeight:
+                        FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Choose a category to export.',
+                      style: TextStyle(
+                        color: mutedColor,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView(
+                  padding:
+                  const EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    24,
+                  ),
+                  children: [
+                    _bottomSheetOption(
+                      title: 'All categories',
+                      subtitle:
+                      'Include every category',
+                      icon:
+                      Icons.category_outlined,
+                      selected:
+                      categoryId == null,
+                      onTap: () {
+                        _closeSheetAndUpdate(
+                          sheetContext,
+                              () {
+                            categoryId = null;
+                          },
+                        );
+                      },
+                    ),
+                    ...categories.map(
+                          (category) {
+                        final isIncome =
+                            category.type ==
+                                CategoryType.income;
+
+                        return _bottomSheetOption(
+                          title: category.name,
+                          subtitle: isIncome
+                              ? 'Income category'
+                              : 'Expense category',
+                          icon: isIncome
+                              ? Icons.trending_up
+                              : Icons
+                              .category_outlined,
+                          iconColor: isIncome
+                              ? const Color(
+                            0xFF00A578,
+                          )
+                              : const Color(
+                            0xFFE85E6F,
+                          ),
+                          selected:
+                          categoryId ==
+                              category.id,
+                          onTap: () {
+                            _closeSheetAndUpdate(
+                              sheetContext,
+                                  () {
+                                categoryId =
+                                    category.id;
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _bottomSheetOption({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    final color = iconColor ?? purple;
+
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: 8,
+      ),
+      child: Material(
+        color: selected
+            ? color.withOpacity(.08)
+            : Colors.transparent,
+        borderRadius:
+        BorderRadius.circular(15),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius:
+          BorderRadius.circular(15),
+          child: Padding(
+            padding:
+            const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 11,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color:
+                    color.withOpacity(.10),
+                    borderRadius:
+                    BorderRadius.circular(13),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 21,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: selected
+                              ? color
+                              : textColor,
+                          fontWeight: selected
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: mutedColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (selected)
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 17,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Colors.black38,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _closeSheetAndUpdate(
+      BuildContext sheetContext,
+      VoidCallback update,
+      ) {
+    Navigator.of(sheetContext).pop();
+
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      setState(update);
+    });
+  }
+
   Widget _previewCard({
     required int transactionCount,
     required double income,
@@ -670,7 +1168,8 @@ class _ExportDataPageState
                       'Export preview',
                       style: TextStyle(
                         color: textColor,
-                        fontWeight: FontWeight.w800,
+                        fontWeight:
+                        FontWeight.w800,
                       ),
                     ),
                     SizedBox(height: 2),
@@ -808,6 +1307,62 @@ class _ExportDataPageState
     return customRange != null;
   }
 
+  String _periodLabel() {
+    switch (period) {
+      case ExportPeriod.currentMonth:
+        return 'Current month';
+
+      case ExportPeriod.selectedMonth:
+        return DateFormat(
+          'MMMM yyyy',
+        ).format(selectedMonth);
+
+      case ExportPeriod.customRange:
+        if (customRange == null) {
+          return 'Select a custom date range';
+        }
+
+        return '${DateFormat('d MMM yyyy').format(customRange!.start)}'
+            ' - '
+            '${DateFormat('d MMM yyyy').format(customRange!.end)}';
+
+      case ExportPeriod.all:
+        return 'All transactions';
+    }
+  }
+
+  String _transactionTypeLabel() {
+    switch (transactionType) {
+      case TransactionType.expense:
+        return 'Expenses only';
+
+      case TransactionType.income:
+        return 'Income only';
+
+      case null:
+        return 'All transactions';
+    }
+  }
+
+  String _categoryLabel(
+      List<Category> categories,
+      ) {
+    if (categoryId == null) {
+      return 'All categories';
+    }
+
+    final matches = categories.where(
+          (category) =>
+      category.id == categoryId,
+    );
+
+    if (matches.isEmpty) {
+      return 'All categories';
+    }
+
+    return matches.first.name;
+  }
+
   Future<void> _export({
     required List<Transaction> transactions,
     required List<Category> categories,
@@ -827,7 +1382,8 @@ class _ExportDataPageState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         SnackBar(
           content: Text(
             fileType == ExportFileType.csv
@@ -841,7 +1397,8 @@ class _ExportDataPageState
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         SnackBar(
           content: Text(
             'Unable to export data: $error',
@@ -858,56 +1415,6 @@ class _ExportDataPageState
         });
       }
     }
-  }
-
-  InputDecoration _inputDecoration({
-    required String label,
-    required IconData icon,
-    Widget? suffix,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(
-        icon,
-        color: purple,
-      ),
-      suffixIcon: suffix,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius:
-        BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: borderColor,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius:
-        BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: borderColor,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius:
-        BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: purple,
-          width: 1.5,
-        ),
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderRadius:
-        BorderRadius.circular(15),
-        borderSide: const BorderSide(
-          color: borderColor,
-        ),
-      ),
-      contentPadding:
-      const EdgeInsets.symmetric(
-        vertical: 14,
-      ),
-    );
   }
 
   Widget _errorView(String message) {
