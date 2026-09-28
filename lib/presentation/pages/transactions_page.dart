@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
+import '../../domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -17,6 +18,7 @@ class TransactionsPage extends ConsumerStatefulWidget {
 }
 
 class _TransactionsPageState extends ConsumerState<TransactionsPage> {
+  final _searchController = TextEditingController();
   String? _selectedCategory;
   String? _selectedPaymentMethod;
   TransactionType? _selectedType;
@@ -25,6 +27,12 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   DateTimeRange? _dateRange;
   double? _minimumAmount;
   double? _maximumAmount;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   int get _activeFilterCount {
     var count = 0;
@@ -79,11 +87,20 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _ErrorState(message: error.toString()),
         data: (transactions) {
-          final filteredTransactions = _filterTransactions(transactions);
-          final total = filteredTransactions.fold<double>(
-            0,
-            (sum, transaction) => sum + transaction.amount,
+          final filteredTransactions = _filterTransactions(
+            transactions,
+            categoryNames,
           );
+          final topExpenseCategories = _topExpenseCategories(transactions);
+          final filteredIncome = _totalForType(
+            filteredTransactions,
+            TransactionType.income,
+          );
+          final filteredExpense = _totalForType(
+            filteredTransactions,
+            TransactionType.expense,
+          );
+          final filteredBalance = filteredIncome - filteredExpense;
 
           final groupedTransactions = _groupByDate(filteredTransactions);
 
@@ -115,38 +132,39 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                       ),
                       const SizedBox(height: 16),
                       _SummaryCard(
-                        total: total,
+                        income: filteredIncome,
+                        expense: filteredExpense,
+                        balance: filteredBalance,
                         transactionCount: filteredTransactions.length,
                         selectedType: _selectedType,
                       ),
                       const SizedBox(height: 16),
                       _SearchField(
-                        value: _query,
+                        controller: _searchController,
                         onChanged: (value) {
                           setState(() {
                             _query = value;
                           });
                         },
+                        onClear: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
                         onFilterPressed: () {
-                          _showFilterSheet(transactions);
+                          _showFilterSheet(categories);
                         },
                         activeFilterCount: _activeFilterCount,
                       ),
-                      const SizedBox(height: 12),
-                      _ActiveFilters(
-                        category: _selectedCategory,
-                        paymentMethod: _selectedPaymentMethod,
-                        type: _selectedType,
-                        onRemoveCategory: () {
-                          setState(() => _selectedCategory = null);
-                        },
-                        onRemovePayment: () {
-                          setState(() => _selectedPaymentMethod = null);
-                        },
-                        onRemoveType: () {
-                          setState(() => _selectedType = null);
+                      const SizedBox(height: 10),
+                      _CategoryQuickTabs(
+                        categories: topExpenseCategories,
+                        categoryNames: categoryNames,
+                        selectedCategory: _selectedCategory,
+                        onSelected: (categoryId) {
+                          setState(() => _selectedCategory = categoryId);
                         },
                       ),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -170,6 +188,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                         transactions: entry.value,
                         categoryNames: categoryNames,
                         onTransactionLongPress: _showTransactionActions,
+                        onTransactionActions: _showTransactionActions,
                       );
                     }, childCount: groupedTransactions.length),
                   ),
@@ -187,7 +206,10 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     );
   }
 
-  List<Transaction> _filterTransactions(List<Transaction> transactions) {
+  List<Transaction> _filterTransactions(
+    List<Transaction> transactions,
+    Map<String, String> categoryNames,
+  ) {
     final normalizedQuery = _query.trim().toLowerCase();
 
     final filtered = transactions.where((transaction) {
@@ -223,7 +245,12 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
 
       final queryMatches =
           normalizedQuery.isEmpty ||
-          transaction.categoryId.toLowerCase().contains(normalizedQuery) ||
+          (categoryNames[transaction.categoryId] ?? transaction.categoryId)
+              .toLowerCase()
+              .contains(normalizedQuery) ||
+          _formatLabel(transaction.paymentMethod.name)
+              .toLowerCase()
+              .contains(normalizedQuery) ||
           (transaction.note ?? '').toLowerCase().contains(normalizedQuery);
       final minimumMatches =
           _minimumAmount == null || transaction.amount >= _minimumAmount!;
@@ -245,17 +272,72 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     return filtered;
   }
 
+  List<MapEntry<String, double>> _topExpenseCategories(
+    List<Transaction> transactions,
+  ) {
+    final totals = <String, double>{};
+
+    for (final transaction in transactions) {
+      if (transaction.type != TransactionType.expense) continue;
+
+      final date = transaction.date.toLocal();
+      final bool isInsideSelectedPeriod;
+
+      if (_dateRange != null) {
+        final rangeStart = DateTime(
+          _dateRange!.start.year,
+          _dateRange!.start.month,
+          _dateRange!.start.day,
+        );
+        final rangeEnd = DateTime(
+          _dateRange!.end.year,
+          _dateRange!.end.month,
+          _dateRange!.end.day,
+          23,
+          59,
+          59,
+          999,
+        );
+
+        isInsideSelectedPeriod =
+            !date.isBefore(rangeStart) && !date.isAfter(rangeEnd);
+      } else {
+        isInsideSelectedPeriod =
+            date.year == _selectedMonth.year &&
+            date.month == _selectedMonth.month;
+      }
+
+      if (!isInsideSelectedPeriod) continue;
+
+      totals.update(
+        transaction.categoryId,
+        (currentAmount) => currentAmount + transaction.amount,
+        ifAbsent: () => transaction.amount,
+      );
+    }
+
+    final visibleCategories = totals.entries.toList()
+      ..sort((first, second) => second.value.compareTo(first.value));
+    final topCategories = visibleCategories.take(6).toList();
+
+    if (_selectedCategory != null &&
+        !topCategories.any((item) => item.key == _selectedCategory)) {
+      topCategories.add(
+        MapEntry(_selectedCategory!, totals[_selectedCategory!] ?? 0),
+      );
+    }
+
+    return topCategories;
+  }
+
   Map<DateTime, List<Transaction>> _groupByDate(
     List<Transaction> transactions,
   ) {
     final grouped = <DateTime, List<Transaction>>{};
 
     for (final transaction in transactions) {
-      final date = DateTime(
-        transaction.date.year,
-        transaction.date.month,
-        transaction.date.day,
-      );
+      final localDate = transaction.date.toLocal();
+      final date = DateTime(localDate.year, localDate.month, localDate.day);
 
       grouped.putIfAbsent(date, () => []).add(transaction);
     }
@@ -263,7 +345,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     return grouped;
   }
 
-  Future<void> _showFilterSheet(List<Transaction> transactions) async {
+  Future<void> _showFilterSheet(List<Category> availableCategories) async {
     var draftCategory = _selectedCategory;
     var draftPaymentMethod = _selectedPaymentMethod;
     var draftType = _selectedType;
@@ -275,13 +357,6 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       text: _maximumAmount?.toStringAsFixed(2) ?? '',
     );
     String? amountError;
-
-    final categories =
-        transactions
-            .map((transaction) => transaction.categoryId)
-            .toSet()
-            .toList()
-          ..sort();
 
     final result =
         await showModalBottomSheet<
@@ -353,40 +428,94 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                               label: 'Expenses',
                               selected: draftType == TransactionType.expense,
                               onSelected: () {
-                                setModalState(
-                                  () => draftType = TransactionType.expense,
-                                );
+                                setModalState(() {
+                                  draftType = TransactionType.expense;
+                                  if (draftCategory != null &&
+                                      !availableCategories.any(
+                                        (category) =>
+                                            category.id == draftCategory &&
+                                            category.type ==
+                                                CategoryType.expense,
+                                      )) {
+                                    draftCategory = null;
+                                  }
+                                });
                               },
                             ),
                             _FilterChoiceChip(
                               label: 'Income',
                               selected: draftType == TransactionType.income,
                               onSelected: () {
-                                setModalState(
-                                  () => draftType = TransactionType.income,
-                                );
+                                setModalState(() {
+                                  draftType = TransactionType.income;
+                                  if (draftCategory != null &&
+                                      !availableCategories.any(
+                                        (category) =>
+                                            category.id == draftCategory &&
+                                            category.type ==
+                                                CategoryType.income,
+                                      )) {
+                                    draftCategory = null;
+                                  }
+                                });
                               },
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
-                        DropdownButtonFormField<String>(
-                          value: draftCategory,
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            prefixIcon: Icon(Icons.category_outlined),
-                          ),
-                          hint: const Text('All categories'),
-                          items: categories
-                              .map(
-                                (category) => DropdownMenuItem<String>(
-                                  value: category,
-                                  child: Text(category),
+                        _FilterSelectionField(
+                          label: 'Category',
+                          value: draftCategory == null
+                              ? 'All categories'
+                              : _categoryName(
+                                  availableCategories,
+                                  draftCategory!,
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setModalState(() => draftCategory = value);
+                          icon: Icons.category_outlined,
+                          onTap: () async {
+                            final categoriesForType =
+                                availableCategories
+                                    .where(
+                                      (category) =>
+                                          draftType == null ||
+                                          category.type.name == draftType!.name,
+                                    )
+                                    .toList()
+                                  ..sort(
+                                    (a, b) => a.name.toLowerCase().compareTo(
+                                      b.name.toLowerCase(),
+                                    ),
+                                  );
+                            final selected = await _showFilterPicker<String>(
+                              title: 'Category',
+                              subtitle: 'Choose a transaction category.',
+                              selectedValue: draftCategory ?? '',
+                              options: [
+                                const _FilterPickerOption(
+                                  value: '',
+                                  title: 'All categories',
+                                  subtitle: 'Do not filter by category',
+                                  icon: Icons.category_outlined,
+                                ),
+                                ...categoriesForType.map(
+                                  (category) => _FilterPickerOption(
+                                    value: category.id,
+                                    title: category.name,
+                                    subtitle: category.type.name == 'income'
+                                        ? 'Income category'
+                                        : 'Expense category',
+                                    icon: Icons.category_outlined,
+                                  ),
+                                ),
+                              ],
+                            );
+                            if (selected != null) {
+                              setModalState(
+                                () => draftCategory = selected.isEmpty
+                                    ? null
+                                    : selected,
+                              );
+                            }
                           },
                         ),
                         const SizedBox(height: 14),
@@ -462,23 +591,41 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        DropdownButtonFormField<String>(
-                          value: draftPaymentMethod,
-                          decoration: const InputDecoration(
-                            labelText: 'Payment method',
-                            prefixIcon: Icon(Icons.payments_outlined),
-                          ),
-                          hint: const Text('All payment methods'),
-                          items: PaymentMethod.values
-                              .map(
-                                (method) => DropdownMenuItem<String>(
-                                  value: method.name,
-                                  child: Text(_formatLabel(method.name)),
+                        _FilterSelectionField(
+                          label: 'Payment method',
+                          value: draftPaymentMethod == null
+                              ? 'All payment methods'
+                              : _formatLabel(draftPaymentMethod!),
+                          icon: Icons.payments_outlined,
+                          onTap: () async {
+                            final selected = await _showFilterPicker<String>(
+                              title: 'Payment method',
+                              subtitle: 'Choose a payment method to filter.',
+                              selectedValue: draftPaymentMethod ?? '',
+                              options: [
+                                const _FilterPickerOption(
+                                  value: '',
+                                  title: 'All payment methods',
+                                  subtitle: 'Do not filter by payment method',
+                                  icon: Icons.payments_outlined,
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setModalState(() => draftPaymentMethod = value);
+                                ...PaymentMethod.values.map(
+                                  (method) => _FilterPickerOption(
+                                    value: method.name,
+                                    title: _formatLabel(method.name),
+                                    subtitle: 'Payment method',
+                                    icon: Icons.account_balance_wallet_outlined,
+                                  ),
+                                ),
+                              ],
+                            );
+                            if (selected != null) {
+                              setModalState(
+                                () => draftPaymentMethod = selected.isEmpty
+                                    ? null
+                                    : selected,
+                              );
+                            }
                           },
                         ),
                         const SizedBox(height: 24),
@@ -544,6 +691,110 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       _minimumAmount = result.minimum;
       _maximumAmount = result.maximum;
     });
+  }
+
+  String _categoryName(List<Category> categories, String categoryId) {
+    for (final category in categories) {
+      if (category.id == categoryId) return category.name;
+    }
+    return categoryId;
+  }
+
+  Future<T?> _showFilterPicker<T>({
+    required String title,
+    required String subtitle,
+    required T selectedValue,
+    required List<_FilterPickerOption<T>> options,
+  }) {
+    final theme = Theme.of(context);
+    return showModalBottomSheet<T>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...options.map((option) {
+              final selected = option.value == selectedValue;
+              final color = theme.colorScheme.primary;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: selected
+                      ? color.withValues(alpha: 0.08)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                  child: InkWell(
+                    onTap: () => Navigator.of(sheetContext).pop(option.value),
+                    borderRadius: BorderRadius.circular(15),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 11,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: Icon(option.icon, color: color, size: 21),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  option.title,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  option.subtitle,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (selected) Icon(Icons.check_circle, color: color),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showTransactionActions(Transaction transaction) async {
@@ -645,6 +896,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   }
 
   void _clearFilters() {
+    _searchController.clear();
     setState(() {
       _selectedCategory = null;
       _selectedPaymentMethod = null;
@@ -654,6 +906,12 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       _minimumAmount = null;
       _maximumAmount = null;
     });
+  }
+
+  double _totalForType(List<Transaction> transactions, TransactionType type) {
+    return transactions
+        .where((transaction) => transaction.type == type)
+        .fold<double>(0, (sum, transaction) => sum + transaction.amount);
   }
 
   static String _formatLabel(String value) {
@@ -718,124 +976,397 @@ class _MonthSelector extends StatelessWidget {
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
-    required this.total,
+    required this.income,
+    required this.expense,
+    required this.balance,
     required this.transactionCount,
     required this.selectedType,
   });
 
-  final double total;
+  final double income;
+  final double expense;
+  final double balance;
   final int transactionCount;
   final TransactionType? selectedType;
 
+  static const Color _cardStart = Color(0xFF6D65C4);
+  static const Color _cardEnd = Color(0xFF4B438F);
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final String mainLabel;
+    final double mainAmount;
 
-    final title = selectedType == TransactionType.income
-        ? 'Filtered income'
-        : selectedType == TransactionType.expense
-        ? 'Filtered expenses'
-        : 'Filtered total';
+    if (selectedType == TransactionType.income) {
+      mainLabel = 'Filtered income';
+      mainAmount = income;
+    } else if (selectedType == TransactionType.expense) {
+      mainLabel = 'Filtered expense';
+      mainAmount = expense;
+    } else {
+      mainLabel = 'Available balance';
+      mainAmount = balance;
+    }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      height: 205,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.primary.withOpacity(0.78),
-          ],
+        gradient: const LinearGradient(
+          colors: [_cardStart, _cardEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: _cardStart.withOpacity(.24),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_outlined,
-              color: Colors.white,
+          Positioned(
+            right: -45,
+            top: -60,
+            child: Container(
+              width: 155,
+              height: 155,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(.07),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
+          Positioned(
+            right: 22,
+            bottom: -78,
+            child: Container(
+              width: 155,
+              height: 155,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(.05),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            left: -65,
+            bottom: -95,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(.035),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'POCKET LEDGER',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.25,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.contactless_outlined,
+                      color: Colors.white70,
+                      size: 25,
+                    ),
+                  ],
+                ),
+                const Spacer(),
                 Text(
-                  title,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  mainLabel,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  AppUtils.formatCurrency(total),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    AppUtils.formatCurrency(mainAmount),
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 31,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _moneyMetric(
+                        label: 'Income',
+                        amount: income,
+                        icon: Icons.south_west,
+                      ),
+                    ),
+                    _divider(),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _moneyMetric(
+                        label: 'Expense',
+                        amount: expense,
+                        icon: Icons.north_east,
+                      ),
+                    ),
+                    _divider(),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _textMetric(
+                        label: 'Records',
+                        value: '$transactionCount',
+                        icon: Icons.receipt_long_outlined,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() {
+    return Container(
+      width: 1,
+      height: 35,
+      color: Colors.white.withOpacity(.20),
+    );
+  }
+
+  Widget _moneyMetric({
+    required String label,
+    required double amount,
+    required IconData icon,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.white70),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$transactionCount',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                label.toUpperCase(),
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 9,
+                  letterSpacing: .6,
                 ),
               ),
-              const Text(
-                'transactions',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+              const SizedBox(height: 3),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  AppUtils.formatCurrency(amount),
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _textMetric({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.white70),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 9,
+                  letterSpacing: .6,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryQuickTabs extends StatelessWidget {
+  const _CategoryQuickTabs({
+    required this.categories,
+    required this.categoryNames,
+    required this.selectedCategory,
+    required this.onSelected,
+  });
+
+  final List<MapEntry<String, double>> categories;
+  final Map<String, String> categoryNames;
+  final String? selectedCategory;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        itemCount: categories.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _buildChip(
+              context: context,
+              label: 'All',
+              selected: selectedCategory == null,
+              primaryColor: primaryColor,
+              onTap: () => onSelected(null),
+            );
+          }
+
+          final category = categories[index - 1];
+          final categoryId = category.key;
+          final name = categoryNames[categoryId] ?? categoryId;
+          return _buildChip(
+            context: context,
+            label: name,
+            selected: selectedCategory == categoryId,
+            primaryColor: primaryColor,
+            onTap: () => onSelected(categoryId),
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildChip({
+    required BuildContext context,
+    required String label,
+    required bool selected,
+    required Color primaryColor,
+    required VoidCallback onTap,
+  }) {
+    return ChoiceChip(
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) => onTap(),
+      selectedColor: primaryColor,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      side: BorderSide(
+        color: selected ? primaryColor : Theme.of(context).dividerColor,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      labelStyle: TextStyle(
+        color: selected
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurface,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      visualDensity: VisualDensity.compact,
     );
   }
 }
 
 class _SearchField extends StatelessWidget {
   const _SearchField({
-    required this.value,
+    required this.controller,
     required this.onChanged,
+    required this.onClear,
     required this.onFilterPressed,
     required this.activeFilterCount,
   });
 
-  final String value;
+  final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
   final VoidCallback onFilterPressed;
   final int activeFilterCount;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: TextEditingController(text: value)
-        ..selection = TextSelection.collapsed(offset: value.length),
+      controller: controller,
       onChanged: onChanged,
       decoration: InputDecoration(
         hintText: 'Search transactions',
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: Badge(
-          isLabelVisible: activeFilterCount > 0,
-          label: Text('$activeFilterCount'),
-          child: IconButton(
-            onPressed: onFilterPressed,
-            icon: const Icon(Icons.tune),
-          ),
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (controller.text.isNotEmpty)
+              IconButton(
+                tooltip: 'Clear search',
+                onPressed: onClear,
+                icon: const Icon(Icons.close),
+              ),
+            Badge(
+              isLabelVisible: activeFilterCount > 0,
+              label: Text('$activeFilterCount'),
+              child: IconButton(
+                onPressed: onFilterPressed,
+                icon: const Icon(Icons.tune),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
         ),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
@@ -859,53 +1390,93 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-class _ActiveFilters extends StatelessWidget {
-  const _ActiveFilters({
-    required this.category,
-    required this.paymentMethod,
-    required this.type,
-    required this.onRemoveCategory,
-    required this.onRemovePayment,
-    required this.onRemoveType,
+class _FilterPickerOption<T> {
+  const _FilterPickerOption({
+    required this.value,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
   });
 
-  final String? category;
-  final String? paymentMethod;
-  final TransactionType? type;
-  final VoidCallback onRemoveCategory;
-  final VoidCallback onRemovePayment;
-  final VoidCallback onRemoveType;
+  final T value;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+}
+
+class _FilterSelectionField extends StatelessWidget {
+  const _FilterSelectionField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final chips = <Widget>[];
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
 
-    if (category != null) {
-      chips.add(InputChip(label: Text(category!), onDeleted: onRemoveCategory));
-    }
-
-    if (paymentMethod != null) {
-      chips.add(
-        InputChip(label: Text(paymentMethod!), onDeleted: onRemovePayment),
-      );
-    }
-
-    if (type != null) {
-      chips.add(
-        InputChip(
-          label: Text(type == TransactionType.income ? 'Income' : 'Expense'),
-          onDeleted: onRemoveType,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
-      );
-    }
-
-    if (chips.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Wrap(spacing: 8, runSpacing: 6, children: chips),
+      ),
     );
   }
 }
@@ -916,12 +1487,20 @@ class _DateTransactionGroup extends StatelessWidget {
     required this.transactions,
     required this.categoryNames,
     required this.onTransactionLongPress,
+    required this.onTransactionActions,
   });
 
   final DateTime date;
   final List<Transaction> transactions;
   final Map<String, String> categoryNames;
   final Future<void> Function(Transaction) onTransactionLongPress;
+  final Future<void> Function(Transaction) onTransactionActions;
+
+  double _sum(TransactionType type) {
+    return transactions
+        .where((item) => item.type == type)
+        .fold<double>(0, (sum, item) => sum + item.amount);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -930,13 +1509,39 @@ class _DateTransactionGroup extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 8),
-          child: Text(
-            _dateLabel(date),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _dateLabel(date),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _groupSummary(),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${transactions.length} ${transactions.length == 1 ? 'transaction' : 'transactions'}',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
         ),
         Container(
@@ -953,6 +1558,7 @@ class _DateTransactionGroup extends StatelessWidget {
                   categoryName: categoryNames[transactions[index].categoryId],
                   onLongPress: () =>
                       onTransactionLongPress(transactions[index]),
+                  onActions: () => onTransactionActions(transactions[index]),
                 ),
                 if (index < transactions.length - 1) Divider(height: 1),
               ],
@@ -961,6 +1567,15 @@ class _DateTransactionGroup extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _groupSummary() {
+    final income = _sum(TransactionType.income);
+    final expense = _sum(TransactionType.expense);
+    if (income == 0) return 'Expense ${AppUtils.formatCurrency(expense)}';
+    if (expense == 0) return 'Income ${AppUtils.formatCurrency(income)}';
+    return 'Income ${AppUtils.formatCurrency(income)} • '
+        'Expense ${AppUtils.formatCurrency(expense)}';
   }
 
   String _dateLabel(DateTime date) {
@@ -981,11 +1596,13 @@ class _TransactionCard extends StatelessWidget {
     required this.transaction,
     this.categoryName,
     required this.onLongPress,
+    required this.onActions,
   });
 
   final Transaction transaction;
   final String? categoryName;
   final VoidCallback onLongPress;
+  final VoidCallback onActions;
 
   @override
   Widget build(BuildContext context) {
@@ -1039,7 +1656,8 @@ class _TransactionCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$category • ${DateFormat('d MMM').format(transaction.date.toLocal())}',
+                    '$category • ${_formatPaymentMethod(transaction.paymentMethod.name)} • '
+                    '${DateFormat('h:mm a').format(transaction.date.toLocal())}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -1062,10 +1680,29 @@ class _TransactionCard extends StatelessWidget {
                 ),
               ),
             ),
+            IconButton(
+              tooltip: 'Transaction actions',
+              visualDensity: VisualDensity.compact,
+              onPressed: onActions,
+              icon: const Icon(Icons.more_vert),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatPaymentMethod(String value) {
+    return value
+        .replaceAll('_', ' ')
+        .replaceAllMapped(
+          RegExp(r'([a-z])([A-Z])'),
+          (match) => '${match[1]} ${match[2]}',
+        )
+        .split(' ')
+        .where((word) => word.isNotEmpty)
+        .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 }
 
