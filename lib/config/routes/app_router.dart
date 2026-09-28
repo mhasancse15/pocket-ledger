@@ -13,6 +13,7 @@ import '../../presentation/pages/report_page.dart';
 import '../../presentation/pages/setting_page.dart';
 import '../../presentation/pages/transactions_page.dart';
 import '../../presentation/pages/transaction_details_page.dart';
+import '../../presentation/pages/trend_analysis_page.dart';
 
 part 'app_routes.dart';
 
@@ -110,7 +111,12 @@ class AppRouter {
         path: AppRoutes.export,
         name: AppRoutes.exportDataName,
         builder: (context, state) => const ExportDataPage(),
-      )
+      ),
+      GoRoute(
+        path: AppRoutes.trendAnalysis,
+        name: AppRoutes.trendAnalysisName,
+        builder: (context, state) => const TrendAnalysisPage(),
+      ),
     ],
     errorBuilder: (context, state) =>
         const Scaffold(body: Center(child: Text('Page not found'))),

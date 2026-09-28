@@ -37,6 +37,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 
 - Review a selected month's expense totals, spending breakdown by category, and budget overview.
 - Compare current and previous month expenses and see a year-to-date expense chart and summary insights.
+- Analyze six-month income, expense, and balance trends, average/highest/lowest spending months, and month-over-month category changes with automatically generated insights.
 - Browse monthly income, expenses, balance, and transaction counts in monthly history.
 
 ### Export
@@ -64,6 +65,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 | Dashboard | Monthly balance, target progress, recent activity, and quick actions |
 | Transactions | Search, filter, browse, and open transaction details |
 | Reports | Monthly spending analysis and category breakdown |
+| Trend analysis | Six-month income/expense/balance charts, spending metrics, and category comparisons |
 | Monthly history | Compare income, expenses, and balance by month |
 | Expense summary | Compare months and review the yearly expense chart |
 | Budget management | Create and review monthly, category, and payment-method budgets |

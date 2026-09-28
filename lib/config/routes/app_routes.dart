@@ -16,6 +16,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String recurringExpenses = '/recurring-expenses';
   static const String previousExpanse = '/previous-expenses';
+  static const String trendAnalysis = '/trend-analysis';
 
   static const String dashboardName = 'dashboard';
   static const String transactionsName = 'transactions';
@@ -33,4 +34,5 @@ class AppRoutes {
   static const String budgetsName = 'budgets';
   static const String exportDataName = 'exportData';
   static const String export = '/exportData';
+  static const String trendAnalysisName = 'trend-analysis';
 }

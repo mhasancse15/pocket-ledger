@@ -73,6 +73,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         centerTitle: false,
         actions: [
           IconButton(
+            tooltip: 'Trend analysis',
+            onPressed: () => context.pushNamed(AppRoutes.trendAnalysisName),
+            icon: const Icon(Icons.insights_outlined),
+          ),
+          IconButton(
             tooltip: 'Previous expense summary',
             onPressed: () => context.pushNamed(AppRoutes.previousExpanseName),
             icon: const Icon(Icons.bar_chart_outlined),
