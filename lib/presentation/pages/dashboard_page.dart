@@ -1108,7 +1108,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             height: 50,
             child: FilledButton.icon(
               onPressed: () {
-                context.pushNamed(AppRoutes.addTransactionName);
+                context.pushNamed(
+                  AppRoutes.addTransactionName,
+                  extra: TransactionType.expense,
+                );
               },
               style: FilledButton.styleFrom(
                 backgroundColor: primary,
@@ -1130,7 +1133,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             height: 50,
             child: OutlinedButton.icon(
               onPressed: () {
-                context.pushNamed(AppRoutes.addTransactionName);
+                context.pushNamed(
+                  AppRoutes.addTransactionName,
+                  extra: TransactionType.income,
+                );
               },
               style: OutlinedButton.styleFrom(
                 backgroundColor: cardColor,

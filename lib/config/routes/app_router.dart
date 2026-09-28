@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/entities/transaction.dart';
 import '../../presentation/pages/add_transaction_page.dart';
 import '../../presentation/pages/budget_page.dart';
 import '../../presentation/pages/commercial_pages.dart';
@@ -66,7 +67,14 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.addTransaction,
         name: AppRoutes.addTransactionName,
-        builder: (context, state) => const AddTransactionPage(),
+        builder: (context, state) {
+          final initialType = state.extra;
+          return AddTransactionPage(
+            initialType: initialType is TransactionType
+                ? initialType
+                : TransactionType.expense,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.editTransaction,

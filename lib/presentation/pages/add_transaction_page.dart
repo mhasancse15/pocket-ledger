@@ -11,7 +11,12 @@ import '../providers/category_provider.dart';
 import '../viewmodels/transaction_viewmodel.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
-  const AddTransactionPage({super.key});
+  const AddTransactionPage({
+    this.initialType = TransactionType.expense,
+    super.key,
+  });
+
+  final TransactionType initialType;
 
   @override
   ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
@@ -273,6 +278,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   void initState() {
     super.initState();
 
+    transactionType = widget.initialType;
     amountController = TextEditingController();
     noteController = TextEditingController();
     selectedPaymentMethod = PaymentMethod.cash.name;
