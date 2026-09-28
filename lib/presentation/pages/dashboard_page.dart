@@ -1040,7 +1040,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () {
-        context.push('/edit-transaction/${transaction.id}');
+        context.pushNamed(
+          AppRoutes.transactionDetailsName,
+          pathParameters: {'id': transaction.id},
+        );
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
