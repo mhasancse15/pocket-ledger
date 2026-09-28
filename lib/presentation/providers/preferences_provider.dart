@@ -1,69 +1,97 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Placeholder for app preferences (theme, currency, etc.)
 class PreferencesStore {
-  static final Map<String, dynamic> _prefs = {
-    'isDarkMode': false,
-    'currencySymbol': '৳',
-    'currencyCode': 'BDT',
-    'dateFormat': 'yyyy-MM-dd',
-  };
+  Future<SharedPreferences> get _preferences => SharedPreferences.getInstance();
 
-  Future<bool> isDarkMode() async {
-    return _prefs['isDarkMode'] as bool? ?? false;
+  Future<Map<String, dynamic>> load() async {
+    final preferences = await _preferences;
+    return {
+      'isDarkMode': preferences.getBool('isDarkMode') ?? false,
+      'currencySymbol': preferences.getString('currencySymbol') ?? '৳',
+      'currencyCode': preferences.getString('currencyCode') ?? 'BDT',
+      'dateFormat': preferences.getString('dateFormat') ?? 'yyyy-MM-dd',
+      'budgetNotificationsEnabled':
+          preferences.getBool('budgetNotificationsEnabled') ?? false,
+      'monthlyTargetNotificationsEnabled':
+          preferences.getBool('monthlyTargetNotificationsEnabled') ?? false,
+    };
   }
 
-  Future<void> setDarkMode(bool value) async {
-    _prefs['isDarkMode'] = value;
+  Future<void> setDarkMode(bool value) => _setBool('isDarkMode', value);
+
+  Future<void> setBudgetNotificationsEnabled(bool value) =>
+      _setBool('budgetNotificationsEnabled', value);
+
+  Future<void> setMonthlyTargetNotificationsEnabled(bool value) =>
+      _setBool('monthlyTargetNotificationsEnabled', value);
+
+  Future<void> _setBool(String key, bool value) async {
+    final saved = await (await _preferences).setBool(key, value);
+    if (!saved) throw StateError('Unable to save the $key preference.');
   }
 
-  Future<String> getCurrencySymbol() async {
-    return _prefs['currencySymbol'] as String? ?? '৳';
-  }
+  Future<bool> isDarkMode() async =>
+      (await _preferences).getBool('isDarkMode') ?? false;
 
-  Future<String> getCurrencyCode() async {
-    return _prefs['currencyCode'] as String? ?? 'BDT';
-  }
+  Future<String> getCurrencySymbol() async =>
+      (await _preferences).getString('currencySymbol') ?? '৳';
 
-  Future<String> getDateFormat() async {
-    return _prefs['dateFormat'] as String? ?? 'yyyy-MM-dd';
-  }
+  Future<String> getCurrencyCode() async =>
+      (await _preferences).getString('currencyCode') ?? 'BDT';
+
+  Future<String> getDateFormat() async =>
+      (await _preferences).getString('dateFormat') ?? 'yyyy-MM-dd';
 }
 
-final preferencesRepositoryProvider = Provider((ref) {
-  return PreferencesStore();
+final preferencesRepositoryProvider = Provider((ref) => PreferencesStore());
+
+final darkModeProvider = FutureProvider<bool>((ref) {
+  return ref.watch(preferencesRepositoryProvider).isDarkMode();
 });
 
-/// Watch dark mode preference
-final darkModeProvider = FutureProvider<bool>((ref) async {
-  final prefs = ref.watch(preferencesRepositoryProvider);
-  return prefs.isDarkMode();
+final currencySymbolProvider = FutureProvider<String>((ref) {
+  return ref.watch(preferencesRepositoryProvider).getCurrencySymbol();
 });
 
-/// Watch currency symbol preference
-final currencySymbolProvider = FutureProvider<String>((ref) async {
-  final prefs = ref.watch(preferencesRepositoryProvider);
-  return prefs.getCurrencySymbol();
-});
-
-/// StateNotifier for preferences
 class PreferencesNotifier extends StateNotifier<Map<String, dynamic>> {
-  final PreferencesStore _store;
-
   PreferencesNotifier(this._store)
-      : super({
-          'isDarkMode': false,
-          'currencySymbol': '৳',
-        });
+    : super({
+        'isDarkMode': false,
+        'currencySymbol': '৳',
+        'budgetNotificationsEnabled': false,
+        'monthlyTargetNotificationsEnabled': false,
+      }) {
+    ready = _load();
+  }
+
+  final PreferencesStore _store;
+  late final Future<void> ready;
+
+  Future<void> _load() async {
+    state = await _store.load();
+  }
 
   Future<void> setDarkMode(bool value) async {
+    await ready;
     await _store.setDarkMode(value);
     state = {...state, 'isDarkMode': value};
+  }
+
+  Future<void> setBudgetNotificationsEnabled(bool value) async {
+    await ready;
+    await _store.setBudgetNotificationsEnabled(value);
+    state = {...state, 'budgetNotificationsEnabled': value};
+  }
+
+  Future<void> setMonthlyTargetNotificationsEnabled(bool value) async {
+    await ready;
+    await _store.setMonthlyTargetNotificationsEnabled(value);
+    state = {...state, 'monthlyTargetNotificationsEnabled': value};
   }
 }
 
 final preferencesNotifierProvider =
     StateNotifierProvider<PreferencesNotifier, Map<String, dynamic>>((ref) {
-  final store = ref.watch(preferencesRepositoryProvider);
-  return PreferencesNotifier(store);
-});
+      return PreferencesNotifier(ref.watch(preferencesRepositoryProvider));
+    });

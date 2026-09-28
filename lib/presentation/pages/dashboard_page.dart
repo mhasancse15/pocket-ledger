@@ -7,6 +7,7 @@ import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/monthly_limit.dart';
 import '../../domain/entities/transaction.dart';
+import '../providers/budget_notification_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/limit_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -92,6 +93,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
       ref.invalidate(monthlyLimitProvider(monthKey));
       ref.invalidate(allLimitsProvider);
+      await reportWidgetBudgetNotificationCheck(ref);
 
       if (!mounted) return;
 

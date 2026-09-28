@@ -1,27 +1,32 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
 import 'tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [
-  TransactionTable,
-  CategoryTable,
-  MonthlyLimitTable,
-  BudgetTable,
-  RecurringRuleTable,
-])
+@DriftDatabase(
+  tables: [
+    TransactionTable,
+    CategoryTable,
+    MonthlyLimitTable,
+    BudgetTable,
+    RecurringRuleTable,
+    BudgetNotificationStates,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -32,6 +37,9 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {
           await m.createTable(budgetTable);
+        }
+        if (from < 3) {
+          await m.createTable(budgetNotificationStates);
         }
       },
     );
@@ -52,8 +60,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<TransactionTableData?> getTransactionById(String id) {
-    return (select(transactionTable)..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
+    return (select(
+      transactionTable,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   Future<List<TransactionTableData>> getAllTransactions() {
@@ -61,14 +70,18 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<TransactionTableData>> getTransactionsByMonth(
-      int year, int month) {
+    int year,
+    int month,
+  ) {
     final startOfMonth = DateTime(year, month, 1);
     final endOfMonth = DateTime(year, month + 1, 1);
 
     return (select(transactionTable)
-          ..where((t) =>
-              t.date.isBiggerOrEqualValue(startOfMonth) &
-              t.date.isSmallerThanValue(endOfMonth))
+          ..where(
+            (t) =>
+                t.date.isBiggerOrEqualValue(startOfMonth) &
+                t.date.isSmallerThanValue(endOfMonth),
+          )
           ..orderBy([(t) => OrderingTerm.desc(t.date)]))
         .get();
   }
@@ -88,15 +101,19 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<CategoryTableData>> getAllCategories() {
-    return (select(categoryTable)
-          ..where((c) => c.isArchived.equals(false)))
-        .get();
+    return (select(
+      categoryTable,
+    )..where((c) => c.isArchived.equals(false))).get();
+  }
+
+  Future<List<CategoryTableData>> getAllCategoriesIncludingArchived() {
+    return select(categoryTable).get();
   }
 
   Future<List<CategoryTableData>> getCategoriesByType(String type) {
-    return (select(categoryTable)
-          ..where((c) => c.type.equals(type) & c.isArchived.equals(false)))
-        .get();
+    return (select(
+      categoryTable,
+    )..where((c) => c.type.equals(type) & c.isArchived.equals(false))).get();
   }
 
   // --- Monthly Limit Table Queries ---
@@ -116,9 +133,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> deleteMonthlyLimit(int year, int month) {
-    return (delete(monthlyLimitTable)
-          ..where((l) => l.year.equals(year) & l.month.equals(month)))
-        .go();
+    return (delete(
+      monthlyLimitTable,
+    )..where((l) => l.year.equals(year) & l.month.equals(month))).go();
   }
 
   Future<List<MonthlyLimitTableData>> getAllMonthlyLimits() {
@@ -131,16 +148,58 @@ class AppDatabase extends _$AppDatabase {
     String scope,
     String scopeKey,
   ) {
-    return (select(budgetTable)
-          ..where((b) =>
+    return (select(budgetTable)..where(
+          (b) =>
               b.year.equals(year) &
               b.month.equals(month) &
               b.scope.equals(scope) &
-              b.scopeKey.equals(scopeKey)))
+              b.scopeKey.equals(scopeKey),
+        ))
         .getSingleOrNull();
   }
 
   Future<List<BudgetTableData>> getAllBudgets() => select(budgetTable).get();
+
+  Future<int> getHighestBudgetWarning({
+    required String sourceId,
+    required int year,
+    required int month,
+  }) async {
+    final result =
+        await (select(budgetNotificationStates)..where(
+              (row) =>
+                  row.sourceId.equals(sourceId) &
+                  row.year.equals(year) &
+                  row.month.equals(month),
+            ))
+            .getSingleOrNull();
+
+    return result?.warningLevel ?? 0;
+  }
+
+  Future<void> saveBudgetWarning({
+    required String sourceId,
+    required int year,
+    required int month,
+    required int warningLevel,
+  }) async {
+    final existingLevel = await getHighestBudgetWarning(
+      sourceId: sourceId,
+      year: year,
+      month: month,
+    );
+    if (warningLevel <= existingLevel) return;
+
+    await into(budgetNotificationStates).insertOnConflictUpdate(
+      BudgetNotificationStatesCompanion.insert(
+        sourceId: sourceId,
+        year: year,
+        month: month,
+        warningLevel: warningLevel,
+        notifiedAt: DateTime.now(),
+      ),
+    );
+  }
 
   Future<int> upsertBudget(BudgetTableCompanion budget) =>
       into(budgetTable).insertOnConflictUpdate(budget);
@@ -167,8 +226,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<RecurringRuleTableData>> getActiveRecurringRules() {
-    return (select(recurringRuleTable)..where((r) => r.isActive.equals(true)))
-        .get();
+    return (select(
+      recurringRuleTable,
+    )..where((r) => r.isActive.equals(true))).get();
   }
 
   Future<void> clearAllData() async {
@@ -178,6 +238,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(monthlyLimitTable).go();
       await delete(budgetTable).go();
       await delete(recurringRuleTable).go();
+      await delete(budgetNotificationStates).go();
     });
   }
 }

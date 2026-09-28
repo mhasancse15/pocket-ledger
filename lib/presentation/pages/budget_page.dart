@@ -6,6 +6,8 @@ import '../../core/utils/constants.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
+import '../../domain/usecases/budget_calculations.dart';
+import '../providers/budget_notification_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -169,6 +171,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
     try {
       await ref.read(budgetStoreProvider).save(budget);
       ref.invalidate(budgetsProvider);
+      await reportWidgetBudgetNotificationCheck(ref);
 
       if (!mounted) return;
 
@@ -917,46 +920,15 @@ class _BudgetSummaryCard extends StatelessWidget {
   }
 
   double _spent(Budget budget) {
-    return transactions
-        .where((item) {
-          final date = item.date.toLocal();
-          final sameMonth =
-              date.year == budget.year && date.month == budget.month;
-
-          final scopeMatches =
-              budget.scope == BudgetScope.monthly ||
-              budget.scope == BudgetScope.category &&
-                  item.categoryId == budget.scopeKey ||
-              budget.scope == BudgetScope.wallet &&
-                  item.paymentMethod.name == budget.scopeKey;
-
-          return sameMonth &&
-              item.type == TransactionType.expense &&
-              scopeMatches;
-        })
-        .fold<double>(0, (sum, item) => sum + item.amount);
+    return calculateBudgetSpent(budget: budget, transactions: transactions);
   }
 
   double _effectiveAmount(Budget budget) {
-    if (!budget.rollover) return budget.amount;
-
-    final previousMonth = DateTime(budget.year, budget.month - 1);
-
-    final previous = allBudgets.where(
-      (candidate) =>
-          candidate.scope == budget.scope &&
-          candidate.scopeKey == budget.scopeKey &&
-          candidate.year == previousMonth.year &&
-          candidate.month == previousMonth.month,
+    return calculateEffectiveBudgetLimit(
+      budget: budget,
+      allBudgets: allBudgets,
+      transactions: transactions,
     );
-
-    if (previous.isEmpty) return budget.amount;
-
-    final previousBudget = previous.first;
-    final previousSpent = _spent(previousBudget);
-    final unused = previousBudget.amount - previousSpent;
-
-    return budget.amount + (unused > 0 ? unused : 0);
   }
 }
 
@@ -1099,64 +1071,15 @@ class _BudgetCard extends StatelessWidget {
   }
 
   double _spent() {
-    return transactions
-        .where((item) {
-          final date = item.date.toLocal();
-          final sameMonth =
-              date.year == budget.year && date.month == budget.month;
-
-          final scopeMatches =
-              budget.scope == BudgetScope.monthly ||
-              budget.scope == BudgetScope.category &&
-                  item.categoryId == budget.scopeKey ||
-              budget.scope == BudgetScope.wallet &&
-                  item.paymentMethod.name == budget.scopeKey;
-
-          return sameMonth &&
-              item.type == TransactionType.expense &&
-              scopeMatches;
-        })
-        .fold<double>(0, (sum, item) => sum + item.amount);
+    return calculateBudgetSpent(budget: budget, transactions: transactions);
   }
 
   double _effectiveAmount() {
-    if (!budget.rollover) return budget.amount;
-
-    final previousMonth = DateTime(budget.year, budget.month - 1);
-
-    final previous = allBudgets.where(
-      (candidate) =>
-          candidate.scope == budget.scope &&
-          candidate.scopeKey == budget.scopeKey &&
-          candidate.year == previousMonth.year &&
-          candidate.month == previousMonth.month,
+    return calculateEffectiveBudgetLimit(
+      budget: budget,
+      allBudgets: allBudgets,
+      transactions: transactions,
     );
-
-    if (previous.isEmpty) return budget.amount;
-
-    final previousBudget = previous.first;
-    final previousSpent = transactions
-        .where((item) {
-          final date = item.date.toLocal();
-          final sameMonth =
-              date.year == previousBudget.year &&
-              date.month == previousBudget.month;
-
-          final scopeMatches =
-              previousBudget.scope == BudgetScope.monthly ||
-              previousBudget.scope == BudgetScope.category &&
-                  item.categoryId == previousBudget.scopeKey ||
-              previousBudget.scope == BudgetScope.wallet &&
-                  item.paymentMethod.name == previousBudget.scopeKey;
-
-          return sameMonth &&
-              item.type == TransactionType.expense &&
-              scopeMatches;
-        })
-        .fold<double>(0, (sum, item) => sum + item.amount);
-
-    final unused = previousBudget.amount - previousSpent;
-    return budget.amount + (unused > 0 ? unused : 0);
   }
 }
 

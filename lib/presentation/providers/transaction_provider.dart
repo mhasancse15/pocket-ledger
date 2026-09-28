@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_wallet/presentation/providers/database_provider.dart';
 import '../../data/repositories/transaction_repository_impl.dart';
 import '../../domain/entities/transaction.dart';
+import 'budget_notification_provider.dart';
 
 /// Provides the transaction repository
 final transactionRepositoryProvider = Provider((ref) {
@@ -56,36 +57,50 @@ class TransactionNotifier extends StateNotifier<AsyncValue<Transaction>> {
   Future<void> addTransaction(Transaction transaction) async {
     state = const AsyncValue.loading();
     final result = await _repository.addTransaction(transaction);
-    state = result.fold(
-      (failure) => AsyncValue.error(Exception(failure.message), StackTrace.current),
+    final saved = result.fold<bool>(
+      (failure) {
+        state = AsyncValue.error(Exception(failure.message), StackTrace.current);
+        return false;
+      },
       (transaction) {
         _refresh();
-        return AsyncValue.data(transaction);
+        state = AsyncValue.data(transaction);
+        return true;
       },
     );
+    if (saved) await reportBudgetNotificationCheck(_ref);
   }
 
   Future<void> updateTransaction(Transaction transaction) async {
     state = const AsyncValue.loading();
     final result = await _repository.updateTransaction(transaction);
-    state = result.fold(
-      (failure) => AsyncValue.error(Exception(failure.message), StackTrace.current),
+    final saved = result.fold<bool>(
+      (failure) {
+        state = AsyncValue.error(Exception(failure.message), StackTrace.current);
+        return false;
+      },
       (transaction) {
         _refresh();
-        return AsyncValue.data(transaction);
+        state = AsyncValue.data(transaction);
+        return true;
       },
     );
+    if (saved) await reportBudgetNotificationCheck(_ref);
   }
 
   Future<void> deleteTransaction(String transactionId) async {
     final result = await _repository.deleteTransaction(transactionId);
-    result.fold(
-      (failure) => state = AsyncValue.error(Exception(failure.message), StackTrace.current),
+    final deleted = result.fold<bool>(
+      (failure) {
+        state = AsyncValue.error(Exception(failure.message), StackTrace.current);
+        return false;
+      },
       (_) {
         _refresh();
-        return null;
+        return true;
       },
     );
+    if (deleted) await reportBudgetNotificationCheck(_ref);
   }
 }
 

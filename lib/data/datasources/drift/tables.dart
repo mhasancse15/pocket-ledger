@@ -87,3 +87,14 @@ class RecurringRuleTable extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class BudgetNotificationStates extends Table {
+  TextColumn get sourceId => text()();
+  IntColumn get year => integer()();
+  IntColumn get month => integer()();
+  IntColumn get warningLevel => integer()();
+  DateTimeColumn get notifiedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {sourceId, year, month};
+}

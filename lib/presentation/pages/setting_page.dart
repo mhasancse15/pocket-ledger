@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_router.dart';
+import '../../core/services/local_notification_service.dart';
+import '../providers/budget_notification_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/database_provider.dart';
@@ -20,6 +22,10 @@ class SettingsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final preferences = ref.watch(preferencesNotifierProvider);
     final darkMode = preferences['isDarkMode'] as bool? ?? false;
+    final budgetNotificationsEnabled =
+        preferences['budgetNotificationsEnabled'] as bool? ?? false;
+    final monthlyTargetNotificationsEnabled =
+        preferences['monthlyTargetNotificationsEnabled'] as bool? ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -153,6 +159,43 @@ class SettingsPage extends ConsumerWidget {
               ),
             ],
           ),
+          _SettingsSection(
+            title: 'Notifications',
+            subtitle: 'Get alerts as you approach spending limits',
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.pie_chart_outline),
+                title: const Text('Budget notifications'),
+                subtitle: const Text(
+                  'Alerts at 75%, 90%, and when a budget is reached or exceeded',
+                ),
+                value: budgetNotificationsEnabled,
+                onChanged: (enabled) => _setNotificationPreference(
+                  context,
+                  ref,
+                  enabled: enabled,
+                  isMonthlyTarget: false,
+                ),
+              ),
+              const Divider(height: 24),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.track_changes_outlined),
+                title: const Text('Monthly target notifications'),
+                subtitle: const Text(
+                  'Get alerts as spending approaches your monthly target',
+                ),
+                value: monthlyTargetNotificationsEnabled,
+                onChanged: (enabled) => _setNotificationPreference(
+                  context,
+                  ref,
+                  enabled: enabled,
+                  isMonthlyTarget: true,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -162,6 +205,80 @@ class SettingsPage extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$feature will be available soon'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+Future<void> _setNotificationPreference(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool enabled,
+  required bool isMonthlyTarget,
+}) async {
+  if (enabled) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Enable spending alerts?'),
+        content: const Text(
+          'Pocket Ledger can notify you when spending reaches 75%, 90%, '
+          'or 100% of a budget or monthly target.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final bool permissionGranted;
+    try {
+      permissionGranted = await LocalNotificationService.instance
+          .requestPermission();
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to request notification permission: $error'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (!context.mounted) return;
+    if (!permissionGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Notification permission was not granted.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+  }
+
+  try {
+    final notifier = ref.read(preferencesNotifierProvider.notifier);
+    if (isMonthlyTarget) {
+      await notifier.setMonthlyTargetNotificationsEnabled(enabled);
+    } else {
+      await notifier.setBudgetNotificationsEnabled(enabled);
+    }
+    if (enabled) await reportWidgetBudgetNotificationCheck(ref);
+  } catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Unable to update notification settings: $error'),
         behavior: SnackBarBehavior.floating,
       ),
     );

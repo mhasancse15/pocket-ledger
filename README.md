@@ -32,6 +32,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 - Create monthly, category, and payment-method budgets for a selected month.
 - Review budget progress, remaining amounts, monthly summaries, and comparisons.
 - Choose whether unused amounts roll over for supported budgets.
+- Opt in to local alerts at 75%, 90%, 100%, and above budget or monthly target; alert levels are remembered per month to avoid duplicates.
 
 ### Reports and history
 
@@ -53,7 +54,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 
 ### Settings and data
 
-- Switch between light and dark themes.
+- Switch between light and dark themes and opt in to budget or monthly-target notifications.
 - See the app's BDT currency setting.
 - Clear local app data after confirmation.
 - Backup and restore is shown in Settings as coming soon; it is not currently available.
@@ -72,7 +73,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 | Categories | Create, edit, search, and archive transaction categories |
 | Recurring expenses | View stored recurring rules |
 | Export data | Filter and share transaction exports in CSV or PDF |
-| Settings | Theme, data management, and links to management screens |
+| Settings | Theme, notification preferences, data management, and links to management screens |
 
 ## Technology
 
@@ -80,6 +81,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 - **Riverpod 2** for reactive state and dependency wiring.
 - **GoRouter** for navigation, including a stateful bottom-navigation shell.
 - **Drift and SQLite** for local persistence and schema migrations.
+- **flutter_local_notifications** for opt-in on-device spending alerts.
 - **fl_chart** for spending charts.
 - **intl** for date and number formatting.
 - **CSV, PDF, and share_plus** for export generation and sharing.

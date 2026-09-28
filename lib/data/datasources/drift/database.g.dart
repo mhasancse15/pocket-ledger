@@ -2759,6 +2759,384 @@ class RecurringRuleTableCompanion
   }
 }
 
+class $BudgetNotificationStatesTable extends BudgetNotificationStates
+    with TableInfo<$BudgetNotificationStatesTable, BudgetNotificationState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetNotificationStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
+    'sourceId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
+    'source_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<int> month = GeneratedColumn<int>(
+    'month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _warningLevelMeta = const VerificationMeta(
+    'warningLevel',
+  );
+  @override
+  late final GeneratedColumn<int> warningLevel = GeneratedColumn<int>(
+    'warning_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notifiedAtMeta = const VerificationMeta(
+    'notifiedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> notifiedAt = GeneratedColumn<DateTime>(
+    'notified_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    sourceId,
+    year,
+    month,
+    warningLevel,
+    notifiedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_notification_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BudgetNotificationState> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('source_id')) {
+      context.handle(
+        _sourceIdMeta,
+        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceIdMeta);
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('month')) {
+      context.handle(
+        _monthMeta,
+        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('warning_level')) {
+      context.handle(
+        _warningLevelMeta,
+        warningLevel.isAcceptableOrUnknown(
+          data['warning_level']!,
+          _warningLevelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_warningLevelMeta);
+    }
+    if (data.containsKey('notified_at')) {
+      context.handle(
+        _notifiedAtMeta,
+        notifiedAt.isAcceptableOrUnknown(data['notified_at']!, _notifiedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notifiedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sourceId, year, month};
+  @override
+  BudgetNotificationState map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetNotificationState(
+      sourceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_id'],
+      )!,
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      )!,
+      month: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}month'],
+      )!,
+      warningLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}warning_level'],
+      )!,
+      notifiedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}notified_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BudgetNotificationStatesTable createAlias(String alias) {
+    return $BudgetNotificationStatesTable(attachedDatabase, alias);
+  }
+}
+
+class BudgetNotificationState extends DataClass
+    implements Insertable<BudgetNotificationState> {
+  final String sourceId;
+  final int year;
+  final int month;
+  final int warningLevel;
+  final DateTime notifiedAt;
+  const BudgetNotificationState({
+    required this.sourceId,
+    required this.year,
+    required this.month,
+    required this.warningLevel,
+    required this.notifiedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['source_id'] = Variable<String>(sourceId);
+    map['year'] = Variable<int>(year);
+    map['month'] = Variable<int>(month);
+    map['warning_level'] = Variable<int>(warningLevel);
+    map['notified_at'] = Variable<DateTime>(notifiedAt);
+    return map;
+  }
+
+  BudgetNotificationStatesCompanion toCompanion(bool nullToAbsent) {
+    return BudgetNotificationStatesCompanion(
+      sourceId: Value(sourceId),
+      year: Value(year),
+      month: Value(month),
+      warningLevel: Value(warningLevel),
+      notifiedAt: Value(notifiedAt),
+    );
+  }
+
+  factory BudgetNotificationState.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetNotificationState(
+      sourceId: serializer.fromJson<String>(json['sourceId']),
+      year: serializer.fromJson<int>(json['year']),
+      month: serializer.fromJson<int>(json['month']),
+      warningLevel: serializer.fromJson<int>(json['warningLevel']),
+      notifiedAt: serializer.fromJson<DateTime>(json['notifiedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sourceId': serializer.toJson<String>(sourceId),
+      'year': serializer.toJson<int>(year),
+      'month': serializer.toJson<int>(month),
+      'warningLevel': serializer.toJson<int>(warningLevel),
+      'notifiedAt': serializer.toJson<DateTime>(notifiedAt),
+    };
+  }
+
+  BudgetNotificationState copyWith({
+    String? sourceId,
+    int? year,
+    int? month,
+    int? warningLevel,
+    DateTime? notifiedAt,
+  }) => BudgetNotificationState(
+    sourceId: sourceId ?? this.sourceId,
+    year: year ?? this.year,
+    month: month ?? this.month,
+    warningLevel: warningLevel ?? this.warningLevel,
+    notifiedAt: notifiedAt ?? this.notifiedAt,
+  );
+  BudgetNotificationState copyWithCompanion(
+    BudgetNotificationStatesCompanion data,
+  ) {
+    return BudgetNotificationState(
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
+      year: data.year.present ? data.year.value : this.year,
+      month: data.month.present ? data.month.value : this.month,
+      warningLevel: data.warningLevel.present
+          ? data.warningLevel.value
+          : this.warningLevel,
+      notifiedAt: data.notifiedAt.present
+          ? data.notifiedAt.value
+          : this.notifiedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetNotificationState(')
+          ..write('sourceId: $sourceId, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('warningLevel: $warningLevel, ')
+          ..write('notifiedAt: $notifiedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(sourceId, year, month, warningLevel, notifiedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetNotificationState &&
+          other.sourceId == this.sourceId &&
+          other.year == this.year &&
+          other.month == this.month &&
+          other.warningLevel == this.warningLevel &&
+          other.notifiedAt == this.notifiedAt);
+}
+
+class BudgetNotificationStatesCompanion
+    extends UpdateCompanion<BudgetNotificationState> {
+  final Value<String> sourceId;
+  final Value<int> year;
+  final Value<int> month;
+  final Value<int> warningLevel;
+  final Value<DateTime> notifiedAt;
+  final Value<int> rowid;
+  const BudgetNotificationStatesCompanion({
+    this.sourceId = const Value.absent(),
+    this.year = const Value.absent(),
+    this.month = const Value.absent(),
+    this.warningLevel = const Value.absent(),
+    this.notifiedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BudgetNotificationStatesCompanion.insert({
+    required String sourceId,
+    required int year,
+    required int month,
+    required int warningLevel,
+    required DateTime notifiedAt,
+    this.rowid = const Value.absent(),
+  }) : sourceId = Value(sourceId),
+       year = Value(year),
+       month = Value(month),
+       warningLevel = Value(warningLevel),
+       notifiedAt = Value(notifiedAt);
+  static Insertable<BudgetNotificationState> custom({
+    Expression<String>? sourceId,
+    Expression<int>? year,
+    Expression<int>? month,
+    Expression<int>? warningLevel,
+    Expression<DateTime>? notifiedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sourceId != null) 'source_id': sourceId,
+      if (year != null) 'year': year,
+      if (month != null) 'month': month,
+      if (warningLevel != null) 'warning_level': warningLevel,
+      if (notifiedAt != null) 'notified_at': notifiedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BudgetNotificationStatesCompanion copyWith({
+    Value<String>? sourceId,
+    Value<int>? year,
+    Value<int>? month,
+    Value<int>? warningLevel,
+    Value<DateTime>? notifiedAt,
+    Value<int>? rowid,
+  }) {
+    return BudgetNotificationStatesCompanion(
+      sourceId: sourceId ?? this.sourceId,
+      year: year ?? this.year,
+      month: month ?? this.month,
+      warningLevel: warningLevel ?? this.warningLevel,
+      notifiedAt: notifiedAt ?? this.notifiedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sourceId.present) {
+      map['source_id'] = Variable<String>(sourceId.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (month.present) {
+      map['month'] = Variable<int>(month.value);
+    }
+    if (warningLevel.present) {
+      map['warning_level'] = Variable<int>(warningLevel.value);
+    }
+    if (notifiedAt.present) {
+      map['notified_at'] = Variable<DateTime>(notifiedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetNotificationStatesCompanion(')
+          ..write('sourceId: $sourceId, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('warningLevel: $warningLevel, ')
+          ..write('notifiedAt: $notifiedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2771,6 +3149,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BudgetTableTable budgetTable = $BudgetTableTable(this);
   late final $RecurringRuleTableTable recurringRuleTable =
       $RecurringRuleTableTable(this);
+  late final $BudgetNotificationStatesTable budgetNotificationStates =
+      $BudgetNotificationStatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2781,6 +3161,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     monthlyLimitTable,
     budgetTable,
     recurringRuleTable,
+    budgetNotificationStates,
   ];
 }
 
@@ -4250,6 +4631,241 @@ typedef $$RecurringRuleTableTableProcessedTableManager =
       RecurringRuleTableData,
       PrefetchHooks Function()
     >;
+typedef $$BudgetNotificationStatesTableCreateCompanionBuilder =
+    BudgetNotificationStatesCompanion Function({
+      required String sourceId,
+      required int year,
+      required int month,
+      required int warningLevel,
+      required DateTime notifiedAt,
+      Value<int> rowid,
+    });
+typedef $$BudgetNotificationStatesTableUpdateCompanionBuilder =
+    BudgetNotificationStatesCompanion Function({
+      Value<String> sourceId,
+      Value<int> year,
+      Value<int> month,
+      Value<int> warningLevel,
+      Value<DateTime> notifiedAt,
+      Value<int> rowid,
+    });
+
+class $$BudgetNotificationStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $BudgetNotificationStatesTable> {
+  $$BudgetNotificationStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get warningLevel => $composableBuilder(
+    column: $table.warningLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get notifiedAt => $composableBuilder(
+    column: $table.notifiedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BudgetNotificationStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BudgetNotificationStatesTable> {
+  $$BudgetNotificationStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get warningLevel => $composableBuilder(
+    column: $table.warningLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get notifiedAt => $composableBuilder(
+    column: $table.notifiedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BudgetNotificationStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BudgetNotificationStatesTable> {
+  $$BudgetNotificationStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get sourceId =>
+      $composableBuilder(column: $table.sourceId, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<int> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<int> get warningLevel => $composableBuilder(
+    column: $table.warningLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get notifiedAt => $composableBuilder(
+    column: $table.notifiedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$BudgetNotificationStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BudgetNotificationStatesTable,
+          BudgetNotificationState,
+          $$BudgetNotificationStatesTableFilterComposer,
+          $$BudgetNotificationStatesTableOrderingComposer,
+          $$BudgetNotificationStatesTableAnnotationComposer,
+          $$BudgetNotificationStatesTableCreateCompanionBuilder,
+          $$BudgetNotificationStatesTableUpdateCompanionBuilder,
+          (
+            BudgetNotificationState,
+            BaseReferences<
+              _$AppDatabase,
+              $BudgetNotificationStatesTable,
+              BudgetNotificationState
+            >,
+          ),
+          BudgetNotificationState,
+          PrefetchHooks Function()
+        > {
+  $$BudgetNotificationStatesTableTableManager(
+    _$AppDatabase db,
+    $BudgetNotificationStatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BudgetNotificationStatesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$BudgetNotificationStatesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$BudgetNotificationStatesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> sourceId = const Value.absent(),
+                Value<int> year = const Value.absent(),
+                Value<int> month = const Value.absent(),
+                Value<int> warningLevel = const Value.absent(),
+                Value<DateTime> notifiedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetNotificationStatesCompanion(
+                sourceId: sourceId,
+                year: year,
+                month: month,
+                warningLevel: warningLevel,
+                notifiedAt: notifiedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String sourceId,
+                required int year,
+                required int month,
+                required int warningLevel,
+                required DateTime notifiedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetNotificationStatesCompanion.insert(
+                sourceId: sourceId,
+                year: year,
+                month: month,
+                warningLevel: warningLevel,
+                notifiedAt: notifiedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $BudgetNotificationStatesTable,
+                    BudgetNotificationState
+                  >(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $BudgetNotificationStatesTable,
+                    BudgetNotificationState
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BudgetNotificationStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BudgetNotificationStatesTable,
+      BudgetNotificationState,
+      $$BudgetNotificationStatesTableFilterComposer,
+      $$BudgetNotificationStatesTableOrderingComposer,
+      $$BudgetNotificationStatesTableAnnotationComposer,
+      $$BudgetNotificationStatesTableCreateCompanionBuilder,
+      $$BudgetNotificationStatesTableUpdateCompanionBuilder,
+      (
+        BudgetNotificationState,
+        BaseReferences<
+          _$AppDatabase,
+          $BudgetNotificationStatesTable,
+          BudgetNotificationState
+        >,
+      ),
+      BudgetNotificationState,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4264,4 +4880,9 @@ class $AppDatabaseManager {
       $$BudgetTableTableTableManager(_db, _db.budgetTable);
   $$RecurringRuleTableTableTableManager get recurringRuleTable =>
       $$RecurringRuleTableTableTableManager(_db, _db.recurringRuleTable);
+  $$BudgetNotificationStatesTableTableManager get budgetNotificationStates =>
+      $$BudgetNotificationStatesTableTableManager(
+        _db,
+        _db.budgetNotificationStates,
+      );
 }
