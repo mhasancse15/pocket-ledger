@@ -265,4 +265,39 @@ void main() {
       expect(columns, isNotEmpty);
     },
   );
+
+  test('clearAllData deletes monthly savings and rollover markers', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+    await database.customSelect('SELECT 1').get();
+
+    await database.insertMonthlySavingEntry(
+      MonthlySavingEntryTableCompanion.insert(
+        id: 'saved-entry',
+        year: 2026,
+        month: 9,
+        amount: 15000,
+        date: DateTime(2026, 9, 30),
+        createdAt: DateTime(2026, 9, 30),
+        updatedAt: DateTime(2026, 9, 30),
+      ),
+    );
+    await database
+        .into(database.monthlySavingFinalizationTable)
+        .insert(
+          MonthlySavingFinalizationTableCompanion.insert(
+            year: 2026,
+            month: 9,
+            finalizedAt: DateTime(2026, 10, 1),
+          ),
+        );
+
+    await database.clearAllData();
+
+    expect(await database.getAllMonthlySavingEntries(), isEmpty);
+    expect(
+      await database.select(database.monthlySavingFinalizationTable).get(),
+      isEmpty,
+    );
+  });
 }

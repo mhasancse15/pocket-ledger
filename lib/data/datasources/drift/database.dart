@@ -540,6 +540,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(categoryTable).go();
       await delete(monthlyLimitTable).go();
       await delete(budgetTable).go();
+      await delete(monthlySavingEntryTable).go();
+      await delete(monthlySavingFinalizationTable).go();
       await delete(recurringRuleTable).go();
       await delete(recurringOccurrenceTable).go();
       await delete(budgetNotificationStates).go();

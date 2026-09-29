@@ -9,6 +9,7 @@ import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/database_provider.dart';
 import '../providers/limit_provider.dart';
+import '../providers/monthly_saving_provider.dart';
 import '../providers/preferences_provider.dart';
 import '../providers/recurring_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -379,7 +380,8 @@ Future<void> _clearLocalDatabase(BuildContext context, WidgetRef ref) async {
         title: const Text('Clear local database?'),
         content: const Text(
           'All transactions, categories, recurring expenses, '
-          'payment methods, and monthly limits will be permanently deleted.',
+          'budgets, monthly savings, payment methods, and monthly limits '
+          'will be permanently deleted.',
         ),
         actions: [
           TextButton(
@@ -426,6 +428,8 @@ Future<void> _clearLocalDatabase(BuildContext context, WidgetRef ref) async {
     ref.invalidate(allLimitsProvider);
     ref.invalidate(monthlyLimitProvider);
     ref.invalidate(budgetsProvider);
+    ref.invalidate(monthlySavingEntriesProvider);
+    ref.invalidate(allMonthlySavingEntriesProvider);
 
     if (!context.mounted) return;
 
