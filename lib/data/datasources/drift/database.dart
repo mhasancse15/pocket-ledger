@@ -17,6 +17,7 @@ part 'database.g.dart';
     MonthlyLimitTable,
     BudgetTable,
     RecurringRuleTable,
+    RecurringOccurrenceTable,
     BudgetNotificationStates,
   ],
 )
@@ -26,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -40,6 +41,37 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 3) {
           await m.createTable(budgetNotificationStates);
+        }
+        if (from < 4) {
+          await m.addColumn(recurringRuleTable, recurringRuleTable.anchorDay);
+          await m.addColumn(recurringRuleTable, recurringRuleTable.note);
+          await m.addColumn(
+            recurringRuleTable,
+            recurringRuleTable.autoCreateTransaction,
+          );
+          await m.addColumn(
+            recurringRuleTable,
+            recurringRuleTable.lastGeneratedAt,
+          );
+          await m.createTable(recurringOccurrenceTable);
+          await customStatement('''
+            UPDATE recurring_rule_table
+            SET anchor_day = CAST(
+              strftime('%d', start_date / 1000, 'unixepoch') AS INTEGER
+            )
+          ''');
+        }
+        if (from < 5) {
+          await m.addColumn(
+            recurringRuleTable,
+            recurringRuleTable.reminderDays,
+          );
+        }
+        if (from < 6) {
+          await m.addColumn(
+            recurringRuleTable,
+            recurringRuleTable.notificationId,
+          );
         }
       },
     );
@@ -225,10 +257,134 @@ class AppDatabase extends _$AppDatabase {
     return select(recurringRuleTable).get();
   }
 
+  Stream<List<RecurringRuleTableData>> watchAllRecurringRules() {
+    return select(recurringRuleTable).watch();
+  }
+
   Future<List<RecurringRuleTableData>> getActiveRecurringRules() {
     return (select(
       recurringRuleTable,
     )..where((r) => r.isActive.equals(true))).get();
+  }
+
+  Future<RecurringRuleTableData?> getRecurringRuleById(String id) {
+    return (select(
+      recurringRuleTable,
+    )..where((rule) => rule.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<bool> setRecurringRuleActive(String id, bool isActive) async {
+    final changed =
+        await (update(
+          recurringRuleTable,
+        )..where((row) => row.id.equals(id))).write(
+          RecurringRuleTableCompanion(
+            isActive: Value(isActive),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+    return changed > 0;
+  }
+
+  Future<List<RecurringOccurrenceTableData>> getRecurringOccurrences(
+    String ruleId,
+  ) {
+    return (select(recurringOccurrenceTable)
+          ..where((occurrence) => occurrence.recurringRuleId.equals(ruleId))
+          ..orderBy([
+            (occurrence) => OrderingTerm.desc(occurrence.scheduledDate),
+          ]))
+        .get();
+  }
+
+  Future<bool> recurringOccurrenceExists({
+    required String ruleId,
+    required DateTime scheduledDate,
+  }) async {
+    final occurrence =
+        await (select(recurringOccurrenceTable)..where(
+              (row) =>
+                  row.recurringRuleId.equals(ruleId) &
+                  row.scheduledDate.equals(scheduledDate),
+            ))
+            .getSingleOrNull();
+    return occurrence != null;
+  }
+
+  Future<void> saveRecurringOccurrence(
+    RecurringOccurrenceTableCompanion occurrence,
+  ) async {
+    await into(recurringOccurrenceTable).insert(occurrence);
+  }
+
+  Future<bool> recordRecurringOccurrence({
+    required String ruleId,
+    required DateTime scheduledDate,
+    required DateTime nextOccurrenceDate,
+    required RecurringOccurrenceTableCompanion occurrence,
+    required TransactionTableCompanion? generatedTransaction,
+    required bool deactivateRule,
+    bool advanceRule = true,
+  }) {
+    return transaction(() async {
+      final rule = await (select(
+        recurringRuleTable,
+      )..where((row) => row.id.equals(ruleId))).getSingleOrNull();
+      if (rule == null ||
+          !rule.isActive ||
+          rule.nextOccurrenceDate.year != scheduledDate.year ||
+          rule.nextOccurrenceDate.month != scheduledDate.month ||
+          rule.nextOccurrenceDate.day != scheduledDate.day) {
+        return false;
+      }
+
+      final existing =
+          await (select(recurringOccurrenceTable)..where(
+                (row) =>
+                    row.recurringRuleId.equals(ruleId) &
+                    row.scheduledDate.equals(scheduledDate),
+              ))
+              .getSingleOrNull();
+      var transactionCreated = false;
+      if (existing == null) {
+        if (generatedTransaction != null) {
+          await into(transactionTable).insert(generatedTransaction);
+          transactionCreated = true;
+        }
+        await into(recurringOccurrenceTable).insert(occurrence);
+      } else if (generatedTransaction != null &&
+          existing.transactionId == null &&
+          existing.status == 'skipped') {
+        await into(transactionTable).insert(generatedTransaction);
+        await (update(
+          recurringOccurrenceTable,
+        )..where((row) => row.id.equals(existing.id))).write(
+          RecurringOccurrenceTableCompanion(
+            transactionId: Value(generatedTransaction.id.value),
+            status: const Value('generated'),
+          ),
+        );
+        transactionCreated = true;
+      }
+
+      await (update(
+        recurringRuleTable,
+      )..where((row) => row.id.equals(ruleId))).write(
+        RecurringRuleTableCompanion(
+          lastGeneratedAt: transactionCreated
+              ? Value(DateTime.now())
+              : const Value.absent(),
+          isActive: Value(
+            advanceRule ? rule.isActive && !deactivateRule : rule.isActive,
+          ),
+          nextOccurrenceDate: advanceRule
+              ? Value(nextOccurrenceDate)
+              : Value(rule.nextOccurrenceDate),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      return advanceRule || existing == null || transactionCreated;
+    });
   }
 
   Future<void> clearAllData() async {
@@ -238,6 +394,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(monthlyLimitTable).go();
       await delete(budgetTable).go();
       await delete(recurringRuleTable).go();
+      await delete(recurringOccurrenceTable).go();
       await delete(budgetNotificationStates).go();
     });
   }

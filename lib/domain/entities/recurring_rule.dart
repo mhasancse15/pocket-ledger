@@ -1,8 +1,8 @@
-/// Recurring expense entity
 import 'package:equatable/equatable.dart';
 
-enum RecurringFrequency { weekly, monthly, quarterly, yearly }
+enum RecurringFrequency { daily, weekly, monthly, quarterly, yearly }
 
+/// A rule that describes an expense generated on a recurring schedule.
 class RecurringRule extends Equatable {
   final String id;
   final String title;
@@ -12,12 +12,18 @@ class RecurringRule extends Equatable {
   final RecurringFrequency frequency;
   final DateTime startDate;
   final DateTime nextOccurrenceDate;
+  final int anchorDay;
+  final String? note;
   final DateTime? endDate;
   final bool isActive;
+  final bool autoCreateTransaction;
+  final DateTime? lastGeneratedAt;
+  final int? reminderDays;
+  final int? notificationId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const RecurringRule({
+  RecurringRule({
     required this.id,
     required this.title,
     required this.amount,
@@ -26,11 +32,17 @@ class RecurringRule extends Equatable {
     required this.frequency,
     required this.startDate,
     required this.nextOccurrenceDate,
+    int? anchorDay,
+    this.note,
     this.endDate,
     this.isActive = true,
+    this.autoCreateTransaction = true,
+    this.lastGeneratedAt,
+    this.reminderDays,
+    this.notificationId,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : anchorDay = anchorDay ?? startDate.day;
 
   RecurringRule copyWith({
     String? id,
@@ -41,8 +53,19 @@ class RecurringRule extends Equatable {
     RecurringFrequency? frequency,
     DateTime? startDate,
     DateTime? nextOccurrenceDate,
+    int? anchorDay,
+    String? note,
+    bool clearNote = false,
     DateTime? endDate,
+    bool clearEndDate = false,
     bool? isActive,
+    bool? autoCreateTransaction,
+    DateTime? lastGeneratedAt,
+    bool clearLastGeneratedAt = false,
+    int? reminderDays,
+    bool clearReminder = false,
+    int? notificationId,
+    bool clearNotificationId = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -55,8 +78,19 @@ class RecurringRule extends Equatable {
       frequency: frequency ?? this.frequency,
       startDate: startDate ?? this.startDate,
       nextOccurrenceDate: nextOccurrenceDate ?? this.nextOccurrenceDate,
-      endDate: endDate ?? this.endDate,
+      anchorDay: anchorDay ?? this.anchorDay,
+      note: clearNote ? null : note ?? this.note,
+      endDate: clearEndDate ? null : endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
+      autoCreateTransaction:
+          autoCreateTransaction ?? this.autoCreateTransaction,
+      lastGeneratedAt: clearLastGeneratedAt
+          ? null
+          : lastGeneratedAt ?? this.lastGeneratedAt,
+      reminderDays: clearReminder ? null : reminderDays ?? this.reminderDays,
+      notificationId: clearNotificationId
+          ? null
+          : notificationId ?? this.notificationId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -72,9 +106,45 @@ class RecurringRule extends Equatable {
     frequency,
     startDate,
     nextOccurrenceDate,
+    anchorDay,
+    note,
     endDate,
     isActive,
+    autoCreateTransaction,
+    lastGeneratedAt,
+    reminderDays,
+    notificationId,
     createdAt,
     updatedAt,
+  ];
+}
+
+enum RecurringOccurrenceStatus { generated, skipped }
+
+class RecurringOccurrence extends Equatable {
+  const RecurringOccurrence({
+    required this.id,
+    required this.recurringRuleId,
+    required this.scheduledDate,
+    required this.status,
+    required this.createdAt,
+    this.transactionId,
+  });
+
+  final String id;
+  final String recurringRuleId;
+  final DateTime scheduledDate;
+  final String? transactionId;
+  final RecurringOccurrenceStatus status;
+  final DateTime createdAt;
+
+  @override
+  List<Object?> get props => [
+    id,
+    recurringRuleId,
+    scheduledDate,
+    transactionId,
+    status,
+    createdAt,
   ];
 }

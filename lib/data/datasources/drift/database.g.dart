@@ -2126,6 +2126,27 @@ class $RecurringRuleTableTable extends RecurringRuleTable
         type: DriftSqlType.dateTime,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _anchorDayMeta = const VerificationMeta(
+    'anchorDay',
+  );
+  @override
+  late final GeneratedColumn<int> anchorDay = GeneratedColumn<int>(
+    'anchor_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _endDateMeta = const VerificationMeta(
     'endDate',
   );
@@ -2151,6 +2172,55 @@ class $RecurringRuleTableTable extends RecurringRuleTable
       'CHECK ("is_active" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _autoCreateTransactionMeta =
+      const VerificationMeta('autoCreateTransaction');
+  @override
+  late final GeneratedColumn<bool> autoCreateTransaction =
+      GeneratedColumn<bool>(
+        'auto_create_transaction',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("auto_create_transaction" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _lastGeneratedAtMeta = const VerificationMeta(
+    'lastGeneratedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastGeneratedAt =
+      GeneratedColumn<DateTime>(
+        'last_generated_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _reminderDaysMeta = const VerificationMeta(
+    'reminderDays',
+  );
+  @override
+  late final GeneratedColumn<int> reminderDays = GeneratedColumn<int>(
+    'reminder_days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notificationIdMeta = const VerificationMeta(
+    'notificationId',
+  );
+  @override
+  late final GeneratedColumn<int> notificationId = GeneratedColumn<int>(
+    'notification_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -2184,8 +2254,14 @@ class $RecurringRuleTableTable extends RecurringRuleTable
     frequency,
     startDate,
     nextOccurrenceDate,
+    anchorDay,
+    note,
     endDate,
     isActive,
+    autoCreateTransaction,
+    lastGeneratedAt,
+    reminderDays,
+    notificationId,
     createdAt,
     updatedAt,
   ];
@@ -2268,6 +2344,18 @@ class $RecurringRuleTableTable extends RecurringRuleTable
     } else if (isInserting) {
       context.missing(_nextOccurrenceDateMeta);
     }
+    if (data.containsKey('anchor_day')) {
+      context.handle(
+        _anchorDayMeta,
+        anchorDay.isAcceptableOrUnknown(data['anchor_day']!, _anchorDayMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
     if (data.containsKey('end_date')) {
       context.handle(
         _endDateMeta,
@@ -2278,6 +2366,42 @@ class $RecurringRuleTableTable extends RecurringRuleTable
       context.handle(
         _isActiveMeta,
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('auto_create_transaction')) {
+      context.handle(
+        _autoCreateTransactionMeta,
+        autoCreateTransaction.isAcceptableOrUnknown(
+          data['auto_create_transaction']!,
+          _autoCreateTransactionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_generated_at')) {
+      context.handle(
+        _lastGeneratedAtMeta,
+        lastGeneratedAt.isAcceptableOrUnknown(
+          data['last_generated_at']!,
+          _lastGeneratedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reminder_days')) {
+      context.handle(
+        _reminderDaysMeta,
+        reminderDays.isAcceptableOrUnknown(
+          data['reminder_days']!,
+          _reminderDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notification_id')) {
+      context.handle(
+        _notificationIdMeta,
+        notificationId.isAcceptableOrUnknown(
+          data['notification_id']!,
+          _notificationIdMeta,
+        ),
       );
     }
     if (data.containsKey('created_at')) {
@@ -2337,6 +2461,14 @@ class $RecurringRuleTableTable extends RecurringRuleTable
         DriftSqlType.dateTime,
         data['${effectivePrefix}next_occurrence_date'],
       )!,
+      anchorDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}anchor_day'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
       endDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}end_date'],
@@ -2345,6 +2477,22 @@ class $RecurringRuleTableTable extends RecurringRuleTable
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      autoCreateTransaction: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_create_transaction'],
+      )!,
+      lastGeneratedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_generated_at'],
+      ),
+      reminderDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_days'],
+      ),
+      notificationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}notification_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2372,8 +2520,14 @@ class RecurringRuleTableData extends DataClass
   final String frequency;
   final DateTime startDate;
   final DateTime nextOccurrenceDate;
+  final int anchorDay;
+  final String? note;
   final DateTime? endDate;
   final bool isActive;
+  final bool autoCreateTransaction;
+  final DateTime? lastGeneratedAt;
+  final int? reminderDays;
+  final int? notificationId;
   final DateTime createdAt;
   final DateTime updatedAt;
   const RecurringRuleTableData({
@@ -2385,8 +2539,14 @@ class RecurringRuleTableData extends DataClass
     required this.frequency,
     required this.startDate,
     required this.nextOccurrenceDate,
+    required this.anchorDay,
+    this.note,
     this.endDate,
     required this.isActive,
+    required this.autoCreateTransaction,
+    this.lastGeneratedAt,
+    this.reminderDays,
+    this.notificationId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -2401,10 +2561,24 @@ class RecurringRuleTableData extends DataClass
     map['frequency'] = Variable<String>(frequency);
     map['start_date'] = Variable<DateTime>(startDate);
     map['next_occurrence_date'] = Variable<DateTime>(nextOccurrenceDate);
+    map['anchor_day'] = Variable<int>(anchorDay);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
     if (!nullToAbsent || endDate != null) {
       map['end_date'] = Variable<DateTime>(endDate);
     }
     map['is_active'] = Variable<bool>(isActive);
+    map['auto_create_transaction'] = Variable<bool>(autoCreateTransaction);
+    if (!nullToAbsent || lastGeneratedAt != null) {
+      map['last_generated_at'] = Variable<DateTime>(lastGeneratedAt);
+    }
+    if (!nullToAbsent || reminderDays != null) {
+      map['reminder_days'] = Variable<int>(reminderDays);
+    }
+    if (!nullToAbsent || notificationId != null) {
+      map['notification_id'] = Variable<int>(notificationId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -2420,10 +2594,22 @@ class RecurringRuleTableData extends DataClass
       frequency: Value(frequency),
       startDate: Value(startDate),
       nextOccurrenceDate: Value(nextOccurrenceDate),
+      anchorDay: Value(anchorDay),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       endDate: endDate == null && nullToAbsent
           ? const Value.absent()
           : Value(endDate),
       isActive: Value(isActive),
+      autoCreateTransaction: Value(autoCreateTransaction),
+      lastGeneratedAt: lastGeneratedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastGeneratedAt),
+      reminderDays: reminderDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderDays),
+      notificationId: notificationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notificationId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2445,8 +2631,16 @@ class RecurringRuleTableData extends DataClass
       nextOccurrenceDate: serializer.fromJson<DateTime>(
         json['nextOccurrenceDate'],
       ),
+      anchorDay: serializer.fromJson<int>(json['anchorDay']),
+      note: serializer.fromJson<String?>(json['note']),
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      autoCreateTransaction: serializer.fromJson<bool>(
+        json['autoCreateTransaction'],
+      ),
+      lastGeneratedAt: serializer.fromJson<DateTime?>(json['lastGeneratedAt']),
+      reminderDays: serializer.fromJson<int?>(json['reminderDays']),
+      notificationId: serializer.fromJson<int?>(json['notificationId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2463,8 +2657,14 @@ class RecurringRuleTableData extends DataClass
       'frequency': serializer.toJson<String>(frequency),
       'startDate': serializer.toJson<DateTime>(startDate),
       'nextOccurrenceDate': serializer.toJson<DateTime>(nextOccurrenceDate),
+      'anchorDay': serializer.toJson<int>(anchorDay),
+      'note': serializer.toJson<String?>(note),
       'endDate': serializer.toJson<DateTime?>(endDate),
       'isActive': serializer.toJson<bool>(isActive),
+      'autoCreateTransaction': serializer.toJson<bool>(autoCreateTransaction),
+      'lastGeneratedAt': serializer.toJson<DateTime?>(lastGeneratedAt),
+      'reminderDays': serializer.toJson<int?>(reminderDays),
+      'notificationId': serializer.toJson<int?>(notificationId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2479,8 +2679,14 @@ class RecurringRuleTableData extends DataClass
     String? frequency,
     DateTime? startDate,
     DateTime? nextOccurrenceDate,
+    int? anchorDay,
+    Value<String?> note = const Value.absent(),
     Value<DateTime?> endDate = const Value.absent(),
     bool? isActive,
+    bool? autoCreateTransaction,
+    Value<DateTime?> lastGeneratedAt = const Value.absent(),
+    Value<int?> reminderDays = const Value.absent(),
+    Value<int?> notificationId = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => RecurringRuleTableData(
@@ -2492,8 +2698,18 @@ class RecurringRuleTableData extends DataClass
     frequency: frequency ?? this.frequency,
     startDate: startDate ?? this.startDate,
     nextOccurrenceDate: nextOccurrenceDate ?? this.nextOccurrenceDate,
+    anchorDay: anchorDay ?? this.anchorDay,
+    note: note.present ? note.value : this.note,
     endDate: endDate.present ? endDate.value : this.endDate,
     isActive: isActive ?? this.isActive,
+    autoCreateTransaction: autoCreateTransaction ?? this.autoCreateTransaction,
+    lastGeneratedAt: lastGeneratedAt.present
+        ? lastGeneratedAt.value
+        : this.lastGeneratedAt,
+    reminderDays: reminderDays.present ? reminderDays.value : this.reminderDays,
+    notificationId: notificationId.present
+        ? notificationId.value
+        : this.notificationId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2513,8 +2729,22 @@ class RecurringRuleTableData extends DataClass
       nextOccurrenceDate: data.nextOccurrenceDate.present
           ? data.nextOccurrenceDate.value
           : this.nextOccurrenceDate,
+      anchorDay: data.anchorDay.present ? data.anchorDay.value : this.anchorDay,
+      note: data.note.present ? data.note.value : this.note,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      autoCreateTransaction: data.autoCreateTransaction.present
+          ? data.autoCreateTransaction.value
+          : this.autoCreateTransaction,
+      lastGeneratedAt: data.lastGeneratedAt.present
+          ? data.lastGeneratedAt.value
+          : this.lastGeneratedAt,
+      reminderDays: data.reminderDays.present
+          ? data.reminderDays.value
+          : this.reminderDays,
+      notificationId: data.notificationId.present
+          ? data.notificationId.value
+          : this.notificationId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2531,8 +2761,14 @@ class RecurringRuleTableData extends DataClass
           ..write('frequency: $frequency, ')
           ..write('startDate: $startDate, ')
           ..write('nextOccurrenceDate: $nextOccurrenceDate, ')
+          ..write('anchorDay: $anchorDay, ')
+          ..write('note: $note, ')
           ..write('endDate: $endDate, ')
           ..write('isActive: $isActive, ')
+          ..write('autoCreateTransaction: $autoCreateTransaction, ')
+          ..write('lastGeneratedAt: $lastGeneratedAt, ')
+          ..write('reminderDays: $reminderDays, ')
+          ..write('notificationId: $notificationId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2549,8 +2785,14 @@ class RecurringRuleTableData extends DataClass
     frequency,
     startDate,
     nextOccurrenceDate,
+    anchorDay,
+    note,
     endDate,
     isActive,
+    autoCreateTransaction,
+    lastGeneratedAt,
+    reminderDays,
+    notificationId,
     createdAt,
     updatedAt,
   );
@@ -2566,8 +2808,14 @@ class RecurringRuleTableData extends DataClass
           other.frequency == this.frequency &&
           other.startDate == this.startDate &&
           other.nextOccurrenceDate == this.nextOccurrenceDate &&
+          other.anchorDay == this.anchorDay &&
+          other.note == this.note &&
           other.endDate == this.endDate &&
           other.isActive == this.isActive &&
+          other.autoCreateTransaction == this.autoCreateTransaction &&
+          other.lastGeneratedAt == this.lastGeneratedAt &&
+          other.reminderDays == this.reminderDays &&
+          other.notificationId == this.notificationId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2582,8 +2830,14 @@ class RecurringRuleTableCompanion
   final Value<String> frequency;
   final Value<DateTime> startDate;
   final Value<DateTime> nextOccurrenceDate;
+  final Value<int> anchorDay;
+  final Value<String?> note;
   final Value<DateTime?> endDate;
   final Value<bool> isActive;
+  final Value<bool> autoCreateTransaction;
+  final Value<DateTime?> lastGeneratedAt;
+  final Value<int?> reminderDays;
+  final Value<int?> notificationId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -2596,8 +2850,14 @@ class RecurringRuleTableCompanion
     this.frequency = const Value.absent(),
     this.startDate = const Value.absent(),
     this.nextOccurrenceDate = const Value.absent(),
+    this.anchorDay = const Value.absent(),
+    this.note = const Value.absent(),
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.autoCreateTransaction = const Value.absent(),
+    this.lastGeneratedAt = const Value.absent(),
+    this.reminderDays = const Value.absent(),
+    this.notificationId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2611,8 +2871,14 @@ class RecurringRuleTableCompanion
     required String frequency,
     required DateTime startDate,
     required DateTime nextOccurrenceDate,
+    this.anchorDay = const Value.absent(),
+    this.note = const Value.absent(),
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.autoCreateTransaction = const Value.absent(),
+    this.lastGeneratedAt = const Value.absent(),
+    this.reminderDays = const Value.absent(),
+    this.notificationId = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -2635,8 +2901,14 @@ class RecurringRuleTableCompanion
     Expression<String>? frequency,
     Expression<DateTime>? startDate,
     Expression<DateTime>? nextOccurrenceDate,
+    Expression<int>? anchorDay,
+    Expression<String>? note,
     Expression<DateTime>? endDate,
     Expression<bool>? isActive,
+    Expression<bool>? autoCreateTransaction,
+    Expression<DateTime>? lastGeneratedAt,
+    Expression<int>? reminderDays,
+    Expression<int>? notificationId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -2651,8 +2923,15 @@ class RecurringRuleTableCompanion
       if (startDate != null) 'start_date': startDate,
       if (nextOccurrenceDate != null)
         'next_occurrence_date': nextOccurrenceDate,
+      if (anchorDay != null) 'anchor_day': anchorDay,
+      if (note != null) 'note': note,
       if (endDate != null) 'end_date': endDate,
       if (isActive != null) 'is_active': isActive,
+      if (autoCreateTransaction != null)
+        'auto_create_transaction': autoCreateTransaction,
+      if (lastGeneratedAt != null) 'last_generated_at': lastGeneratedAt,
+      if (reminderDays != null) 'reminder_days': reminderDays,
+      if (notificationId != null) 'notification_id': notificationId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2668,8 +2947,14 @@ class RecurringRuleTableCompanion
     Value<String>? frequency,
     Value<DateTime>? startDate,
     Value<DateTime>? nextOccurrenceDate,
+    Value<int>? anchorDay,
+    Value<String?>? note,
     Value<DateTime?>? endDate,
     Value<bool>? isActive,
+    Value<bool>? autoCreateTransaction,
+    Value<DateTime?>? lastGeneratedAt,
+    Value<int?>? reminderDays,
+    Value<int?>? notificationId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -2683,8 +2968,15 @@ class RecurringRuleTableCompanion
       frequency: frequency ?? this.frequency,
       startDate: startDate ?? this.startDate,
       nextOccurrenceDate: nextOccurrenceDate ?? this.nextOccurrenceDate,
+      anchorDay: anchorDay ?? this.anchorDay,
+      note: note ?? this.note,
       endDate: endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
+      autoCreateTransaction:
+          autoCreateTransaction ?? this.autoCreateTransaction,
+      lastGeneratedAt: lastGeneratedAt ?? this.lastGeneratedAt,
+      reminderDays: reminderDays ?? this.reminderDays,
+      notificationId: notificationId ?? this.notificationId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -2720,11 +3012,31 @@ class RecurringRuleTableCompanion
         nextOccurrenceDate.value,
       );
     }
+    if (anchorDay.present) {
+      map['anchor_day'] = Variable<int>(anchorDay.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     if (endDate.present) {
       map['end_date'] = Variable<DateTime>(endDate.value);
     }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (autoCreateTransaction.present) {
+      map['auto_create_transaction'] = Variable<bool>(
+        autoCreateTransaction.value,
+      );
+    }
+    if (lastGeneratedAt.present) {
+      map['last_generated_at'] = Variable<DateTime>(lastGeneratedAt.value);
+    }
+    if (reminderDays.present) {
+      map['reminder_days'] = Variable<int>(reminderDays.value);
+    }
+    if (notificationId.present) {
+      map['notification_id'] = Variable<int>(notificationId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -2749,10 +3061,467 @@ class RecurringRuleTableCompanion
           ..write('frequency: $frequency, ')
           ..write('startDate: $startDate, ')
           ..write('nextOccurrenceDate: $nextOccurrenceDate, ')
+          ..write('anchorDay: $anchorDay, ')
+          ..write('note: $note, ')
           ..write('endDate: $endDate, ')
           ..write('isActive: $isActive, ')
+          ..write('autoCreateTransaction: $autoCreateTransaction, ')
+          ..write('lastGeneratedAt: $lastGeneratedAt, ')
+          ..write('reminderDays: $reminderDays, ')
+          ..write('notificationId: $notificationId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RecurringOccurrenceTableTable extends RecurringOccurrenceTable
+    with
+        TableInfo<
+          $RecurringOccurrenceTableTable,
+          RecurringOccurrenceTableData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecurringOccurrenceTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recurringRuleIdMeta = const VerificationMeta(
+    'recurringRuleId',
+  );
+  @override
+  late final GeneratedColumn<String> recurringRuleId = GeneratedColumn<String>(
+    'recurring_rule_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES recurring_rule_table (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _scheduledDateMeta = const VerificationMeta(
+    'scheduledDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> scheduledDate =
+      GeneratedColumn<DateTime>(
+        'scheduled_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _transactionIdMeta = const VerificationMeta(
+    'transactionId',
+  );
+  @override
+  late final GeneratedColumn<String> transactionId = GeneratedColumn<String>(
+    'transaction_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    recurringRuleId,
+    scheduledDate,
+    transactionId,
+    status,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recurring_occurrence_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecurringOccurrenceTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('recurring_rule_id')) {
+      context.handle(
+        _recurringRuleIdMeta,
+        recurringRuleId.isAcceptableOrUnknown(
+          data['recurring_rule_id']!,
+          _recurringRuleIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recurringRuleIdMeta);
+    }
+    if (data.containsKey('scheduled_date')) {
+      context.handle(
+        _scheduledDateMeta,
+        scheduledDate.isAcceptableOrUnknown(
+          data['scheduled_date']!,
+          _scheduledDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_scheduledDateMeta);
+    }
+    if (data.containsKey('transaction_id')) {
+      context.handle(
+        _transactionIdMeta,
+        transactionId.isAcceptableOrUnknown(
+          data['transaction_id']!,
+          _transactionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {recurringRuleId, scheduledDate},
+  ];
+  @override
+  RecurringOccurrenceTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecurringOccurrenceTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      recurringRuleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurring_rule_id'],
+      )!,
+      scheduledDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}scheduled_date'],
+      )!,
+      transactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}transaction_id'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RecurringOccurrenceTableTable createAlias(String alias) {
+    return $RecurringOccurrenceTableTable(attachedDatabase, alias);
+  }
+}
+
+class RecurringOccurrenceTableData extends DataClass
+    implements Insertable<RecurringOccurrenceTableData> {
+  final String id;
+  final String recurringRuleId;
+  final DateTime scheduledDate;
+  final String? transactionId;
+  final String status;
+  final DateTime createdAt;
+  const RecurringOccurrenceTableData({
+    required this.id,
+    required this.recurringRuleId,
+    required this.scheduledDate,
+    this.transactionId,
+    required this.status,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['recurring_rule_id'] = Variable<String>(recurringRuleId);
+    map['scheduled_date'] = Variable<DateTime>(scheduledDate);
+    if (!nullToAbsent || transactionId != null) {
+      map['transaction_id'] = Variable<String>(transactionId);
+    }
+    map['status'] = Variable<String>(status);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  RecurringOccurrenceTableCompanion toCompanion(bool nullToAbsent) {
+    return RecurringOccurrenceTableCompanion(
+      id: Value(id),
+      recurringRuleId: Value(recurringRuleId),
+      scheduledDate: Value(scheduledDate),
+      transactionId: transactionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transactionId),
+      status: Value(status),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory RecurringOccurrenceTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecurringOccurrenceTableData(
+      id: serializer.fromJson<String>(json['id']),
+      recurringRuleId: serializer.fromJson<String>(json['recurringRuleId']),
+      scheduledDate: serializer.fromJson<DateTime>(json['scheduledDate']),
+      transactionId: serializer.fromJson<String?>(json['transactionId']),
+      status: serializer.fromJson<String>(json['status']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'recurringRuleId': serializer.toJson<String>(recurringRuleId),
+      'scheduledDate': serializer.toJson<DateTime>(scheduledDate),
+      'transactionId': serializer.toJson<String?>(transactionId),
+      'status': serializer.toJson<String>(status),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  RecurringOccurrenceTableData copyWith({
+    String? id,
+    String? recurringRuleId,
+    DateTime? scheduledDate,
+    Value<String?> transactionId = const Value.absent(),
+    String? status,
+    DateTime? createdAt,
+  }) => RecurringOccurrenceTableData(
+    id: id ?? this.id,
+    recurringRuleId: recurringRuleId ?? this.recurringRuleId,
+    scheduledDate: scheduledDate ?? this.scheduledDate,
+    transactionId: transactionId.present
+        ? transactionId.value
+        : this.transactionId,
+    status: status ?? this.status,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  RecurringOccurrenceTableData copyWithCompanion(
+    RecurringOccurrenceTableCompanion data,
+  ) {
+    return RecurringOccurrenceTableData(
+      id: data.id.present ? data.id.value : this.id,
+      recurringRuleId: data.recurringRuleId.present
+          ? data.recurringRuleId.value
+          : this.recurringRuleId,
+      scheduledDate: data.scheduledDate.present
+          ? data.scheduledDate.value
+          : this.scheduledDate,
+      transactionId: data.transactionId.present
+          ? data.transactionId.value
+          : this.transactionId,
+      status: data.status.present ? data.status.value : this.status,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringOccurrenceTableData(')
+          ..write('id: $id, ')
+          ..write('recurringRuleId: $recurringRuleId, ')
+          ..write('scheduledDate: $scheduledDate, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    recurringRuleId,
+    scheduledDate,
+    transactionId,
+    status,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecurringOccurrenceTableData &&
+          other.id == this.id &&
+          other.recurringRuleId == this.recurringRuleId &&
+          other.scheduledDate == this.scheduledDate &&
+          other.transactionId == this.transactionId &&
+          other.status == this.status &&
+          other.createdAt == this.createdAt);
+}
+
+class RecurringOccurrenceTableCompanion
+    extends UpdateCompanion<RecurringOccurrenceTableData> {
+  final Value<String> id;
+  final Value<String> recurringRuleId;
+  final Value<DateTime> scheduledDate;
+  final Value<String?> transactionId;
+  final Value<String> status;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const RecurringOccurrenceTableCompanion({
+    this.id = const Value.absent(),
+    this.recurringRuleId = const Value.absent(),
+    this.scheduledDate = const Value.absent(),
+    this.transactionId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecurringOccurrenceTableCompanion.insert({
+    required String id,
+    required String recurringRuleId,
+    required DateTime scheduledDate,
+    this.transactionId = const Value.absent(),
+    required String status,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       recurringRuleId = Value(recurringRuleId),
+       scheduledDate = Value(scheduledDate),
+       status = Value(status),
+       createdAt = Value(createdAt);
+  static Insertable<RecurringOccurrenceTableData> custom({
+    Expression<String>? id,
+    Expression<String>? recurringRuleId,
+    Expression<DateTime>? scheduledDate,
+    Expression<String>? transactionId,
+    Expression<String>? status,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (recurringRuleId != null) 'recurring_rule_id': recurringRuleId,
+      if (scheduledDate != null) 'scheduled_date': scheduledDate,
+      if (transactionId != null) 'transaction_id': transactionId,
+      if (status != null) 'status': status,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecurringOccurrenceTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? recurringRuleId,
+    Value<DateTime>? scheduledDate,
+    Value<String?>? transactionId,
+    Value<String>? status,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return RecurringOccurrenceTableCompanion(
+      id: id ?? this.id,
+      recurringRuleId: recurringRuleId ?? this.recurringRuleId,
+      scheduledDate: scheduledDate ?? this.scheduledDate,
+      transactionId: transactionId ?? this.transactionId,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (recurringRuleId.present) {
+      map['recurring_rule_id'] = Variable<String>(recurringRuleId.value);
+    }
+    if (scheduledDate.present) {
+      map['scheduled_date'] = Variable<DateTime>(scheduledDate.value);
+    }
+    if (transactionId.present) {
+      map['transaction_id'] = Variable<String>(transactionId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringOccurrenceTableCompanion(')
+          ..write('id: $id, ')
+          ..write('recurringRuleId: $recurringRuleId, ')
+          ..write('scheduledDate: $scheduledDate, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3149,6 +3918,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BudgetTableTable budgetTable = $BudgetTableTable(this);
   late final $RecurringRuleTableTable recurringRuleTable =
       $RecurringRuleTableTable(this);
+  late final $RecurringOccurrenceTableTable recurringOccurrenceTable =
+      $RecurringOccurrenceTableTable(this);
   late final $BudgetNotificationStatesTable budgetNotificationStates =
       $BudgetNotificationStatesTable(this);
   @override
@@ -3161,8 +3932,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     monthlyLimitTable,
     budgetTable,
     recurringRuleTable,
+    recurringOccurrenceTable,
     budgetNotificationStates,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'recurring_rule_table',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('recurring_occurrence_table', kind: UpdateKind.delete),
+      ],
+    ),
+  ]);
 }
 
 typedef $$TransactionTableTableCreateCompanionBuilder =
@@ -4278,8 +5062,14 @@ typedef $$RecurringRuleTableTableCreateCompanionBuilder =
       required String frequency,
       required DateTime startDate,
       required DateTime nextOccurrenceDate,
+      Value<int> anchorDay,
+      Value<String?> note,
       Value<DateTime?> endDate,
       Value<bool> isActive,
+      Value<bool> autoCreateTransaction,
+      Value<DateTime?> lastGeneratedAt,
+      Value<int?> reminderDays,
+      Value<int?> notificationId,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -4294,12 +5084,60 @@ typedef $$RecurringRuleTableTableUpdateCompanionBuilder =
       Value<String> frequency,
       Value<DateTime> startDate,
       Value<DateTime> nextOccurrenceDate,
+      Value<int> anchorDay,
+      Value<String?> note,
       Value<DateTime?> endDate,
       Value<bool> isActive,
+      Value<bool> autoCreateTransaction,
+      Value<DateTime?> lastGeneratedAt,
+      Value<int?> reminderDays,
+      Value<int?> notificationId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
     });
+
+final class $$RecurringRuleTableTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $RecurringRuleTableTable,
+          RecurringRuleTableData
+        > {
+  $$RecurringRuleTableTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $RecurringOccurrenceTableTable,
+    List<RecurringOccurrenceTableData>
+  >
+  _recurringOccurrenceTableRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.recurringOccurrenceTable,
+        aliasName: 'recurring_rule_table__id__recurring_occurrence_table__recurring_rule_id',
+      );
+
+  $$RecurringOccurrenceTableTableProcessedTableManager
+  get recurringOccurrenceTableRefs {
+    final manager =
+        $$RecurringOccurrenceTableTableTableManager(
+          $_db,
+          $_db.recurringOccurrenceTable,
+        ).filter(
+          (f) => f.recurringRuleId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _recurringOccurrenceTableRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$RecurringRuleTableTableFilterComposer
     extends Composer<_$AppDatabase, $RecurringRuleTableTable> {
@@ -4350,6 +5188,16 @@ class $$RecurringRuleTableTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get anchorDay => $composableBuilder(
+    column: $table.anchorDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get endDate => $composableBuilder(
     column: $table.endDate,
     builder: (column) => ColumnFilters(column),
@@ -4357,6 +5205,26 @@ class $$RecurringRuleTableTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoCreateTransaction => $composableBuilder(
+    column: $table.autoCreateTransaction,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastGeneratedAt => $composableBuilder(
+    column: $table.lastGeneratedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reminderDays => $composableBuilder(
+    column: $table.reminderDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get notificationId => $composableBuilder(
+    column: $table.notificationId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4369,6 +5237,33 @@ class $$RecurringRuleTableTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> recurringOccurrenceTableRefs(
+    Expression<bool> Function($$RecurringOccurrenceTableTableFilterComposer f)
+    f,
+  ) {
+    final $$RecurringOccurrenceTableTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.recurringOccurrenceTable,
+          getReferencedColumn: (t) => t.recurringRuleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecurringOccurrenceTableTableFilterComposer(
+                $db: $db,
+                $table: $db.recurringOccurrenceTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$RecurringRuleTableTableOrderingComposer
@@ -4420,6 +5315,16 @@ class $$RecurringRuleTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get anchorDay => $composableBuilder(
+    column: $table.anchorDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get endDate => $composableBuilder(
     column: $table.endDate,
     builder: (column) => ColumnOrderings(column),
@@ -4427,6 +5332,26 @@ class $$RecurringRuleTableTableOrderingComposer
 
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoCreateTransaction => $composableBuilder(
+    column: $table.autoCreateTransaction,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastGeneratedAt => $composableBuilder(
+    column: $table.lastGeneratedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reminderDays => $composableBuilder(
+    column: $table.reminderDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get notificationId => $composableBuilder(
+    column: $table.notificationId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4480,17 +5405,70 @@ class $$RecurringRuleTableTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get anchorDay =>
+      $composableBuilder(column: $table.anchorDay, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
   GeneratedColumn<DateTime> get endDate =>
       $composableBuilder(column: $table.endDate, builder: (column) => column);
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
 
+  GeneratedColumn<bool> get autoCreateTransaction => $composableBuilder(
+    column: $table.autoCreateTransaction,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastGeneratedAt => $composableBuilder(
+    column: $table.lastGeneratedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get reminderDays => $composableBuilder(
+    column: $table.reminderDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get notificationId => $composableBuilder(
+    column: $table.notificationId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> recurringOccurrenceTableRefs<T extends Object>(
+    Expression<T> Function($$RecurringOccurrenceTableTableAnnotationComposer a)
+    f,
+  ) {
+    final $$RecurringOccurrenceTableTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.recurringOccurrenceTable,
+          getReferencedColumn: (t) => t.recurringRuleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecurringOccurrenceTableTableAnnotationComposer(
+                $db: $db,
+                $table: $db.recurringOccurrenceTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$RecurringRuleTableTableTableManager
@@ -4504,16 +5482,9 @@ class $$RecurringRuleTableTableTableManager
           $$RecurringRuleTableTableAnnotationComposer,
           $$RecurringRuleTableTableCreateCompanionBuilder,
           $$RecurringRuleTableTableUpdateCompanionBuilder,
-          (
-            RecurringRuleTableData,
-            BaseReferences<
-              _$AppDatabase,
-              $RecurringRuleTableTable,
-              RecurringRuleTableData
-            >,
-          ),
+          (RecurringRuleTableData, $$RecurringRuleTableTableReferences),
           RecurringRuleTableData,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool recurringOccurrenceTableRefs})
         > {
   $$RecurringRuleTableTableTableManager(
     _$AppDatabase db,
@@ -4541,8 +5512,14 @@ class $$RecurringRuleTableTableTableManager
                 Value<String> frequency = const Value.absent(),
                 Value<DateTime> startDate = const Value.absent(),
                 Value<DateTime> nextOccurrenceDate = const Value.absent(),
+                Value<int> anchorDay = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> autoCreateTransaction = const Value.absent(),
+                Value<DateTime?> lastGeneratedAt = const Value.absent(),
+                Value<int?> reminderDays = const Value.absent(),
+                Value<int?> notificationId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -4555,8 +5532,14 @@ class $$RecurringRuleTableTableTableManager
                 frequency: frequency,
                 startDate: startDate,
                 nextOccurrenceDate: nextOccurrenceDate,
+                anchorDay: anchorDay,
+                note: note,
                 endDate: endDate,
                 isActive: isActive,
+                autoCreateTransaction: autoCreateTransaction,
+                lastGeneratedAt: lastGeneratedAt,
+                reminderDays: reminderDays,
+                notificationId: notificationId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -4571,8 +5554,14 @@ class $$RecurringRuleTableTableTableManager
                 required String frequency,
                 required DateTime startDate,
                 required DateTime nextOccurrenceDate,
+                Value<int> anchorDay = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> autoCreateTransaction = const Value.absent(),
+                Value<DateTime?> lastGeneratedAt = const Value.absent(),
+                Value<int?> reminderDays = const Value.absent(),
+                Value<int?> notificationId = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -4585,8 +5574,14 @@ class $$RecurringRuleTableTableTableManager
                 frequency: frequency,
                 startDate: startDate,
                 nextOccurrenceDate: nextOccurrenceDate,
+                anchorDay: anchorDay,
+                note: note,
                 endDate: endDate,
                 isActive: isActive,
+                autoCreateTransaction: autoCreateTransaction,
+                lastGeneratedAt: lastGeneratedAt,
+                reminderDays: reminderDays,
+                notificationId: notificationId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -4597,15 +5592,44 @@ class $$RecurringRuleTableTableTableManager
                   e.readTable<$RecurringRuleTableTable, RecurringRuleTableData>(
                     table,
                   ),
-                  BaseReferences<
-                    _$AppDatabase,
-                    $RecurringRuleTableTable,
-                    RecurringRuleTableData
-                  >(db, table, e),
+                  $$RecurringRuleTableTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({recurringOccurrenceTableRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (recurringOccurrenceTableRefs) db.recurringOccurrenceTable,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (recurringOccurrenceTableRefs)
+                    await $_getPrefetchedData<
+                      RecurringRuleTableData,
+                      $RecurringRuleTableTable,
+                      RecurringOccurrenceTableData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$RecurringRuleTableTableReferences
+                          ._recurringOccurrenceTableRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$RecurringRuleTableTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).recurringOccurrenceTableRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.recurringRuleId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -4620,16 +5644,379 @@ typedef $$RecurringRuleTableTableProcessedTableManager =
       $$RecurringRuleTableTableAnnotationComposer,
       $$RecurringRuleTableTableCreateCompanionBuilder,
       $$RecurringRuleTableTableUpdateCompanionBuilder,
-      (
-        RecurringRuleTableData,
+      (RecurringRuleTableData, $$RecurringRuleTableTableReferences),
+      RecurringRuleTableData,
+      PrefetchHooks Function({bool recurringOccurrenceTableRefs})
+    >;
+typedef $$RecurringOccurrenceTableTableCreateCompanionBuilder =
+    RecurringOccurrenceTableCompanion Function({
+      required String id,
+      required String recurringRuleId,
+      required DateTime scheduledDate,
+      Value<String?> transactionId,
+      required String status,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$RecurringOccurrenceTableTableUpdateCompanionBuilder =
+    RecurringOccurrenceTableCompanion Function({
+      Value<String> id,
+      Value<String> recurringRuleId,
+      Value<DateTime> scheduledDate,
+      Value<String?> transactionId,
+      Value<String> status,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$RecurringOccurrenceTableTableReferences
+    extends
         BaseReferences<
           _$AppDatabase,
-          $RecurringRuleTableTable,
-          RecurringRuleTableData
-        >,
-      ),
-      RecurringRuleTableData,
-      PrefetchHooks Function()
+          $RecurringOccurrenceTableTable,
+          RecurringOccurrenceTableData
+        > {
+  $$RecurringOccurrenceTableTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $RecurringRuleTableTable _recurringRuleIdTable(
+    _$AppDatabase db,
+  ) => db.recurringRuleTable.createAlias(
+    'recurring_occurrence_table__recurring_rule_id__recurring_rule_table__id',
+  );
+
+  $$RecurringRuleTableTableProcessedTableManager get recurringRuleId {
+    final $_column = $_itemColumn<String>('recurring_rule_id')!;
+
+    final manager = $$RecurringRuleTableTableTableManager(
+      $_db,
+      $_db.recurringRuleTable,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_recurringRuleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$RecurringOccurrenceTableTableFilterComposer
+    extends Composer<_$AppDatabase, $RecurringOccurrenceTableTable> {
+  $$RecurringOccurrenceTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get scheduledDate => $composableBuilder(
+    column: $table.scheduledDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get transactionId => $composableBuilder(
+    column: $table.transactionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$RecurringRuleTableTableFilterComposer get recurringRuleId {
+    final $$RecurringRuleTableTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.recurringRuleId,
+      referencedTable: $db.recurringRuleTable,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RecurringRuleTableTableFilterComposer(
+            $db: $db,
+            $table: $db.recurringRuleTable,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecurringOccurrenceTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecurringOccurrenceTableTable> {
+  $$RecurringOccurrenceTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get scheduledDate => $composableBuilder(
+    column: $table.scheduledDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get transactionId => $composableBuilder(
+    column: $table.transactionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$RecurringRuleTableTableOrderingComposer get recurringRuleId {
+    final $$RecurringRuleTableTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.recurringRuleId,
+      referencedTable: $db.recurringRuleTable,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RecurringRuleTableTableOrderingComposer(
+            $db: $db,
+            $table: $db.recurringRuleTable,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecurringOccurrenceTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecurringOccurrenceTableTable> {
+  $$RecurringOccurrenceTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get scheduledDate => $composableBuilder(
+    column: $table.scheduledDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get transactionId => $composableBuilder(
+    column: $table.transactionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$RecurringRuleTableTableAnnotationComposer get recurringRuleId {
+    final $$RecurringRuleTableTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.recurringRuleId,
+          referencedTable: $db.recurringRuleTable,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecurringRuleTableTableAnnotationComposer(
+                $db: $db,
+                $table: $db.recurringRuleTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$RecurringOccurrenceTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecurringOccurrenceTableTable,
+          RecurringOccurrenceTableData,
+          $$RecurringOccurrenceTableTableFilterComposer,
+          $$RecurringOccurrenceTableTableOrderingComposer,
+          $$RecurringOccurrenceTableTableAnnotationComposer,
+          $$RecurringOccurrenceTableTableCreateCompanionBuilder,
+          $$RecurringOccurrenceTableTableUpdateCompanionBuilder,
+          (
+            RecurringOccurrenceTableData,
+            $$RecurringOccurrenceTableTableReferences,
+          ),
+          RecurringOccurrenceTableData,
+          PrefetchHooks Function({bool recurringRuleId})
+        > {
+  $$RecurringOccurrenceTableTableTableManager(
+    _$AppDatabase db,
+    $RecurringOccurrenceTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecurringOccurrenceTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RecurringOccurrenceTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RecurringOccurrenceTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> recurringRuleId = const Value.absent(),
+                Value<DateTime> scheduledDate = const Value.absent(),
+                Value<String?> transactionId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecurringOccurrenceTableCompanion(
+                id: id,
+                recurringRuleId: recurringRuleId,
+                scheduledDate: scheduledDate,
+                transactionId: transactionId,
+                status: status,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String recurringRuleId,
+                required DateTime scheduledDate,
+                Value<String?> transactionId = const Value.absent(),
+                required String status,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => RecurringOccurrenceTableCompanion.insert(
+                id: id,
+                recurringRuleId: recurringRuleId,
+                scheduledDate: scheduledDate,
+                transactionId: transactionId,
+                status: status,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $RecurringOccurrenceTableTable,
+                    RecurringOccurrenceTableData
+                  >(table),
+                  $$RecurringOccurrenceTableTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({recurringRuleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (recurringRuleId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.recurringRuleId,
+                        referencedTable:
+                            $$RecurringOccurrenceTableTableReferences
+                                ._recurringRuleIdTable(db),
+                        referencedColumn:
+                            $$RecurringOccurrenceTableTableReferences
+                                ._recurringRuleIdTable(db)
+                                .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RecurringOccurrenceTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecurringOccurrenceTableTable,
+      RecurringOccurrenceTableData,
+      $$RecurringOccurrenceTableTableFilterComposer,
+      $$RecurringOccurrenceTableTableOrderingComposer,
+      $$RecurringOccurrenceTableTableAnnotationComposer,
+      $$RecurringOccurrenceTableTableCreateCompanionBuilder,
+      $$RecurringOccurrenceTableTableUpdateCompanionBuilder,
+      (RecurringOccurrenceTableData, $$RecurringOccurrenceTableTableReferences),
+      RecurringOccurrenceTableData,
+      PrefetchHooks Function({bool recurringRuleId})
     >;
 typedef $$BudgetNotificationStatesTableCreateCompanionBuilder =
     BudgetNotificationStatesCompanion Function({
@@ -4880,6 +6267,11 @@ class $AppDatabaseManager {
       $$BudgetTableTableTableManager(_db, _db.budgetTable);
   $$RecurringRuleTableTableTableManager get recurringRuleTable =>
       $$RecurringRuleTableTableTableManager(_db, _db.recurringRuleTable);
+  $$RecurringOccurrenceTableTableTableManager get recurringOccurrenceTable =>
+      $$RecurringOccurrenceTableTableTableManager(
+        _db,
+        _db.recurringOccurrenceTable,
+      );
   $$BudgetNotificationStatesTableTableManager get budgetNotificationStates =>
       $$BudgetNotificationStatesTableTableManager(
         _db,

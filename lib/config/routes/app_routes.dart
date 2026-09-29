@@ -15,6 +15,9 @@ class AppRoutes {
   static const String categories = '/categories';
   static const String settings = '/settings';
   static const String recurringExpenses = '/recurring-expenses';
+  static const String recurringExpenseCreate = '/recurring-expenses/new';
+  static const String recurringExpenseEdit = '/recurring-expenses/:id/edit';
+  static const String recurringExpenseDetails = '/recurring-expenses/:id';
   static const String previousExpanse = '/previous-expenses';
   static const String trendAnalysis = '/trend-analysis';
 
@@ -27,6 +30,9 @@ class AppRoutes {
   static const String monthlyHistoryName = 'monthlyHistory';
   static const String categoriesName = 'categories';
   static const String recurringExpensesName = 'recurringExpenses';
+  static const String recurringExpenseCreateName = 'recurringExpenseCreate';
+  static const String recurringExpenseEditName = 'recurringExpenseEdit';
+  static const String recurringExpenseDetailsName = 'recurringExpenseDetails';
   static const String previousExpanseName = 'previousExpanse';
   static const String transactionDetails = '/transaction/:id';
   static const String transactionDetailsName = 'transactionDetails';

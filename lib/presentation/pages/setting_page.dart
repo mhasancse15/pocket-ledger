@@ -403,6 +403,15 @@ Future<void> _clearLocalDatabase(BuildContext context, WidgetRef ref) async {
   if (confirmed != true || !context.mounted) return;
 
   try {
+    final recurringRules = await ref
+        .read(recurringRepositoryProvider)
+        .getAllRules();
+    for (final rule in recurringRules) {
+      await LocalNotificationService.instance.cancelRecurringReminder(
+        rule.id,
+        notificationId: rule.notificationId,
+      );
+    }
     await ref.read(databaseProvider).clearAllData();
 
     ref.invalidate(allTransactionsProvider);
@@ -412,6 +421,8 @@ Future<void> _clearLocalDatabase(BuildContext context, WidgetRef ref) async {
     ref.invalidate(categoriesByTypeProvider);
     ref.invalidate(allRecurringRulesProvider);
     ref.invalidate(activeRecurringRulesProvider);
+    ref.invalidate(watchAllRecurringRulesProvider);
+    ref.invalidate(recurringMonthlyTotalProvider);
     ref.invalidate(allLimitsProvider);
     ref.invalidate(monthlyLimitProvider);
     ref.invalidate(budgetsProvider);

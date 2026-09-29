@@ -11,6 +11,9 @@ import '../../presentation/pages/export_data_page.dart';
 import '../../presentation/pages/monthly_history_page.dart';
 import '../../presentation/pages/previous_month_summary_page.dart';
 import '../../presentation/pages/report_page.dart';
+import '../../presentation/pages/recurring_expense_details_page.dart';
+import '../../presentation/pages/recurring_expense_editor_page.dart';
+import '../../presentation/pages/recurring_expenses_page.dart';
 import '../../presentation/pages/setting_page.dart';
 import '../../presentation/pages/transactions_page.dart';
 import '../../presentation/pages/transaction_details_page.dart';
@@ -106,6 +109,24 @@ class AppRouter {
         builder: (context, state) => const RecurringExpensesPage(),
       ),
       GoRoute(
+        path: AppRoutes.recurringExpenseCreate,
+        name: AppRoutes.recurringExpenseCreateName,
+        builder: (context, state) => const RecurringExpenseEditorPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.recurringExpenseEdit,
+        name: AppRoutes.recurringExpenseEditName,
+        builder: (context, state) =>
+            RecurringExpenseEditorPage(ruleId: state.pathParameters['id']),
+      ),
+      GoRoute(
+        path: AppRoutes.recurringExpenseDetails,
+        name: AppRoutes.recurringExpenseDetailsName,
+        builder: (context, state) => RecurringExpenseDetailsPage(
+          ruleId: state.pathParameters['id'] ?? '',
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.previousExpanse,
         name: AppRoutes.previousExpanseName,
         builder: (context, state) => const PreviousMonthSummaryPage(),
@@ -137,6 +158,12 @@ class AppRouter {
     } else if (payload.startsWith('target:') &&
         payload.substring('target:'.length).isNotEmpty) {
       router.goNamed(AppRoutes.dashboardName);
+    } else if (payload.startsWith('recurring:') &&
+        payload.substring('recurring:'.length).isNotEmpty) {
+      router.goNamed(
+        AppRoutes.recurringExpenseDetailsName,
+        pathParameters: {'id': payload.substring('recurring:'.length)},
+      );
     }
   }
 }

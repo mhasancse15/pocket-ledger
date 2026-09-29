@@ -50,8 +50,11 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 
 ### Recurring expenses
 
-- View saved recurring-expense rules, including their amount, frequency, and next occurrence.
-- **Note:** The recurring-rule data and list are present, but creating recurring rules from the app is not implemented yet.
+- Create and edit daily, weekly, monthly, quarterly, and yearly expense rules with an optional end date.
+- Pause, resume, delete, review occurrence history, or generate the next expense early.
+- Automatically process missed occurrences on app startup and resume, while a unique rule/date constraint prevents duplicates.
+- Choose automatic transaction creation or reminder-only behavior, with optional reminders on the due date or 1, 3, or 7 days before.
+- Generated expenses are regular transactions, so they appear in transaction history, budgets, reports, and exports.
 
 ### Settings and data
 
@@ -72,7 +75,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 | Expense summary | Compare months and review the yearly expense chart |
 | Budget management | Create and review monthly, category, and payment-method budgets |
 | Categories | Create, edit, search, and archive transaction categories |
-| Recurring expenses | View stored recurring rules |
+| Recurring expenses | Manage recurring rules, reminders, generated expenses, and occurrence history |
 | Export data | Filter and share transaction exports in CSV or PDF |
 | Settings | Theme, dashboard customization, notification preferences, data management, and links to management screens |
 

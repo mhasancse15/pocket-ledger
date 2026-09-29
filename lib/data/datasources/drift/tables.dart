@@ -45,8 +45,8 @@ class MonthlyLimitTable extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {year, month}
-      ];
+    {year, month},
+  ];
 }
 
 class BudgetTable extends Table {
@@ -65,8 +65,8 @@ class BudgetTable extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {year, month, scope, scopeKey}
-      ];
+    {year, month, scope, scopeKey},
+  ];
 }
 
 /// Drift table definition for Recurring Rules
@@ -76,16 +76,42 @@ class RecurringRuleTable extends Table {
   RealColumn get amount => real()();
   TextColumn get categoryId => text()();
   TextColumn get paymentMethod => text()();
-  TextColumn get frequency => text()(); // 'weekly', 'monthly', 'quarterly', 'yearly'
+  TextColumn get frequency =>
+      text()(); // 'weekly', 'monthly', 'quarterly', 'yearly'
   DateTimeColumn get startDate => dateTime()();
   DateTimeColumn get nextOccurrenceDate => dateTime()();
+  IntColumn get anchorDay => integer().withDefault(const Constant(1))();
+  TextColumn get note => text().nullable()();
   DateTimeColumn get endDate => dateTime().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get autoCreateTransaction =>
+      boolean().withDefault(const Constant(true))();
+  DateTimeColumn get lastGeneratedAt => dateTime().nullable()();
+  IntColumn get reminderDays => integer().nullable()();
+  IntColumn get notificationId => integer().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+class RecurringOccurrenceTable extends Table {
+  TextColumn get id => text()();
+  TextColumn get recurringRuleId =>
+      text().references(RecurringRuleTable, #id, onDelete: KeyAction.cascade)();
+  DateTimeColumn get scheduledDate => dateTime()();
+  TextColumn get transactionId => text().nullable()();
+  TextColumn get status => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {recurringRuleId, scheduledDate},
+  ];
 }
 
 class BudgetNotificationStates extends Table {

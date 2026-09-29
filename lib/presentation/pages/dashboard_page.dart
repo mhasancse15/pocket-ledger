@@ -183,18 +183,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             final expenseTransactions = transactions
                 .where((item) => item.type == TransactionType.expense)
                 .toList();
-            final upcomingRules =
-                recurringRules
-                    .where(
-                      (rule) => rule.nextOccurrenceDate.isAfter(
-                        DateTime.now().subtract(const Duration(days: 1)),
-                      ),
-                    )
-                    .toList()
-                  ..sort(
-                    (a, b) =>
-                        a.nextOccurrenceDate.compareTo(b.nextOccurrenceDate),
-                  );
+            final upcomingRules = recurringRules.toList()
+              ..sort(
+                (a, b) => a.nextOccurrenceDate.compareTo(b.nextOccurrenceDate),
+              );
 
             return RefreshIndicator(
               color: primary,
@@ -279,7 +271,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     preferences,
                     DashboardSection.upcomingBills,
                   )) ...[
-                    _upcomingBillsSection(upcomingRules.take(3).toList()),
+                    _upcomingBillsSection(
+                      upcomingRules.take(3).toList(),
+                      categoryNames,
+                    ),
                     const SizedBox(height: 22),
                   ],
                   if (_isSectionVisible(
@@ -808,7 +803,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _upcomingBillsSection(List<RecurringRule> rules) {
+  Widget _upcomingBillsSection(
+    List<RecurringRule> rules,
+    Map<String, String> categoryNames,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -853,9 +851,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                   ),
                                 ),
                                 Text(
-                                  DateFormat('d MMM').format(
-                                    rules[index].nextOccurrenceDate.toLocal(),
-                                  ),
+                                  '${categoryNames[rules[index].categoryId] ?? rules[index].categoryId}'
+                                  ' • ${DateFormat('d MMM').format(rules[index].nextOccurrenceDate.toLocal())}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: mutedColor,
                                     fontSize: 12,
