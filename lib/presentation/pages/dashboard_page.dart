@@ -7,6 +7,7 @@ import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/monthly_limit.dart';
+import '../../domain/entities/monthly_saving.dart';
 import '../../domain/entities/recurring_rule.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/usecases/budget_calculations.dart';
@@ -14,6 +15,7 @@ import '../providers/budget_notification_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/limit_provider.dart';
+import '../providers/monthly_saving_provider.dart';
 import '../providers/preferences_provider.dart';
 import '../providers/recurring_provider.dart';
 import '../providers/transaction_provider.dart';
@@ -26,7 +28,8 @@ class DashboardPage extends ConsumerStatefulWidget {
   ConsumerState<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends ConsumerState<DashboardPage> {
+class _DashboardPageState extends ConsumerState<DashboardPage>
+    with WidgetsBindingObserver {
   Color get primary => Theme.of(context).colorScheme.primary;
   Color get pageBackground => Theme.of(context).scaffoldBackgroundColor;
   Color get textColor => Theme.of(context).colorScheme.onSurface;
@@ -35,12 +38,93 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Color get borderColor => Theme.of(context).colorScheme.outlineVariant;
 
   late DateTime selectedMonth;
+  (int, int)? _lastFinalizedPreviousMonth;
+  bool _isFinalizingPreviousMonth = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final now = DateTime.now();
     selectedMonth = DateTime(now.year, now.month);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _finalizePreviousMonthSurplus();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _finalizePreviousMonthSurplus();
+    }
+  }
+
+  Future<void> _showMonthlySavingsHistory() async {
+    final entries = await ref.read(allMonthlySavingEntriesProvider.future);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _MonthlySavingsHistorySheet(entries: entries),
+    );
+  }
+
+  Future<void> _finalizePreviousMonthSurplus() async {
+    final now = DateTime.now();
+    final previousMonth = DateTime(now.year, now.month - 1);
+    final previousKey = (previousMonth.year, previousMonth.month);
+    if (_isFinalizingPreviousMonth ||
+        _lastFinalizedPreviousMonth == previousKey) {
+      return;
+    }
+    _isFinalizingPreviousMonth = true;
+    try {
+      ref.invalidate(monthlyTransactionsProvider(previousKey));
+      ref.invalidate(monthlySavingEntriesProvider(previousKey));
+      final transactions = await ref.read(
+        monthlyTransactionsProvider(previousKey).future,
+      );
+      final entries = await ref.read(
+        monthlySavingEntriesProvider(previousKey).future,
+      );
+      final summary = calculateMonthlySavingSummary(
+        year: previousMonth.year,
+        month: previousMonth.month,
+        transactions: transactions,
+        entries: entries,
+      );
+      final finalized = await ref
+          .read(monthlySavingStoreProvider)
+          .carryForwardMonth(
+            summary: summary,
+            incomeDate: DateTime(now.year, now.month),
+          );
+      _lastFinalizedPreviousMonth = previousKey;
+      final amountCarried = summary.surplus > summary.saved
+          ? summary.surplus
+          : summary.saved;
+      if (finalized && amountCarried > 0 && mounted) {
+        _showMessage(
+          '${AppUtils.formatCurrency(amountCarried)} from last month was added to this month’s income.',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        _showMessage(
+          'Unable to add last month’s savings to this month’s income: $error',
+        );
+      }
+    } finally {
+      _isFinalizingPreviousMonth = false;
+    }
   }
 
   (int, int) get monthKey => (selectedMonth.year, selectedMonth.month);
@@ -119,10 +203,68 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+  Widget _monthlySavingsSection({
+    required List<Transaction> transactions,
+    required List<MonthlySavingEntry> entries,
+  }) {
+    final summary = calculateMonthlySavingSummary(
+      year: selectedMonth.year,
+      month: selectedMonth.month,
+      transactions: transactions,
+      entries: entries,
+    );
+    final isPastMonth = DateTime(
+      selectedMonth.year,
+      selectedMonth.month,
+    ).isBefore(DateTime(DateTime.now().year, DateTime.now().month));
+
+    return _MonthlySavingsCard(
+      summary: summary,
+      entries: entries,
+      isPastMonth: isPastMonth,
+      onViewAll: _showMonthlySavingsHistory,
+      onDelete: _deleteMonthlySaving,
+    );
+  }
+
+  Future<void> _deleteMonthlySaving(MonthlySavingEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove savings allocation?'),
+        content: Text(
+          '${AppUtils.formatCurrency(entry.amount)} will be returned to this month’s available surplus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(monthlySavingStoreProvider).delete(entry);
+      if (!mounted) return;
+      _showMessage('Savings allocation removed');
+    } catch (error) {
+      _showMessage('Unable to remove savings allocation: $error');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final transactionsAsync = ref.watch(monthlyTransactionsProvider(monthKey));
     final limitAsync = ref.watch(monthlyLimitProvider(monthKey));
+    final monthlySavingsAsync = ref.watch(
+      monthlySavingEntriesProvider(monthKey),
+    );
     final budgets = ref.watch(budgetsProvider).valueOrNull ?? const <Budget>[];
     final recurringRules =
         ref.watch(activeRecurringRulesProvider).valueOrNull ?? const [];
@@ -193,6 +335,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               onRefresh: () async {
                 ref.invalidate(monthlyTransactionsProvider(monthKey));
                 ref.invalidate(monthlyLimitProvider(monthKey));
+                ref.invalidate(monthlySavingEntriesProvider(monthKey));
                 ref.invalidate(allCategoriesProvider);
                 ref.invalidate(budgetsProvider);
                 ref.invalidate(activeRecurringRulesProvider);
@@ -220,6 +363,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     DashboardSection.monthlyTarget,
                   )) ...[
                     _budgetSection(expense: expense, target: target),
+                    const SizedBox(height: 22),
+                  ],
+                  if (_isSectionVisible(
+                    preferences,
+                    DashboardSection.monthlySavings,
+                  )) ...[
+                    _monthlySavingsSection(
+                      transactions: transactions,
+                      entries: monthlySavingsAsync.valueOrNull ?? const [],
+                    ),
                     const SizedBox(height: 22),
                   ],
                   if (_isSectionVisible(
@@ -1348,6 +1501,334 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthlySavingsCard extends StatelessWidget {
+  const _MonthlySavingsCard({
+    required this.summary,
+    required this.entries,
+    required this.isPastMonth,
+    required this.onViewAll,
+    required this.onDelete,
+  });
+
+  final MonthlySavingSummary summary;
+  final List<MonthlySavingEntry> entries;
+  final bool isPastMonth;
+  final VoidCallback onViewAll;
+  final ValueChanged<MonthlySavingEntry> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surplus = summary.surplus;
+    final available = summary.availableToSave;
+    final progress = surplus <= 0
+        ? 0.0
+        : (summary.saved / surplus).clamp(0.0, 1.0);
+    final label = isPastMonth
+        ? 'Final monthly surplus'
+        : 'Estimated available to save';
+
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.savings_outlined, color: theme.colorScheme.primary),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'Monthly savings',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onViewAll,
+                  child: const Text('All months'),
+                ),
+                if (summary.income > 0)
+                  Text(
+                    '${summary.savingRate.round()}% of income saved',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (summary.income <= 0 && summary.expenses <= 0)
+              Text(
+                'Add income this month to calculate your available surplus.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            else ...[
+              if (summary.hasDeficit)
+                _MonthlySavingMetric(
+                  label: 'Expenses exceeded income',
+                  value: AppUtils.formatCurrency(surplus.abs()),
+                  color: Colors.orange.shade800,
+                )
+              else
+                _MonthlySavingMetric(
+                  label: label,
+                  value: AppUtils.formatCurrency(available),
+                ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MonthlySavingMetric(
+                      label: 'Income',
+                      value: AppUtils.formatCurrency(summary.income),
+                    ),
+                  ),
+                  Expanded(
+                    child: _MonthlySavingMetric(
+                      label: 'Expenses',
+                      value: AppUtils.formatCurrency(summary.expenses),
+                    ),
+                  ),
+                ],
+              ),
+              if (!summary.hasDeficit) ...[
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MonthlySavingMetric(
+                        label: 'Saved',
+                        value: AppUtils.formatCurrency(summary.saved),
+                      ),
+                    ),
+                    Expanded(
+                      child: _MonthlySavingMetric(
+                        label: summary.isOverAllocated
+                            ? 'Over surplus'
+                            : 'Still available',
+                        value: AppUtils.formatCurrency(
+                          summary.isOverAllocated
+                              ? summary.unallocatedSurplus.abs()
+                              : available,
+                        ),
+                        color: summary.isOverAllocated ? Colors.orange : null,
+                      ),
+                    ),
+                  ],
+                ),
+                if (surplus > 0) ...[
+                  const SizedBox(height: 14),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 7,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                    ),
+                  ),
+                ],
+                if (summary.isOverAllocated) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Your savings are higher than this month’s current surplus. Existing allocations were kept unchanged.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.orange.shade800,
+                    ),
+                  ),
+                ],
+              ],
+            ],
+            if (!isPastMonth && !summary.hasDeficit) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Any unallocated surplus will be added to next month’s income automatically.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            if (entries.isNotEmpty) ...[
+              const Divider(height: 24),
+              Text(
+                'Savings recorded this month',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              ...entries.map(
+                (entry) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.savings_outlined, size: 20),
+                  title: Text(AppUtils.formatCurrency(entry.amount)),
+                  subtitle: Text(
+                    entry.source == MonthlySavingSource.monthlySurplusRollover
+                        ? 'Automatically saved from previous month’s surplus'
+                        : entry.note?.isNotEmpty == true
+                        ? '${DateFormat('d MMM').format(entry.date)} • ${entry.note}'
+                        : DateFormat('d MMM yyyy').format(entry.date),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Remove allocation',
+                    onPressed: entry.source == MonthlySavingSource.manual
+                        ? () => onDelete(entry)
+                        : null,
+                    icon: Icon(
+                      entry.source == MonthlySavingSource.manual
+                          ? Icons.delete_outline
+                          : Icons.lock_outline,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthlySavingMetric extends StatelessWidget {
+  const _MonthlySavingMetric({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MonthlySavingsHistorySheet extends StatelessWidget {
+  const _MonthlySavingsHistorySheet({required this.entries});
+
+  final List<MonthlySavingEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final grouped = <(int, int), List<MonthlySavingEntry>>{};
+    for (final entry in entries) {
+      grouped.putIfAbsent((entry.year, entry.month), () => []).add(entry);
+    }
+    final months = grouped.keys.toList()
+      ..sort((a, b) {
+        final byYear = b.$1.compareTo(a.$1);
+        return byYear == 0 ? b.$2.compareTo(a.$2) : byYear;
+      });
+
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.78,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            Text(
+              'Monthly savings history',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (months.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30),
+                child: Text(
+                  'Your monthly savings allocations will appear here.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            else
+              ...months.map((month) {
+                final monthEntries = grouped[month]!;
+                final total = monthEntries.fold<double>(
+                  0,
+                  (sum, entry) => sum + entry.amount,
+                );
+                return Card(
+                  elevation: 0,
+                  margin: const EdgeInsets.only(top: 10),
+                  child: ExpansionTile(
+                    leading: Icon(
+                      Icons.calendar_month_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: Text(
+                      DateFormat('MMMM yyyy')
+                          .format(DateTime(month.$1, month.$2)),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    trailing: Text(
+                      AppUtils.formatCurrency(total),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    children: [
+                      for (final entry in monthEntries)
+                        ListTile(
+                          dense: true,
+                          title: Text(AppUtils.formatCurrency(entry.amount)),
+                          subtitle: Text(
+                            entry.note?.isNotEmpty == true
+                                ? entry.note!
+                                : DateFormat('d MMM yyyy').format(entry.date),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+          ],
         ),
       ),
     );

@@ -7,11 +7,14 @@ import 'package:intl/intl.dart';
 
 import '../../core/utils/constants.dart';
 import '../../domain/entities/category.dart';
+import '../../domain/entities/monthly_saving.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/category_provider.dart';
+import '../providers/monthly_saving_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/error_view.dart';
 import '../widgets/financial_summary_card.dart';
+import '../widgets/monthly_savings_chart.dart';
 
 typedef _MonthlyTrend = ({
   DateTime month,
@@ -54,6 +57,7 @@ class _TrendAnalysisPageState extends ConsumerState<TrendAnalysisPage> {
   Widget build(BuildContext context) {
     final transactionsAsync = ref.watch(allTransactionsProvider);
     final categoriesAsync = ref.watch(allCategoriesProvider);
+    final savingsAsync = ref.watch(allMonthlySavingEntriesProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -71,8 +75,16 @@ class _TrendAnalysisPageState extends ConsumerState<TrendAnalysisPage> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) =>
               ErrorView(message: 'Unable to load categories\n$error'),
-          data: (categories) =>
-              _buildContent(transactions: transactions, categories: categories),
+          data: (categories) => savingsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) =>
+                ErrorView(message: 'Unable to load monthly savings\n$error'),
+            data: (savingEntries) => _buildContent(
+              transactions: transactions,
+              categories: categories,
+              savingEntries: savingEntries,
+            ),
+          ),
         ),
       ),
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -82,6 +94,7 @@ class _TrendAnalysisPageState extends ConsumerState<TrendAnalysisPage> {
   Widget _buildContent({
     required List<Transaction> transactions,
     required List<Category> categories,
+    required List<MonthlySavingEntry> savingEntries,
   }) {
     final trends = _buildMonthlyTrends(transactions);
     final categoryChanges = _buildCategoryChanges(transactions, categories);
@@ -128,6 +141,18 @@ class _TrendAnalysisPageState extends ConsumerState<TrendAnalysisPage> {
           const SizedBox(height: 10),
           _trendChart(trends),
           const SizedBox(height: 18),
+          _sectionHeading(
+            title: 'Monthly savings',
+            subtitle: 'Savings allocated in each of the last six months',
+          ),
+          const SizedBox(height: 10),
+          MonthlySavingsChart(
+            entries: savingEntries,
+            year: _selectedMonth.year,
+            endMonth: _selectedMonth.month,
+            monthCount: 6,
+          ),
+          const SizedBox(height: 18),
           _metricsGrid(
             averageExpense: averageExpense,
             highestMonth: highestMonth,
@@ -167,9 +192,11 @@ class _TrendAnalysisPageState extends ConsumerState<TrendAnalysisPage> {
   Future<void> _refresh() async {
     ref.invalidate(allTransactionsProvider);
     ref.invalidate(allCategoriesProvider);
+    ref.invalidate(allMonthlySavingEntriesProvider);
     await Future.wait([
       ref.read(allTransactionsProvider.future),
       ref.read(allCategoriesProvider.future),
+      ref.read(allMonthlySavingEntriesProvider.future),
     ]);
   }
 

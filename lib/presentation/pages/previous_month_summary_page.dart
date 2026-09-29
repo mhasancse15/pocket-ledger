@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/utils/constants.dart';
+import '../../domain/entities/monthly_saving.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/limit_provider.dart';
+import '../providers/monthly_saving_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/financial_summary_card.dart';
+import '../widgets/monthly_savings_chart.dart';
 
 class PreviousMonthSummaryPage extends ConsumerWidget {
   const PreviousMonthSummaryPage({super.key});
@@ -17,6 +20,7 @@ class PreviousMonthSummaryPage extends ConsumerWidget {
     final now = DateTime.now();
 
     final transactionsAsync = ref.watch(allTransactionsProvider);
+    final savingsAsync = ref.watch(allMonthlySavingEntriesProvider);
 
     final currentMonthLimitAsync = ref.watch(
       monthlyLimitProvider((now.year, now.month)),
@@ -33,15 +37,21 @@ class PreviousMonthSummaryPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
             _ErrorState(message: 'Unable to load expense data\n$error'),
-        data: (transactions) {
-          final currentLimit = currentMonthLimitAsync.valueOrNull?.amount;
+        data: (transactions) => savingsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) =>
+              _ErrorState(message: 'Unable to load monthly savings\n$error'),
+          data: (savingEntries) {
+            final currentLimit = currentMonthLimitAsync.valueOrNull?.amount;
 
-          return _ExpenseSummaryContent(
-            transactions: transactions,
-            currentMonthLimit: currentLimit,
-            currentDate: now,
-          );
-        },
+            return _ExpenseSummaryContent(
+              transactions: transactions,
+              savingEntries: savingEntries,
+              currentMonthLimit: currentLimit,
+              currentDate: now,
+            );
+          },
+        ),
       ),
     );
   }
@@ -50,11 +60,13 @@ class PreviousMonthSummaryPage extends ConsumerWidget {
 class _ExpenseSummaryContent extends StatelessWidget {
   const _ExpenseSummaryContent({
     required this.transactions,
+    required this.savingEntries,
     required this.currentMonthLimit,
     required this.currentDate,
   });
 
   final List<Transaction> transactions;
+  final List<MonthlySavingEntry> savingEntries;
   final double? currentMonthLimit;
   final DateTime currentDate;
 
@@ -148,6 +160,25 @@ class _ExpenseSummaryContent extends StatelessWidget {
         _YearlyExpenseChart(
           monthlyTotals: monthlyTotals,
           currentMonth: currentDate.month,
+        ),
+
+        const SizedBox(height: 22),
+        Text(
+          'This year’s savings graph',
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Monthly savings from January to December ${currentDate.year}',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        MonthlySavingsChart(
+          entries: savingEntries,
+          year: currentDate.year,
+          endMonth: 12,
+          monthCount: 12,
         ),
 
         const SizedBox(height: 22),

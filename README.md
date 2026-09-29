@@ -30,6 +30,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 ### Monthly targets and budgets
 
 - Set a monthly spending target and track progress from the dashboard.
+- Review monthly surplus after expenses. At month end, its full positive surplus is automatically recorded as savings and added once to the next month's income as “Previous month savings.” Browse savings for all months and see month-based charts in Reports. Savings records are separate from expenses.
 - Create monthly, category, and payment-method budgets for a selected month.
 - Review budget progress, remaining amounts, monthly summaries, and comparisons.
 - Choose whether unused amounts roll over for supported budgets.
@@ -67,7 +68,7 @@ The app uses Bangladeshi Taka (BDT, ৳) and supports light and dark themes.
 
 | Screen | What it does |
 | --- | --- |
-| Dashboard | Monthly balance, target progress, recent activity, and quick actions |
+| Dashboard | Monthly balance, target progress, savings allocations, recent activity, and quick actions |
 | Transactions | Search, filter, browse, and open transaction details |
 | Reports | Monthly spending analysis and category breakdown |
 | Trend analysis | Six-month income/expense/balance charts, spending metrics, and category comparisons |

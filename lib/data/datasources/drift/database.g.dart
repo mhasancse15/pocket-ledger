@@ -3906,6 +3906,840 @@ class BudgetNotificationStatesCompanion
   }
 }
 
+class $MonthlySavingEntryTableTable extends MonthlySavingEntryTable
+    with TableInfo<$MonthlySavingEntryTableTable, MonthlySavingEntryTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MonthlySavingEntryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<int> month = GeneratedColumn<int>(
+    'month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('manual'),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    year,
+    month,
+    amount,
+    date,
+    source,
+    note,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'monthly_saving_entry_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MonthlySavingEntryTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('month')) {
+      context.handle(
+        _monthMeta,
+        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MonthlySavingEntryTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MonthlySavingEntryTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      )!,
+      month: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}month'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MonthlySavingEntryTableTable createAlias(String alias) {
+    return $MonthlySavingEntryTableTable(attachedDatabase, alias);
+  }
+}
+
+class MonthlySavingEntryTableData extends DataClass
+    implements Insertable<MonthlySavingEntryTableData> {
+  final String id;
+  final int year;
+  final int month;
+  final double amount;
+  final DateTime date;
+  final String source;
+  final String? note;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const MonthlySavingEntryTableData({
+    required this.id,
+    required this.year,
+    required this.month,
+    required this.amount,
+    required this.date,
+    required this.source,
+    this.note,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['year'] = Variable<int>(year);
+    map['month'] = Variable<int>(month);
+    map['amount'] = Variable<double>(amount);
+    map['date'] = Variable<DateTime>(date);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  MonthlySavingEntryTableCompanion toCompanion(bool nullToAbsent) {
+    return MonthlySavingEntryTableCompanion(
+      id: Value(id),
+      year: Value(year),
+      month: Value(month),
+      amount: Value(amount),
+      date: Value(date),
+      source: Value(source),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory MonthlySavingEntryTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MonthlySavingEntryTableData(
+      id: serializer.fromJson<String>(json['id']),
+      year: serializer.fromJson<int>(json['year']),
+      month: serializer.fromJson<int>(json['month']),
+      amount: serializer.fromJson<double>(json['amount']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      source: serializer.fromJson<String>(json['source']),
+      note: serializer.fromJson<String?>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'year': serializer.toJson<int>(year),
+      'month': serializer.toJson<int>(month),
+      'amount': serializer.toJson<double>(amount),
+      'date': serializer.toJson<DateTime>(date),
+      'source': serializer.toJson<String>(source),
+      'note': serializer.toJson<String?>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  MonthlySavingEntryTableData copyWith({
+    String? id,
+    int? year,
+    int? month,
+    double? amount,
+    DateTime? date,
+    String? source,
+    Value<String?> note = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => MonthlySavingEntryTableData(
+    id: id ?? this.id,
+    year: year ?? this.year,
+    month: month ?? this.month,
+    amount: amount ?? this.amount,
+    date: date ?? this.date,
+    source: source ?? this.source,
+    note: note.present ? note.value : this.note,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  MonthlySavingEntryTableData copyWithCompanion(
+    MonthlySavingEntryTableCompanion data,
+  ) {
+    return MonthlySavingEntryTableData(
+      id: data.id.present ? data.id.value : this.id,
+      year: data.year.present ? data.year.value : this.year,
+      month: data.month.present ? data.month.value : this.month,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      date: data.date.present ? data.date.value : this.date,
+      source: data.source.present ? data.source.value : this.source,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MonthlySavingEntryTableData(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('amount: $amount, ')
+          ..write('date: $date, ')
+          ..write('source: $source, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    year,
+    month,
+    amount,
+    date,
+    source,
+    note,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MonthlySavingEntryTableData &&
+          other.id == this.id &&
+          other.year == this.year &&
+          other.month == this.month &&
+          other.amount == this.amount &&
+          other.date == this.date &&
+          other.source == this.source &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class MonthlySavingEntryTableCompanion
+    extends UpdateCompanion<MonthlySavingEntryTableData> {
+  final Value<String> id;
+  final Value<int> year;
+  final Value<int> month;
+  final Value<double> amount;
+  final Value<DateTime> date;
+  final Value<String> source;
+  final Value<String?> note;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const MonthlySavingEntryTableCompanion({
+    this.id = const Value.absent(),
+    this.year = const Value.absent(),
+    this.month = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.date = const Value.absent(),
+    this.source = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MonthlySavingEntryTableCompanion.insert({
+    required String id,
+    required int year,
+    required int month,
+    required double amount,
+    required DateTime date,
+    this.source = const Value.absent(),
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       year = Value(year),
+       month = Value(month),
+       amount = Value(amount),
+       date = Value(date),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<MonthlySavingEntryTableData> custom({
+    Expression<String>? id,
+    Expression<int>? year,
+    Expression<int>? month,
+    Expression<double>? amount,
+    Expression<DateTime>? date,
+    Expression<String>? source,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (year != null) 'year': year,
+      if (month != null) 'month': month,
+      if (amount != null) 'amount': amount,
+      if (date != null) 'date': date,
+      if (source != null) 'source': source,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MonthlySavingEntryTableCompanion copyWith({
+    Value<String>? id,
+    Value<int>? year,
+    Value<int>? month,
+    Value<double>? amount,
+    Value<DateTime>? date,
+    Value<String>? source,
+    Value<String?>? note,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return MonthlySavingEntryTableCompanion(
+      id: id ?? this.id,
+      year: year ?? this.year,
+      month: month ?? this.month,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      source: source ?? this.source,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (month.present) {
+      map['month'] = Variable<int>(month.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MonthlySavingEntryTableCompanion(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('amount: $amount, ')
+          ..write('date: $date, ')
+          ..write('source: $source, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MonthlySavingFinalizationTableTable
+    extends MonthlySavingFinalizationTable
+    with
+        TableInfo<
+          $MonthlySavingFinalizationTableTable,
+          MonthlySavingFinalizationTableData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MonthlySavingFinalizationTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<int> month = GeneratedColumn<int>(
+    'month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _finalizedAtMeta = const VerificationMeta(
+    'finalizedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> finalizedAt = GeneratedColumn<DateTime>(
+    'finalized_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [year, month, finalizedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'monthly_saving_finalization_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MonthlySavingFinalizationTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('month')) {
+      context.handle(
+        _monthMeta,
+        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('finalized_at')) {
+      context.handle(
+        _finalizedAtMeta,
+        finalizedAt.isAcceptableOrUnknown(
+          data['finalized_at']!,
+          _finalizedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_finalizedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {year, month};
+  @override
+  MonthlySavingFinalizationTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MonthlySavingFinalizationTableData(
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      )!,
+      month: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}month'],
+      )!,
+      finalizedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}finalized_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MonthlySavingFinalizationTableTable createAlias(String alias) {
+    return $MonthlySavingFinalizationTableTable(attachedDatabase, alias);
+  }
+}
+
+class MonthlySavingFinalizationTableData extends DataClass
+    implements Insertable<MonthlySavingFinalizationTableData> {
+  final int year;
+  final int month;
+  final DateTime finalizedAt;
+  const MonthlySavingFinalizationTableData({
+    required this.year,
+    required this.month,
+    required this.finalizedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['year'] = Variable<int>(year);
+    map['month'] = Variable<int>(month);
+    map['finalized_at'] = Variable<DateTime>(finalizedAt);
+    return map;
+  }
+
+  MonthlySavingFinalizationTableCompanion toCompanion(bool nullToAbsent) {
+    return MonthlySavingFinalizationTableCompanion(
+      year: Value(year),
+      month: Value(month),
+      finalizedAt: Value(finalizedAt),
+    );
+  }
+
+  factory MonthlySavingFinalizationTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MonthlySavingFinalizationTableData(
+      year: serializer.fromJson<int>(json['year']),
+      month: serializer.fromJson<int>(json['month']),
+      finalizedAt: serializer.fromJson<DateTime>(json['finalizedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'year': serializer.toJson<int>(year),
+      'month': serializer.toJson<int>(month),
+      'finalizedAt': serializer.toJson<DateTime>(finalizedAt),
+    };
+  }
+
+  MonthlySavingFinalizationTableData copyWith({
+    int? year,
+    int? month,
+    DateTime? finalizedAt,
+  }) => MonthlySavingFinalizationTableData(
+    year: year ?? this.year,
+    month: month ?? this.month,
+    finalizedAt: finalizedAt ?? this.finalizedAt,
+  );
+  MonthlySavingFinalizationTableData copyWithCompanion(
+    MonthlySavingFinalizationTableCompanion data,
+  ) {
+    return MonthlySavingFinalizationTableData(
+      year: data.year.present ? data.year.value : this.year,
+      month: data.month.present ? data.month.value : this.month,
+      finalizedAt: data.finalizedAt.present
+          ? data.finalizedAt.value
+          : this.finalizedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MonthlySavingFinalizationTableData(')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('finalizedAt: $finalizedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(year, month, finalizedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MonthlySavingFinalizationTableData &&
+          other.year == this.year &&
+          other.month == this.month &&
+          other.finalizedAt == this.finalizedAt);
+}
+
+class MonthlySavingFinalizationTableCompanion
+    extends UpdateCompanion<MonthlySavingFinalizationTableData> {
+  final Value<int> year;
+  final Value<int> month;
+  final Value<DateTime> finalizedAt;
+  final Value<int> rowid;
+  const MonthlySavingFinalizationTableCompanion({
+    this.year = const Value.absent(),
+    this.month = const Value.absent(),
+    this.finalizedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MonthlySavingFinalizationTableCompanion.insert({
+    required int year,
+    required int month,
+    required DateTime finalizedAt,
+    this.rowid = const Value.absent(),
+  }) : year = Value(year),
+       month = Value(month),
+       finalizedAt = Value(finalizedAt);
+  static Insertable<MonthlySavingFinalizationTableData> custom({
+    Expression<int>? year,
+    Expression<int>? month,
+    Expression<DateTime>? finalizedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (year != null) 'year': year,
+      if (month != null) 'month': month,
+      if (finalizedAt != null) 'finalized_at': finalizedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MonthlySavingFinalizationTableCompanion copyWith({
+    Value<int>? year,
+    Value<int>? month,
+    Value<DateTime>? finalizedAt,
+    Value<int>? rowid,
+  }) {
+    return MonthlySavingFinalizationTableCompanion(
+      year: year ?? this.year,
+      month: month ?? this.month,
+      finalizedAt: finalizedAt ?? this.finalizedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (month.present) {
+      map['month'] = Variable<int>(month.value);
+    }
+    if (finalizedAt.present) {
+      map['finalized_at'] = Variable<DateTime>(finalizedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MonthlySavingFinalizationTableCompanion(')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('finalizedAt: $finalizedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3922,6 +4756,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $RecurringOccurrenceTableTable(this);
   late final $BudgetNotificationStatesTable budgetNotificationStates =
       $BudgetNotificationStatesTable(this);
+  late final $MonthlySavingEntryTableTable monthlySavingEntryTable =
+      $MonthlySavingEntryTableTable(this);
+  late final $MonthlySavingFinalizationTableTable
+  monthlySavingFinalizationTable = $MonthlySavingFinalizationTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3934,6 +4772,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     recurringRuleTable,
     recurringOccurrenceTable,
     budgetNotificationStates,
+    monthlySavingEntryTable,
+    monthlySavingFinalizationTable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6253,6 +7093,508 @@ typedef $$BudgetNotificationStatesTableProcessedTableManager =
       BudgetNotificationState,
       PrefetchHooks Function()
     >;
+typedef $$MonthlySavingEntryTableTableCreateCompanionBuilder =
+    MonthlySavingEntryTableCompanion Function({
+      required String id,
+      required int year,
+      required int month,
+      required double amount,
+      required DateTime date,
+      Value<String> source,
+      Value<String?> note,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$MonthlySavingEntryTableTableUpdateCompanionBuilder =
+    MonthlySavingEntryTableCompanion Function({
+      Value<String> id,
+      Value<int> year,
+      Value<int> month,
+      Value<double> amount,
+      Value<DateTime> date,
+      Value<String> source,
+      Value<String?> note,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$MonthlySavingEntryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $MonthlySavingEntryTableTable> {
+  $$MonthlySavingEntryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MonthlySavingEntryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $MonthlySavingEntryTableTable> {
+  $$MonthlySavingEntryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MonthlySavingEntryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MonthlySavingEntryTableTable> {
+  $$MonthlySavingEntryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<int> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$MonthlySavingEntryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MonthlySavingEntryTableTable,
+          MonthlySavingEntryTableData,
+          $$MonthlySavingEntryTableTableFilterComposer,
+          $$MonthlySavingEntryTableTableOrderingComposer,
+          $$MonthlySavingEntryTableTableAnnotationComposer,
+          $$MonthlySavingEntryTableTableCreateCompanionBuilder,
+          $$MonthlySavingEntryTableTableUpdateCompanionBuilder,
+          (
+            MonthlySavingEntryTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $MonthlySavingEntryTableTable,
+              MonthlySavingEntryTableData
+            >,
+          ),
+          MonthlySavingEntryTableData,
+          PrefetchHooks Function()
+        > {
+  $$MonthlySavingEntryTableTableTableManager(
+    _$AppDatabase db,
+    $MonthlySavingEntryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MonthlySavingEntryTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$MonthlySavingEntryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$MonthlySavingEntryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<int> year = const Value.absent(),
+                Value<int> month = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MonthlySavingEntryTableCompanion(
+                id: id,
+                year: year,
+                month: month,
+                amount: amount,
+                date: date,
+                source: source,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required int year,
+                required int month,
+                required double amount,
+                required DateTime date,
+                Value<String> source = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => MonthlySavingEntryTableCompanion.insert(
+                id: id,
+                year: year,
+                month: month,
+                amount: amount,
+                date: date,
+                source: source,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $MonthlySavingEntryTableTable,
+                    MonthlySavingEntryTableData
+                  >(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $MonthlySavingEntryTableTable,
+                    MonthlySavingEntryTableData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MonthlySavingEntryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MonthlySavingEntryTableTable,
+      MonthlySavingEntryTableData,
+      $$MonthlySavingEntryTableTableFilterComposer,
+      $$MonthlySavingEntryTableTableOrderingComposer,
+      $$MonthlySavingEntryTableTableAnnotationComposer,
+      $$MonthlySavingEntryTableTableCreateCompanionBuilder,
+      $$MonthlySavingEntryTableTableUpdateCompanionBuilder,
+      (
+        MonthlySavingEntryTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $MonthlySavingEntryTableTable,
+          MonthlySavingEntryTableData
+        >,
+      ),
+      MonthlySavingEntryTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$MonthlySavingFinalizationTableTableCreateCompanionBuilder =
+    MonthlySavingFinalizationTableCompanion Function({
+      required int year,
+      required int month,
+      required DateTime finalizedAt,
+      Value<int> rowid,
+    });
+typedef $$MonthlySavingFinalizationTableTableUpdateCompanionBuilder =
+    MonthlySavingFinalizationTableCompanion Function({
+      Value<int> year,
+      Value<int> month,
+      Value<DateTime> finalizedAt,
+      Value<int> rowid,
+    });
+
+class $$MonthlySavingFinalizationTableTableFilterComposer
+    extends Composer<_$AppDatabase, $MonthlySavingFinalizationTableTable> {
+  $$MonthlySavingFinalizationTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get finalizedAt => $composableBuilder(
+    column: $table.finalizedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MonthlySavingFinalizationTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $MonthlySavingFinalizationTableTable> {
+  $$MonthlySavingFinalizationTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get finalizedAt => $composableBuilder(
+    column: $table.finalizedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MonthlySavingFinalizationTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MonthlySavingFinalizationTableTable> {
+  $$MonthlySavingFinalizationTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<int> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get finalizedAt => $composableBuilder(
+    column: $table.finalizedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$MonthlySavingFinalizationTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MonthlySavingFinalizationTableTable,
+          MonthlySavingFinalizationTableData,
+          $$MonthlySavingFinalizationTableTableFilterComposer,
+          $$MonthlySavingFinalizationTableTableOrderingComposer,
+          $$MonthlySavingFinalizationTableTableAnnotationComposer,
+          $$MonthlySavingFinalizationTableTableCreateCompanionBuilder,
+          $$MonthlySavingFinalizationTableTableUpdateCompanionBuilder,
+          (
+            MonthlySavingFinalizationTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $MonthlySavingFinalizationTableTable,
+              MonthlySavingFinalizationTableData
+            >,
+          ),
+          MonthlySavingFinalizationTableData,
+          PrefetchHooks Function()
+        > {
+  $$MonthlySavingFinalizationTableTableTableManager(
+    _$AppDatabase db,
+    $MonthlySavingFinalizationTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MonthlySavingFinalizationTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$MonthlySavingFinalizationTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$MonthlySavingFinalizationTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> year = const Value.absent(),
+                Value<int> month = const Value.absent(),
+                Value<DateTime> finalizedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MonthlySavingFinalizationTableCompanion(
+                year: year,
+                month: month,
+                finalizedAt: finalizedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int year,
+                required int month,
+                required DateTime finalizedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => MonthlySavingFinalizationTableCompanion.insert(
+                year: year,
+                month: month,
+                finalizedAt: finalizedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $MonthlySavingFinalizationTableTable,
+                    MonthlySavingFinalizationTableData
+                  >(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $MonthlySavingFinalizationTableTable,
+                    MonthlySavingFinalizationTableData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MonthlySavingFinalizationTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MonthlySavingFinalizationTableTable,
+      MonthlySavingFinalizationTableData,
+      $$MonthlySavingFinalizationTableTableFilterComposer,
+      $$MonthlySavingFinalizationTableTableOrderingComposer,
+      $$MonthlySavingFinalizationTableTableAnnotationComposer,
+      $$MonthlySavingFinalizationTableTableCreateCompanionBuilder,
+      $$MonthlySavingFinalizationTableTableUpdateCompanionBuilder,
+      (
+        MonthlySavingFinalizationTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $MonthlySavingFinalizationTableTable,
+          MonthlySavingFinalizationTableData
+        >,
+      ),
+      MonthlySavingFinalizationTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6276,5 +7618,16 @@ class $AppDatabaseManager {
       $$BudgetNotificationStatesTableTableManager(
         _db,
         _db.budgetNotificationStates,
+      );
+  $$MonthlySavingEntryTableTableTableManager get monthlySavingEntryTable =>
+      $$MonthlySavingEntryTableTableTableManager(
+        _db,
+        _db.monthlySavingEntryTable,
+      );
+  $$MonthlySavingFinalizationTableTableTableManager
+  get monthlySavingFinalizationTable =>
+      $$MonthlySavingFinalizationTableTableTableManager(
+        _db,
+        _db.monthlySavingFinalizationTable,
       );
 }

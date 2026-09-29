@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum DashboardSection {
   balance('dashboardBalanceVisible', 'Balance'),
   monthlyTarget('dashboardMonthlyTargetVisible', 'Monthly target'),
+  monthlySavings('dashboardMonthlySavingsVisible', 'Monthly savings'),
   budgetStatus('dashboardBudgetStatusVisible', 'Budget status'),
   todayTransactions(
     'dashboardTodayTransactionsVisible',

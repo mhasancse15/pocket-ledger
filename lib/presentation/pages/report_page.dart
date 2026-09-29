@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../config/routes/app_router.dart';
+import '../../core/constants/monthly_saving_constants.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/budget.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/monthly_saving_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/empty_view.dart';
 import '../widgets/error_view.dart';
@@ -203,6 +205,11 @@ class _ReportBody extends StatelessWidget {
             budgetCount: monthBudgets.length,
           ),
           const SizedBox(height: _Spacing.xl),
+          _MonthlySavingsReport(
+            month: selectedMonth,
+            transactions: transactions,
+          ),
+          const SizedBox(height: _Spacing.xl),
           if (entries.isEmpty)
             const EmptyView(
               icon: Icons.pie_chart_outline,
@@ -220,6 +227,118 @@ class _ReportBody extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _MonthlySavingsReport extends ConsumerWidget {
+  const _MonthlySavingsReport({
+    required this.month,
+    required this.transactions,
+  });
+
+  final DateTime month;
+  final List<Transaction> transactions;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entries = ref.watch(
+      monthlySavingEntriesProvider((month.year, month.month)),
+    );
+    return entries.when(
+      loading: () => const Card(
+        elevation: 0,
+        child: Padding(
+          padding: EdgeInsets.all(_Spacing.lg),
+          child: LinearProgressIndicator(),
+        ),
+      ),
+      error: (error, _) => Card(
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(_Spacing.lg),
+          child: Text('Unable to load monthly savings: $error'),
+        ),
+      ),
+      data: (values) {
+        final saved = values.fold<double>(
+          0,
+          (sum, entry) => sum + entry.amount,
+        );
+        final carried = transactions
+            .where((transaction) {
+              final date = transaction.date.toLocal();
+              return transaction.type == TransactionType.income &&
+                  transaction.categoryId == monthlySurplusIncomeCategoryId &&
+                  date.year == month.year &&
+                  date.month == month.month;
+            })
+            .fold<double>(0, (sum, transaction) => sum + transaction.amount);
+
+        return Card(
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.all(_Spacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Monthly savings',
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: _Spacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MonthlySavingsValue(
+                        label: 'Saved this month',
+                        value: AppUtils.formatCurrency(saved),
+                      ),
+                    ),
+                    Expanded(
+                      child: _MonthlySavingsValue(
+                        label: 'Carried from last month',
+                        value: AppUtils.formatCurrency(carried),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MonthlySavingsValue extends StatelessWidget {
+  const _MonthlySavingsValue({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: _Spacing.xs),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
     );
   }
 }

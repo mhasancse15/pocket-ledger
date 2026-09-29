@@ -124,3 +124,27 @@ class BudgetNotificationStates extends Table {
   @override
   Set<Column> get primaryKey => {sourceId, year, month};
 }
+
+class MonthlySavingEntryTable extends Table {
+  TextColumn get id => text()();
+  IntColumn get year => integer()();
+  IntColumn get month => integer()();
+  RealColumn get amount => real()();
+  DateTimeColumn get date => dateTime()();
+  TextColumn get source => text().withDefault(const Constant('manual'))();
+  TextColumn get note => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class MonthlySavingFinalizationTable extends Table {
+  IntColumn get year => integer()();
+  IntColumn get month => integer()();
+  DateTimeColumn get finalizedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {year, month};
+}

@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../core/constants/monthly_saving_constants.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -19,6 +20,8 @@ part 'database.g.dart';
     RecurringRuleTable,
     RecurringOccurrenceTable,
     BudgetNotificationStates,
+    MonthlySavingEntryTable,
+    MonthlySavingFinalizationTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -27,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -72,6 +75,26 @@ class AppDatabase extends _$AppDatabase {
             recurringRuleTable,
             recurringRuleTable.notificationId,
           );
+        }
+        if (from < 7) {
+          await m.createTable(monthlySavingEntryTable);
+        }
+        if (from >= 7 && from < 8) {
+          final columns = await customSelect(
+            "PRAGMA table_info('monthly_saving_entry_table')",
+          ).get();
+          final hasSourceColumn = columns.any(
+            (column) => column.data['name'] == 'source',
+          );
+          if (!hasSourceColumn) {
+            await m.addColumn(
+              monthlySavingEntryTable,
+              monthlySavingEntryTable.source,
+            );
+          }
+        }
+        if (from < 8) {
+          await m.createTable(monthlySavingFinalizationTable);
         }
       },
     );
@@ -238,6 +261,130 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteBudgetById(String id) =>
       (delete(budgetTable)..where((b) => b.id.equals(id))).go();
+
+  Future<int> insertMonthlySavingEntry(
+    MonthlySavingEntryTableCompanion entry,
+  ) => into(monthlySavingEntryTable).insert(entry);
+
+  Future<bool> updateMonthlySavingEntry(MonthlySavingEntryTableData entry) =>
+      update(monthlySavingEntryTable).replace(entry);
+
+  Future<List<MonthlySavingEntryTableData>> getMonthlySavingEntries(
+    int year,
+    int month,
+  ) =>
+      (select(monthlySavingEntryTable)
+            ..where(
+              (entry) => entry.year.equals(year) & entry.month.equals(month),
+            )
+            ..orderBy([(entry) => OrderingTerm.desc(entry.date)]))
+          .get();
+
+  Future<List<MonthlySavingEntryTableData>> getAllMonthlySavingEntries() =>
+      (select(monthlySavingEntryTable)..orderBy([
+            (entry) => OrderingTerm.desc(entry.year),
+            (entry) => OrderingTerm.desc(entry.month),
+            (entry) => OrderingTerm.desc(entry.date),
+          ]))
+          .get();
+
+  Future<int> deleteMonthlySavingEntry(String id) => (delete(
+    monthlySavingEntryTable,
+  )..where((entry) => entry.id.equals(id))).go();
+
+  Future<bool> carryForwardMonthlySurplus({
+    required int sourceYear,
+    required int sourceMonth,
+    required DateTime incomeDate,
+    required double amount,
+    required double alreadySaved,
+    required DateTime createdAt,
+  }) {
+    return transaction(() async {
+      var previousSavedAmount = alreadySaved;
+      final existing =
+          await (select(monthlySavingFinalizationTable)..where(
+                (row) =>
+                    row.year.equals(sourceYear) & row.month.equals(sourceMonth),
+              ))
+              .getSingleOrNull();
+      if (existing != null) {
+        final carriedIncome = await getTransactionById(
+          'monthly-surplus-income-$sourceYear-$sourceMonth',
+        );
+        if (carriedIncome != null) return false;
+        final legacyEntry =
+            await (select(monthlySavingEntryTable)..where(
+                  (entry) => entry.id.equals(
+                    'monthly-surplus-$sourceYear-$sourceMonth',
+                  ),
+                ))
+                .getSingleOrNull();
+        if (legacyEntry != null) {
+          previousSavedAmount -= legacyEntry.amount;
+          await deleteMonthlySavingEntry(legacyEntry.id);
+        }
+        await (delete(monthlySavingFinalizationTable)..where(
+              (row) =>
+                  row.year.equals(sourceYear) & row.month.equals(sourceMonth),
+            ))
+            .go();
+      }
+
+      await into(monthlySavingFinalizationTable).insert(
+        MonthlySavingFinalizationTableCompanion.insert(
+          year: sourceYear,
+          month: sourceMonth,
+          finalizedAt: createdAt,
+        ),
+      );
+
+      if (amount > 0) {
+        final additionalSaving = amount - previousSavedAmount;
+        if (additionalSaving > 0) {
+          await into(monthlySavingEntryTable).insert(
+            MonthlySavingEntryTableCompanion.insert(
+              id: 'monthly-saving-rollover-$sourceYear-$sourceMonth',
+              year: sourceYear,
+              month: sourceMonth,
+              amount: additionalSaving,
+              date: DateTime(sourceYear, sourceMonth + 1, 0),
+              source: const Value('monthlySurplusRollover'),
+              note: const Value('Surplus automatically saved at month end'),
+              createdAt: createdAt,
+              updatedAt: createdAt,
+            ),
+          );
+        }
+        await into(categoryTable).insertOnConflictUpdate(
+          CategoryTableCompanion.insert(
+            id: monthlySurplusIncomeCategoryId,
+            name: 'Previous month savings',
+            type: 'income',
+            icon: const Value('savings'),
+            color: const Value('#2F6F5E'),
+            isArchived: const Value(false),
+            createdAt: createdAt,
+          ),
+        );
+        await into(transactionTable).insert(
+          TransactionTableCompanion.insert(
+            id: 'monthly-surplus-income-$sourceYear-$sourceMonth',
+            type: 'income',
+            amount: amount,
+            categoryId: monthlySurplusIncomeCategoryId,
+            date: incomeDate,
+            paymentMethod: 'other',
+            note: const Value('Previous month savings carried forward'),
+            createdAt: createdAt,
+            updatedAt: createdAt,
+          ),
+        );
+      }
+
+      return true;
+    });
+  }
 
   // --- Recurring Rule Table Queries ---
 
