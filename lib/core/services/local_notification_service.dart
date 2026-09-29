@@ -176,15 +176,9 @@ class LocalNotificationService {
       ),
     );
     final payload = 'recurring:$ruleId';
+    await plugin.cancel(id: notificationId);
 
     if (!localReminder.isAfter(DateTime.now())) {
-      await plugin.show(
-        id: notificationId,
-        title: notificationTitle,
-        body: message,
-        notificationDetails: details,
-        payload: payload,
-      );
       return;
     }
 

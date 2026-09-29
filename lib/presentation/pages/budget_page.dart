@@ -302,7 +302,7 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
     amountController = TextEditingController(
       text: existing?.amount.toStringAsFixed(0) ?? '',
     );
-    scope = existing?.scope ?? BudgetScope.monthly;
+    scope = existing?.scope ?? BudgetScope.category;
     scopeKey = existing?.scope == BudgetScope.monthly
         ? null
         : existing?.scopeKey;
@@ -378,7 +378,6 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
                 label: 'Budget type',
                 value: _scopeLabel(scope),
                 icon: Icons.tune_outlined,
-                onTap: _selectScope,
               ),
               if (scope != BudgetScope.monthly) ...[
                 const SizedBox(height: 14),
@@ -479,7 +478,7 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
     required String label,
     required String value,
     required IconData icon,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
@@ -531,50 +530,16 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              if (onTap != null)
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Future<void> _selectScope() async {
-    final selected = await _showPicker<BudgetScope>(
-      title: 'Budget type',
-      subtitle: 'Choose what this budget tracks.',
-      options: [
-        _BudgetPickerOption(
-          value: BudgetScope.monthly,
-          title: 'Monthly budget',
-          subtitle: 'Set a limit for all expenses',
-          icon: Icons.calendar_month_outlined,
-        ),
-        _BudgetPickerOption(
-          value: BudgetScope.category,
-          title: 'Category budget',
-          subtitle: 'Track spending in one category',
-          icon: Icons.category_outlined,
-        ),
-        _BudgetPickerOption(
-          value: BudgetScope.wallet,
-          title: 'Payment method budget',
-          subtitle: 'Track spending by payment method',
-          icon: Icons.account_balance_wallet_outlined,
-        ),
-      ],
-      selectedValue: scope,
-    );
-
-    if (selected == null || !mounted) return;
-    setState(() {
-      scope = selected;
-      scopeKey = null;
-      error = null;
-    });
   }
 
   Future<void> _selectScopeKey() async {
