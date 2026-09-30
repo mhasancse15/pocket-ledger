@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,67 +39,100 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     required String label,
     required String value,
     required IconData icon,
+    required Color iconColor,
+    required Color iconEndColor,
+    bool showForwardArrow = false,
     bool showLoading = false,
     required VoidCallback? onTap,
   }) {
+    final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(22),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: borderColor),
+            color: _surfaceColor,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: _cardBorder),
+            boxShadow: _cardShadow,
           ),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [iconColor, iconEndColor],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: iconColor.withValues(alpha: .18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: Icon(icon, color: primary, size: 20),
+                child: Icon(icon, color: Colors.white, size: 21),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      label,
-                      style: TextStyle(color: mutedColor, fontSize: 11),
+                      label.toUpperCase(),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: mutedColor.withValues(alpha: .78),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: .7,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       value,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: theme.textTheme.titleSmall?.copyWith(
                         color: textColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
               if (showLoading)
                 SizedBox(
-                  width: 17,
-                  height: 17,
+                  width: 20,
+                  height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: mutedColor,
                   ),
                 )
               else
-                Icon(Icons.keyboard_arrow_down_rounded, color: mutedColor),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: .58,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    showForwardArrow
+                        ? Icons.chevron_right_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: mutedColor,
+                  ),
+                ),
             ],
           ),
         ),
@@ -259,9 +294,26 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   Color get primary => Theme.of(context).colorScheme.primary;
   Color get background => Theme.of(context).scaffoldBackgroundColor;
   Color get textColor => Theme.of(context).colorScheme.onSurface;
-  Color get cardColor => Theme.of(context).colorScheme.surface;
   Color get mutedColor => Theme.of(context).colorScheme.onSurfaceVariant;
-  Color get borderColor => Theme.of(context).colorScheme.outlineVariant;
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  Color get _surfaceColor => _isDark
+      ? Theme.of(context).colorScheme.surface
+      : Colors.white.withValues(alpha: .96);
+  Color get _cardBorder => _isDark
+      ? Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .26)
+      : const Color(0xFFE5EAF2);
+  List<BoxShadow> get _cardShadow => [
+    BoxShadow(
+      color: primary.withValues(alpha: _isDark ? .04 : .045),
+      blurRadius: 22,
+      offset: const Offset(0, 8),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(alpha: _isDark ? .08 : .015),
+      blurRadius: 4,
+      offset: const Offset(0, 2),
+    ),
+  ];
 
   final formKey = GlobalKey<FormState>();
 
@@ -416,129 +468,159 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
+        toolbarHeight: 58,
+        titleSpacing: 16,
+        backgroundColor: background.withValues(alpha: .82),
         title: Text(
           'Add transaction',
-          style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: textColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
-      body: SafeArea(
-        child: Form(
-          key: formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-            children: [
-              Text(
-                'Record your transaction',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Keep your income and expenses organized.',
-                style: TextStyle(color: mutedColor, fontSize: 14),
-              ),
-              const SizedBox(height: 18),
-
-              _typeSelector(),
-
-              const SizedBox(height: 14),
-
-              _amountField(),
-
-              const SizedBox(height: 12),
-
-              _selectionField(
-                label: 'Category',
-                value: categoriesAsync.isLoading
-                    ? 'Loading categories...'
-                    : _categoryLabel(categories),
-                icon: Icons.category_outlined,
-                showLoading: categoriesAsync.isLoading,
-                onTap:
-                    isLoading ||
-                        categoriesAsync.isLoading ||
-                        categoriesAsync.hasError ||
-                        categories.isEmpty
-                    ? null
-                    : () => _selectCategory(categories),
-              ),
-              const SizedBox(height: 12),
-              _selectionField(
-                label: 'Payment method',
-                value: _paymentMethodLabel(
-                  PaymentMethod.values.firstWhere(
-                    (method) => method.name == selectedPaymentMethod,
-                  ),
-                ),
-                icon: Icons.account_balance_wallet_outlined,
-                onTap: isLoading ? null : _selectPaymentMethod,
-              ),
-
-              if (categoriesAsync.hasError)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, left: 12),
-                  child: Text(
-                    'Unable to load categories',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _AddTransactionBackdrop()),
+          SafeArea(
+            child: Form(
+              key: formKey,
+              child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 18),
+                children: [
+                  Text(
+                    'Record your transaction',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: textColor,
+                      fontSize: 24,
+                      height: 1.15,
+                      letterSpacing: -.55,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ),
-              if (!categoriesAsync.isLoading &&
-                  !categoriesAsync.hasError &&
-                  categories.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, left: 12),
-                  child: Text(
-                    'No categories available for this transaction type.',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
+                  const SizedBox(height: 4),
+                  Text(
+                    'Keep your income and expenses organized seamlessly.',
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(color: mutedColor, height: 1.35),
+                  ),
+                  const SizedBox(height: 14),
+                  _typeSelector(),
+                  const SizedBox(height: 12),
+                  _amountField(),
+                  const SizedBox(height: 10),
+                  _selectionField(
+                    label: 'Category',
+                    value: categoriesAsync.isLoading
+                        ? 'Loading categories...'
+                        : _categoryLabel(categories),
+                    icon: Icons.grid_view_rounded,
+                    iconColor: const Color(0xFF8B5CF6),
+                    iconEndColor: const Color(0xFF6366F1),
+                    showLoading: categoriesAsync.isLoading,
+                    onTap:
+                        isLoading ||
+                            categoriesAsync.isLoading ||
+                            categoriesAsync.hasError ||
+                            categories.isEmpty
+                        ? null
+                        : () => _selectCategory(categories),
+                  ),
+                  const SizedBox(height: 10),
+                  _selectionField(
+                    label: 'Payment method',
+                    value: _paymentMethodLabel(
+                      PaymentMethod.values.firstWhere(
+                        (method) => method.name == selectedPaymentMethod,
+                      ),
                     ),
+                    icon: Icons.account_balance_wallet_outlined,
+                    iconColor: const Color(0xFF06B6D4),
+                    iconEndColor: const Color(0xFF14B8A6),
+                    onTap: isLoading ? null : _selectPaymentMethod,
                   ),
-                ),
-
-              const SizedBox(height: 12),
-
-              _dateField(),
-
-              const SizedBox(height: 12),
-
-              _noteField(),
-
-              const SizedBox(height: 18),
-
-              SizedBox(
-                height: 52,
-                child: FilledButton.icon(
-                  onPressed: isLoading ? null : saveTransaction,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  if (categoriesAsync.hasError)
+                    _categoryMessage(
+                      'Unable to load categories',
+                      Theme.of(context).colorScheme.error,
                     ),
-                  ),
-                  icon: isLoading
-                      ? SizedBox(
-                          width: 19,
-                          height: 19,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: cardColor,
-                          ),
-                        )
-                      : const Icon(Icons.check),
-                  label: Text(
-                    isLoading ? 'Saving...' : 'Save transaction',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
-                ),
+                  if (!categoriesAsync.isLoading &&
+                      !categoriesAsync.hasError &&
+                      categories.isEmpty)
+                    _categoryMessage(
+                      'No categories available for this transaction type.',
+                      Theme.of(context).colorScheme.error,
+                    ),
+                  const SizedBox(height: 10),
+                  _dateField(),
+                  const SizedBox(height: 10),
+                  _noteField(),
+                  const SizedBox(height: 16),
+                  _saveButton(),
+                ],
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _categoryMessage(String message, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 4),
+      child: Text(message, style: TextStyle(color: color, fontSize: 12)),
+    );
+  }
+
+  Widget _saveButton() {
+    final color = transactionType == TransactionType.expense
+        ? const Color(0xFF4F46E5)
+        : const Color(0xFF059669);
+    return SizedBox(
+      height: 54,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: transactionType == TransactionType.expense
+                ? const [Color(0xFF4338CA), Color(0xFF6366F1)]
+                : const [Color(0xFF059669), Color(0xFF10B981)],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: .25),
+              blurRadius: 22,
+              offset: const Offset(0, 9),
+            ),
+          ],
+        ),
+        child: FilledButton.icon(
+          onPressed: isLoading ? null : saveTransaction,
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            disabledBackgroundColor: color.withValues(alpha: .6),
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+          ),
+          icon: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.check_rounded, size: 23),
+          label: Text(
+            isLoading ? 'Saving...' : 'Save Transaction',
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -546,11 +628,19 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   }
 
   Widget _typeSelector() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: _isDark ? .42 : .56,
+        ),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: _isDark
+              ? theme.colorScheme.outlineVariant.withValues(alpha: .2)
+              : Colors.white.withValues(alpha: .9),
+        ),
       ),
       child: Row(
         children: [
@@ -580,29 +670,59 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   }) {
     final selected = transactionType == type;
     final color = type == TransactionType.expense
-        ? const Color(0xFFE85E6F)
-        : const Color(0xFF00A578);
+        ? const Color(0xFFF43F5E)
+        : const Color(0xFF10B981);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(13),
+      borderRadius: BorderRadius.circular(999),
       onTap: isLoading ? null : () => changeTransactionType(type),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 11),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.10) : Colors.transparent,
-          borderRadius: BorderRadius.circular(13),
+          gradient: selected
+              ? LinearGradient(
+                  colors: type == TransactionType.expense
+                      ? const [Color(0xFFF43F5E), Color(0xFFEF4444)]
+                      : const [Color(0xFF10B981), Color(0xFF059669)],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: .2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 19, color: selected ? color : mutedColor),
-            const SizedBox(width: 7),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: selected
+                    ? Colors.white.withValues(alpha: .2)
+                    : mutedColor.withValues(alpha: .08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 16,
+                color: selected ? Colors.white : mutedColor,
+              ),
+            ),
+            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: selected ? color : mutedColor,
-                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: selected ? Colors.white : mutedColor,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                letterSpacing: .1,
               ),
             ),
           ],
@@ -612,97 +732,260 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
   }
 
   Widget _amountField() {
-    return TextFormField(
-      controller: amountController,
-      autofocus: true,
-      enabled: !isLoading,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-      ],
-      style: TextStyle(
-        color: textColor,
-        fontSize: 22,
-        fontWeight: FontWeight.w800,
+    final theme = Theme.of(context);
+    final amountAccent = theme.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(15, 12, 15, 11),
+      decoration: BoxDecoration(
+        color: _surfaceColor,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: _isDark
+              ? theme.colorScheme.primary.withValues(alpha: .25)
+              : const Color(0xFFDDE4FF),
+          width: 1.2,
+        ),
+        boxShadow: _cardShadow,
       ),
-      decoration: _inputDecoration(
-        label: 'Amount',
-        hint: '0.00',
-        icon: Icons.payments_outlined,
-      ).copyWith(prefixText: '৳ '),
-      validator: (value) {
-        final amount = double.tryParse(value?.trim() ?? '');
-        if (amount == null || amount <= 0) {
-          return 'Enter an amount greater than ৳0';
-        }
-        return null;
-      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: amountAccent.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'AMOUNT',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: amountAccent,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: .8,
+                  ),
+                ),
+              ),
+              Text(
+                'BDT Currency',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: mutedColor.withValues(alpha: .75),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: amountAccent.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: amountAccent.withValues(alpha: .1)),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '৳',
+                  style: TextStyle(
+                    color: amountAccent,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextFormField(
+                  controller: amountController,
+                  enabled: !isLoading,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d*\.?\d{0,2}'),
+                    ),
+                  ],
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: textColor,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.2,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: TextStyle(
+                      color: mutedColor.withValues(alpha: .35),
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    isDense: true,
+                  ),
+                  validator: (value) {
+                    final amount = double.tryParse(value?.trim() ?? '');
+                    if (amount == null || amount <= 0) {
+                      return 'Enter an amount greater than ৳0';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Divider(
+            height: 1,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: .35),
+          ),
+          const SizedBox(height: 9),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final amount in [100, 500, 1000, 5000]) ...[
+                  if (amount != 100) const SizedBox(width: 8),
+                  _QuickAmountChip(amount: amount, onTap: _addQuickAmount),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
+  void _addQuickAmount(double amount) {
+    if (isLoading) return;
+    final current = double.tryParse(amountController.text.trim()) ?? 0;
+    final updated = current + amount;
+    amountController
+      ..text = updated.toStringAsFixed(
+        updated == updated.roundToDouble() ? 0 : 2,
+      )
+      ..selection = TextSelection.collapsed(
+        offset: amountController.text.length,
+      );
+    formKey.currentState?.validate();
+  }
+
   Widget _noteField() {
-    return TextFormField(
-      controller: noteController,
-      enabled: !isLoading,
-      maxLines: 3,
-      maxLength: AppConstants.maxNoteLength,
-      textCapitalization: TextCapitalization.sentences,
-      decoration: _inputDecoration(
-        label: 'Title or note',
-        hint: 'Example: Grocery shopping or monthly salary',
-        icon: Icons.notes_outlined,
-        alignLabelWithHint: true,
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _surfaceColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _cardBorder),
+        boxShadow: _cardShadow,
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFBBF24), Color(0xFFF97316)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF97316).withValues(alpha: .18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.notes_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TITLE OR NOTE',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: mutedColor.withValues(alpha: .78),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: .7,
+                      ),
+                    ),
+                    TextField(
+                      controller: noteController,
+                      enabled: !isLoading,
+                      maxLines: 2,
+                      minLines: 2,
+                      maxLength: AppConstants.maxNoteLength,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: textColor,
+                        height: 1.45,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Grocery shopping, salary, or coffee...',
+                        hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                          color: mutedColor.withValues(alpha: .68),
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.only(top: 5),
+                        isDense: true,
+                        counterText: '',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Divider(
+            height: 1,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: .35),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: noteController,
+              builder: (context, value, _) => Text(
+                '${value.text.length}/${AppConstants.maxNoteLength}',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: mutedColor.withValues(alpha: .7),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _dateField() {
-    return InkWell(
-      borderRadius: BorderRadius.circular(15),
+    return _selectionField(
+      label: 'Transaction date',
+      value: DateFormat('EEE, d MMM yyyy').format(selectedDate),
+      icon: Icons.calendar_month_outlined,
+      iconColor: const Color(0xFF3B82F6),
+      iconEndColor: const Color(0xFF6366F1),
+      showForwardArrow: true,
       onTap: isLoading ? null : selectDate,
-      child: InputDecorator(
-        decoration: _inputDecoration(
-          label: 'Transaction date',
-          icon: Icons.calendar_today_outlined,
-          suffix: const Icon(Icons.chevron_right),
-        ),
-        child: Text(DateFormat('EEE, d MMM yyyy').format(selectedDate)),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required String label,
-    required IconData icon,
-    String? hint,
-    Widget? suffix,
-    bool alignLabelWithHint = false,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      prefixIcon: Icon(icon, color: primary),
-      suffixIcon: suffix,
-      alignLabelWithHint: alignLabelWithHint,
-      filled: true,
-      fillColor: cardColor,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: primary, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(color: Colors.redAccent),
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 14),
     );
   }
 
@@ -715,6 +998,84 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
       PaymentMethod.mobileWallet => 'Mobile Wallet',
       PaymentMethod.other => 'Other',
     };
+  }
+}
+
+class _QuickAmountChip extends StatelessWidget {
+  const _QuickAmountChip({required this.amount, required this.onTap});
+
+  final int amount;
+  final ValueChanged<double> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(
+        alpha: theme.brightness == Brightness.dark ? .4 : .56,
+      ),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: () => onTap(amount.toDouble()),
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          child: Text(
+            '+৳${NumberFormat('#,##0').format(amount)}',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddTransactionBackdrop extends StatelessWidget {
+  const _AddTransactionBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: 30,
+          right: -80,
+          child: _glow(color: colors.primary.withValues(alpha: .17), size: 250),
+        ),
+        Positioned(
+          top: 360,
+          left: -100,
+          child: _glow(
+            color: colors.secondary.withValues(alpha: .12),
+            size: 280,
+          ),
+        ),
+        Positioned(
+          top: 760,
+          right: -90,
+          child: _glow(
+            color: colors.tertiary.withValues(alpha: .10),
+            size: 260,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _glow({required Color color, required double size}) {
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 54, sigmaY: 54),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+    );
   }
 }
 
