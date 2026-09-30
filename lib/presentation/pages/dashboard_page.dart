@@ -1423,6 +1423,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
               },
               style: FilledButton.styleFrom(
                 backgroundColor: primary,
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.onPrimary
+                      .withValues(alpha: .35),
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
                 ),
@@ -1447,9 +1451,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 );
               },
               style: OutlinedButton.styleFrom(
-                backgroundColor: cardColor,
+                backgroundColor: cardColor.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? .88
+                      : .82,
+                ),
                 foregroundColor: primary,
-                side: BorderSide(color: borderColor),
+                side: BorderSide(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? borderColor.withValues(alpha: .7)
+                      : Colors.white,
+                  width: 1.2,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
                 ),
