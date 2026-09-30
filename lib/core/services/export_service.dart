@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -136,6 +137,76 @@ class ExportService {
     required List<Category> categories,
     required ExportOptions options,
   }) async {
+    final file = await generateExport(
+      transactions: transactions,
+      categories: categories,
+      options: options,
+    );
+
+    final mimeType = options.fileType == ExportFileType.csv
+        ? 'text/csv'
+        : 'application/pdf';
+
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile(
+            file.path,
+            mimeType: mimeType,
+          ),
+        ],
+        subject: 'Pocket Ledger export',
+        text:
+        'Pocket Ledger transaction export — '
+            '${_periodLabel(options)}',
+      ),
+    );
+
+    return file;
+  }
+
+  Future<bool> saveToDevice({
+    required List<Transaction> transactions,
+    required List<Category> categories,
+    required ExportOptions options,
+  }) async {
+    final file = await generateExport(
+      transactions: transactions,
+      categories: categories,
+      options: options,
+    );
+    final extension = options.fileType == ExportFileType.csv
+        ? 'csv'
+        : 'pdf';
+    final savePath = await FilePicker.platform.saveFile(
+      fileName:
+          'pocket_ledger_${_filePeriodName(options)}.$extension',
+      type: FileType.custom,
+      allowedExtensions: [extension],
+      bytes: Platform.isAndroid || Platform.isIOS
+          ? await file.readAsBytes()
+          : null,
+    );
+
+    if (savePath == null) {
+      return false;
+    }
+
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      await File(savePath).writeAsBytes(
+        await file.readAsBytes(),
+        flush: true,
+      );
+    }
+
+    return true;
+  }
+
+  Future<File> generateExport({
+    required List<Transaction> transactions,
+    required List<Category> categories,
+    required ExportOptions options,
+  }) async {
     final filtered = filterTransactions(
       transactions: transactions,
       options: options,
@@ -171,26 +242,6 @@ class ExportService {
         );
         break;
     }
-
-    final mimeType =
-    options.fileType == ExportFileType.csv
-        ? 'text/csv'
-        : 'application/pdf';
-
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [
-          XFile(
-            file.path,
-            mimeType: mimeType,
-          ),
-        ],
-        subject: 'Pocket Ledger export',
-        text:
-        'Pocket Ledger transaction export — '
-            '${_periodLabel(options)}',
-      ),
-    );
 
     return file;
   }
