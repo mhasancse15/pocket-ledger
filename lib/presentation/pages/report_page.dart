@@ -16,7 +16,6 @@ import '../providers/budget_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/monthly_saving_provider.dart';
 import '../providers/transaction_provider.dart';
-import '../widgets/empty_view.dart';
 import '../widgets/error_view.dart';
 import '../widgets/financial_summary_card.dart';
 
@@ -367,21 +366,13 @@ class _ReportBodyState extends State<_ReportBody> {
             },
           ),
           const SizedBox(height: _Spacing.md),
-          if (entries.isEmpty)
-            const EmptyView(
-              icon: Icons.pie_chart_outline,
-              title: 'No report data',
-              message: 'Add expenses for this month to see your report.',
-            )
-          else ...[
-            _CategoryDetailsCard(
-              entries: entries,
-              totalExpense: totalExpense,
-              categoryCounts: categoryCounts,
-              month: widget.selectedMonth,
-            ),
-            const SizedBox(height: _Spacing.md),
-          ],
+          _CategoryDetailsCard(
+            entries: entries,
+            totalExpense: totalExpense,
+            categoryCounts: categoryCounts,
+            month: widget.selectedMonth,
+          ),
+          const SizedBox(height: _Spacing.md),
           _SpendingVelocityCard(
             month: widget.selectedMonth,
             dailyTotals: dailyTotals,
@@ -522,7 +513,7 @@ class _MonthlySavingsValue extends StatelessWidget {
 }
 
 /// -----------------------------------------------------------------------
-/// Compact month navigator in the reference's centered pill treatment.
+/// Month navigator matching the Dashboard selector.
 /// -----------------------------------------------------------------------
 class _MonthSelector extends StatelessWidget {
   const _MonthSelector({required this.month, required this.onChanged});
@@ -533,64 +524,50 @@ class _MonthSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Align(
-      alignment: Alignment.center,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
-        height: 48,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface.withValues(alpha: .94),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: theme.brightness == Brightness.dark
-                ? theme.colorScheme.outlineVariant.withValues(alpha: .35)
-                : Colors.white,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: .055),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: isDark ? .96 : .88),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: isDark ? .32 : .42),
         ),
-        child: Row(
-          children: [
-            _MonthArrowButton(
-              tooltip: 'Previous month',
-              icon: Icons.chevron_left_rounded,
-              onPressed: () => onChanged(DateTime(month.year, month.month - 1)),
-            ),
-            Expanded(
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.calendar_month_rounded,
-                      size: 17,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      DateFormat('MMMM yyyy').format(month),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -.2,
-                      ),
-                    ),
-                  ],
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: isDark ? .08 : .045),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          _MonthArrowButton(
+            tooltip: 'Previous month',
+            icon: Icons.chevron_left,
+            onPressed: () => onChanged(DateTime(month.year, month.month - 1)),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                DateFormat('MMMM yyyy').format(month),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            _MonthArrowButton(
-              tooltip: 'Next month',
-              icon: Icons.chevron_right_rounded,
-              onPressed: () => onChanged(DateTime(month.year, month.month + 1)),
-            ),
-          ],
-        ),
+          ),
+          _MonthArrowButton(
+            tooltip: 'Next month',
+            icon: Icons.chevron_right,
+            onPressed: () => onChanged(DateTime(month.year, month.month + 1)),
+          ),
+        ],
       ),
     );
   }
@@ -612,9 +589,8 @@ class _MonthArrowButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, size: 20),
+      icon: Icon(icon, size: 28),
       color: Theme.of(context).colorScheme.onSurfaceVariant,
-      visualDensity: VisualDensity.compact,
     );
   }
 }
@@ -1024,20 +1000,10 @@ class _BreakdownCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: _Spacing.md),
-          if (showDaily)
+          if (entries.isEmpty)
+            _NoExpenseBreakdown()
+          else if (showDaily)
             _DailyBreakdownChart(dailyTotals: dailyTotals)
-          else if (entries.isEmpty)
-            SizedBox(
-              height: 190,
-              child: Center(
-                child: Text(
-                  'No expenses recorded this month',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            )
           else
             SizedBox(
               height: 190,
@@ -1323,6 +1289,59 @@ class _DailyBreakdownChart extends StatelessWidget {
   }
 }
 
+class _NoExpenseBreakdown extends StatelessWidget {
+  const _NoExpenseBreakdown();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return SizedBox(
+      height: 190,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: .08),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: scheme.primary.withValues(alpha: .12),
+                ),
+              ),
+              child: Icon(
+                Icons.pie_chart_outline_rounded,
+                size: 26,
+                color: scheme.primary.withValues(alpha: .8),
+              ),
+            ),
+            const SizedBox(height: _Spacing.sm),
+            Text(
+              'No expenses this month',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: _Spacing.xs),
+            Text(
+              'Add an expense to see your spending breakdown.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// -----------------------------------------------------------------------
 /// Ranked category rows provide transaction count, share, and spend.
 /// -----------------------------------------------------------------------
@@ -1364,7 +1383,7 @@ class _CategoryDetailsCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  '${entries.length} Active',
+                  entries.isEmpty ? '0 categories' : '${entries.length} Active',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.tertiary,
                     fontWeight: FontWeight.w700,
@@ -1373,18 +1392,27 @@ class _CategoryDetailsCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: _Spacing.md),
-          for (var i = 0; i < entries.length; i++) ...[
-            if (i > 0) const SizedBox(height: _Spacing.sm),
-            _CategoryDetailRow(
-              color: _kCategoryColors[i % _kCategoryColors.length],
-              entry: entries[i],
-              count: categoryCounts[entries[i].key] ?? 0,
-              month: month,
-              percentage: totalExpense == 0
-                  ? 0
-                  : entries[i].value / totalExpense,
+          if (entries.isEmpty) ...[
+            const SizedBox(height: _Spacing.md),
+            _ReportEmptyCardContent(
+              icon: Icons.category_outlined,
+              title: 'No category details yet',
+              message: 'Category spending will appear here after you add an expense.',
             ),
+          ] else ...[
+            const SizedBox(height: _Spacing.md),
+            for (var i = 0; i < entries.length; i++) ...[
+              if (i > 0) const SizedBox(height: _Spacing.sm),
+              _CategoryDetailRow(
+                color: _kCategoryColors[i % _kCategoryColors.length],
+                entry: entries[i],
+                count: categoryCounts[entries[i].key] ?? 0,
+                month: month,
+                percentage: totalExpense == 0
+                    ? 0
+                    : entries[i].value / totalExpense,
+              ),
+            ],
           ],
         ],
       ),
@@ -1565,129 +1593,197 @@ class _SpendingVelocityCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: _Spacing.md),
-          Container(
-            padding: const EdgeInsets.all(_Spacing.md),
-            decoration: _reportInsetDecoration(context),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          if (totalExpense <= 0)
+            const _ReportEmptyCardContent(
+              icon: Icons.insights_outlined,
+              title: 'No spending trends yet',
+              message: 'Daily averages and activity will appear here after you add an expense.',
+            )
+          else ...[
+            Container(
+              padding: const EdgeInsets.all(_Spacing.md),
+              decoration: _reportInsetDecoration(context),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Daily average',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          AppUtils.formatCurrency(dailyAverage),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
-                        'Daily average',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: .07,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          DateFormat('MMMM').format(month),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Text(
-                        AppUtils.formatCurrency(dailyAverage),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                        '$days days period',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: .07),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        DateFormat('MMMM').format(month),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$days days period',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: _Spacing.md),
-          Container(
-            height: 62,
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
-            decoration: _reportInsetDecoration(context),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < dailyTotals.length; i++)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 1),
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          height: peakValue == 0
-                              ? 5
-                              : (dailyTotals[i] / peakValue * 50)
-                                    .clamp(5, 50)
-                                    .toDouble(),
-                          decoration: BoxDecoration(
-                            color: dailyTotals[i] == peakValue && peakValue > 0
-                                ? peakColor
-                                : theme.colorScheme.outlineVariant.withValues(
-                                    alpha: .42,
-                                  ),
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(4),
+            const SizedBox(height: _Spacing.md),
+            Container(
+              height: 62,
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+              decoration: _reportInsetDecoration(context),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < dailyTotals.length; i++)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            height: peakValue == 0
+                                ? 5
+                                : (dailyTotals[i] / peakValue * 50)
+                                      .clamp(5, 50)
+                                      .toDouble(),
+                            decoration: BoxDecoration(
+                              color:
+                                  dailyTotals[i] == peakValue && peakValue > 0
+                                  ? peakColor
+                                  : theme.colorScheme.outlineVariant.withValues(
+                                      alpha: .42,
+                                    ),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
+                ],
+              ),
+            ),
+            const SizedBox(height: _Spacing.xs),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DateFormat('MMM d')
+                      .format(DateTime(month.year, month.month, 1)),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
+                ),
+                Text(
+                  peakValue == 0
+                      ? 'No spending yet'
+                      : '${AppUtils.formatCurrency(peakValue)} peak · ${DateFormat('MMM d').format(DateTime(month.year, month.month, peakDay))}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: peakColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  DateFormat('MMM d').format(
+                    DateTime(month.year, month.month, dailyTotals.length),
+                  ),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportEmptyCardContent extends StatelessWidget {
+  const _ReportEmptyCardContent({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(_Spacing.md),
+      decoration: _reportInsetDecoration(context),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 19, color: scheme.primary),
           ),
-          const SizedBox(height: _Spacing.xs),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                DateFormat('MMM d')
-                    .format(DateTime(month.year, month.month, 1)),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+          const SizedBox(width: _Spacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              Text(
-                peakValue == 0
-                    ? 'No spending yet'
-                    : '${AppUtils.formatCurrency(peakValue)} peak · ${DateFormat('MMM d').format(DateTime(month.year, month.month, peakDay))}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: peakColor,
-                  fontWeight: FontWeight.w700,
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              Text(
-                DateFormat(
-                  'MMM d',
-                ).format(DateTime(month.year, month.month, dailyTotals.length)),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
