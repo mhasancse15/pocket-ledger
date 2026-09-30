@@ -26,6 +26,7 @@ class RecurringExpenseEditorPage extends ConsumerStatefulWidget {
 class _RecurringExpenseEditorPageState
     extends ConsumerState<RecurringExpenseEditorPage> {
   static const _uuid = Uuid();
+  static const _brandIndigo = Color(0xFF4338CA);
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _amountController;
@@ -338,57 +339,43 @@ class _RecurringExpenseEditorPageState
     required VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-    return Material(
-      color: Colors.transparent,
+    final scheme = theme.colorScheme;
+    return _EditorSurface(
+      padding: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(15),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
-          ),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: .1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: primary, size: 20),
-              ),
-              const SizedBox(width: 12),
+              _EditorIcon(icon: icon, color: scheme.primary),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       label,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       value,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -494,6 +481,19 @@ class _RecurringExpenseEditorPageState
     );
   }
 
+  void _addQuickAmount(double amount) {
+    final current = double.tryParse(_amountController.text.trim()) ?? 0;
+    final updatedAmount = current + amount;
+    final text = updatedAmount == updatedAmount.roundToDouble()
+        ? updatedAmount.toStringAsFixed(0)
+        : updatedAmount.toStringAsFixed(2);
+    _amountController
+      ..text = text
+      ..selection = TextSelection.collapsed(
+        offset: _amountController.text.length,
+      );
+  }
+
   static DateTime _dateOnly(DateTime date) {
     final local = date.toLocal();
     return DateTime(local.year, local.month, local.day);
@@ -502,6 +502,7 @@ class _RecurringExpenseEditorPageState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final categoriesAsync = ref.watch(
       categoriesByTypeProvider(CategoryType.expense),
     );
@@ -532,16 +533,38 @@ class _RecurringExpenseEditorPageState
       appBar: AppBar(
         title: Text(
           _originalRule == null ? 'Add recurring expense' : 'Edit rule',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.5,
+          ),
         ),
+        centerTitle: true,
+        backgroundColor: theme.scaffoldBackgroundColor,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : categoriesAsync.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _loadError != null
-          ? Center(child: Text(_loadError!))
-          : categoriesAsync.hasError
-          ? Center(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: _EditorBackdrop(isDark: theme.brightness == Brightness.dark),
+          ),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (categoriesAsync.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_loadError != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  _loadError!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: scheme.error,
+                  ),
+                ),
+              ),
+            )
+          else if (categoriesAsync.hasError)
+            Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -555,57 +578,25 @@ class _RecurringExpenseEditorPageState
                 ],
               ),
             )
-          : SafeArea(
+          else
+            SafeArea(
+              bottom: false,
               child: Form(
                 key: _formKey,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                   children: [
-                    TextFormField(
-                      controller: _titleController,
-                      enabled: !_saving,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
-                        hintText: 'Netflix subscription',
-                        prefixIcon: Icon(Icons.title),
-                      ),
-                      validator: (value) => value?.trim().isEmpty ?? true
-                          ? 'Enter a title.'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _amountController,
-                      enabled: !_saving,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
-                        ),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Amount',
-                        prefixText: '৳ ',
-                        prefixIcon: Icon(Icons.payments_outlined),
-                      ),
-                      validator: (value) {
-                        final amount = double.tryParse(value?.trim() ?? '');
-                        return amount == null || amount <= 0
-                            ? 'Enter an amount greater than ৳0.'
-                            : null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
+                    _titleField(theme),
+                    const SizedBox(height: 9),
+                    _amountField(theme),
+                    const SizedBox(height: 9),
                     _selectionField(
                       label: 'Expense category',
                       value: categoryLabel,
                       icon: Icons.category_outlined,
                       onTap: _saving ? null : () => _selectCategory(categories),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 9),
                     _selectionField(
                       label: 'Payment method',
                       value: _paymentMethodLabel(
@@ -614,11 +605,11 @@ class _RecurringExpenseEditorPageState
                       icon: Icons.account_balance_wallet_outlined,
                       onTap: _saving ? null : _selectPaymentMethod,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 9),
                     _selectionField(
                       label: 'Frequency',
                       value: _frequencyLabel(_frequency),
-                      icon: Icons.repeat,
+                      icon: Icons.open_in_full_rounded,
                       onTap: _saving ? null : _selectFrequency,
                     ),
                     if (_frequency == RecurringFrequency.monthly ||
@@ -626,19 +617,21 @@ class _RecurringExpenseEditorPageState
                       Padding(
                         padding: const EdgeInsets.only(top: 8, left: 12),
                         child: Text(
-                          'Repeats on day $anchorDay '
-                          'of the month.',
-                          style: theme.textTheme.bodySmall,
+                          'Repeats on day $anchorDay of the month.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                    const SizedBox(height: 12),
+                      )
+                    else
+                      const SizedBox(height: 9),
                     _dateTile(
                       label: 'Starts',
                       value: DateFormat('d MMMM yyyy').format(_startDate),
                       icon: Icons.calendar_today_outlined,
                       onTap: _saving ? null : () => _pickDate(isEndDate: false),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     _dateTile(
                       label: 'Ends',
                       value: _endDate == null
@@ -653,62 +646,254 @@ class _RecurringExpenseEditorPageState
                               onPressed: _saving
                                   ? null
                                   : () => setState(() => _endDate = null),
-                              icon: const Icon(Icons.close),
+                              icon: const Icon(Icons.close_rounded),
                             ),
                     ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _noteController,
-                      enabled: !_saving,
-                      maxLines: 3,
-                      maxLength: AppConstants.maxNoteLength,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        labelText: 'Note (optional)',
-                        prefixIcon: Icon(Icons.notes_outlined),
-                      ),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Automatically create transaction'),
-                      subtitle: const Text(
-                        'Turn off to track the schedule without adding an expense automatically.',
-                      ),
-                      value: _autoCreate,
-                      onChanged: _saving
-                          ? null
-                          : (value) => setState(() => _autoCreate = value),
-                    ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 9),
+                    _noteField(theme),
+                    const SizedBox(height: 9),
+                    _autoCreateCard(theme),
+                    const SizedBox(height: 9),
                     _selectionField(
                       label: 'Payment reminder',
                       value: _reminderLabel(_reminder),
-                      icon: Icons.notifications_outlined,
+                      icon: Icons.notifications_none_rounded,
                       onTap: _saving ? null : _selectReminder,
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 52,
-                      child: FilledButton.icon(
-                        onPressed: _saving ? null : _save,
-                        icon: _saving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.save_outlined),
-                        label: Text(
-                          _saving ? 'Saving...' : 'Save recurring rule',
-                        ),
-                      ),
                     ),
                   ],
                 ),
               ),
             ),
+        ],
+      ),
+      bottomNavigationBar:
+          _loading ||
+              categoriesAsync.isLoading ||
+              categoriesAsync.hasError ||
+              _loadError != null
+          ? null
+          : _EditorSaveFooter(saving: _saving, onSave: _saving ? null : _save),
+    );
+  }
+
+  Widget _titleField(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return _EditorSurface(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      child: Row(
+        children: [
+          _EditorIcon(icon: Icons.title_rounded, color: scheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextFormField(
+              controller: _titleController,
+              enabled: !_saving,
+              textCapitalization: TextCapitalization.sentences,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Title (e.g. WiFi, Netflix, Gym)',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: false,
+                contentPadding: EdgeInsets.zero,
+              ),
+              validator: (value) =>
+                  value?.trim().isEmpty ?? true ? 'Enter a title.' : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _amountField(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return _EditorSurface(
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _EditorIcon(
+                icon: Icons.credit_card_outlined,
+                color: scheme.primary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      '৳',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _amountController,
+                        enabled: !_saving,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}'),
+                          ),
+                        ],
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: '0.00',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        validator: (value) {
+                          final amount = double.tryParse(value?.trim() ?? '');
+                          return amount == null || amount <= 0
+                              ? 'Enter an amount greater than ৳0.'
+                              : null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Divider(
+            height: 1,
+            color: scheme.outlineVariant.withValues(alpha: .38),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text(
+                'QUICK:',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: .6,
+                ),
+              ),
+              const SizedBox(width: 7),
+              for (final amount in [500.0, 1000.0, 5000.0]) ...[
+                if (amount != 500) const SizedBox(width: 6),
+                _QuickAmountChip(
+                  amount: amount,
+                  onTap: _saving ? null : () => _addQuickAmount(amount),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _noteField(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _EditorSurface(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _EditorIcon(
+                icon: Icons.notes_rounded,
+                color: scheme.onSurfaceVariant,
+                neutral: true,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextFormField(
+                  controller: _noteController,
+                  enabled: !_saving,
+                  maxLines: 2,
+                  maxLength: AppConstants.maxNoteLength,
+                  textCapitalization: TextCapitalization.sentences,
+                  onChanged: (_) => setState(() {}),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurface,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Note (optional)',
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    counterText: '',
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 3, right: 5),
+          child: Text(
+            '${_noteController.text.length}/${AppConstants.maxNoteLength}',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _autoCreateCard(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return _EditorSurface(
+      padding: const EdgeInsets.fromLTRB(13, 10, 8, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Automatically create transaction',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Track the schedule without auto-adding expenses.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch(
+            value: _autoCreate,
+            activeTrackColor: _brandIndigo,
+            onChanged: _saving
+                ? null
+                : (value) => setState(() => _autoCreate = value),
+          ),
+        ],
+      ),
     );
   }
 
@@ -719,16 +904,49 @@ class _RecurringExpenseEditorPageState
     required VoidCallback? onTap,
     Widget? trailing,
   }) {
-    return ListTile(
-      onTap: onTap,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(14),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return _EditorSurface(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Row(
+            children: [
+              _EditorIcon(icon: icon, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              trailing ??
+                  Icon(
+                    Icons.calendar_month_outlined,
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ],
+          ),
+        ),
       ),
-      leading: Icon(icon),
-      title: Text(label),
-      subtitle: Text(value),
-      trailing: trailing ?? const Icon(Icons.calendar_month_outlined),
     );
   }
 
@@ -799,6 +1017,203 @@ enum _ReminderOption {
   oneDayBefore,
   threeDaysBefore,
   sevenDaysBefore,
+}
+
+class _EditorSurface extends StatelessWidget {
+  const _EditorSurface({required this.child, this.padding = EdgeInsets.zero});
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? .92 : .96,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .55)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark
+                  ? .12
+                  : .035,
+            ),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+class _EditorIcon extends StatelessWidget {
+  const _EditorIcon({
+    required this.icon,
+    required this.color,
+    this.neutral = false,
+  });
+
+  final IconData icon;
+  final Color color;
+  final bool neutral;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: neutral
+            ? scheme.surfaceContainerHighest.withValues(alpha: .65)
+            : color.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: color, size: 21),
+    );
+  }
+}
+
+class _QuickAmountChip extends StatelessWidget {
+  const _QuickAmountChip({required this.amount, required this.onTap});
+
+  final double amount;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final amountLabel = amount.toStringAsFixed(0);
+    return Material(
+      color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+      borderRadius: BorderRadius.circular(30),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          child: Text(
+            '+৳$amountLabel',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorBackdrop extends StatelessWidget {
+  const _EditorBackdrop({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).scaffoldBackgroundColor;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: base,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [base, const Color(0xFF17182B), base]
+              : [
+                  const Color(0xFFF8F9FF),
+                  const Color(0xFFF4F5FB),
+                  const Color(0xFFF9FAFC),
+                ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorSaveFooter extends StatelessWidget {
+  const _EditorSaveFooter({required this.saving, required this.onSave});
+
+  final bool saving;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor.withValues(alpha: .96),
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: .45),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 50,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: _RecurringExpenseEditorPageState._brandIndigo
+                      .withValues(alpha: isDark ? .16 : .28),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: FilledButton(
+              onPressed: onSave,
+              style: FilledButton.styleFrom(
+                backgroundColor: _RecurringExpenseEditorPageState._brandIndigo,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: _RecurringExpenseEditorPageState
+                    ._brandIndigo
+                    .withValues(alpha: .65),
+                shape: const StadiumBorder(),
+              ),
+              child: saving
+                  ? const SizedBox(
+                      width: 21,
+                      height: 21,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Save recurring rule',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, size: 19),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _EditorPickerOption<T> {
