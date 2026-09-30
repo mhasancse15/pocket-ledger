@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/routes/app_router.dart';
 import '../../core/utils/constants.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/transaction_provider.dart';
-import '../widgets/empty_view.dart';
 import '../widgets/error_view.dart';
 
 class MonthlyHistoryPage extends ConsumerWidget {
   const MonthlyHistoryPage({super.key});
-
-  static const purple = Color(0xFF5D56AA);
-  static const textColor = Color(0xFF23232B);
-  static const mutedColor = Color(0xFF70707B);
-  static const borderColor = Color(0xFFE4E4EA);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,8 +26,11 @@ class MonthlyHistoryPage extends ConsumerWidget {
         ),
       ),
       body: transactionsAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: purple)),
+        loading: () => Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
         error: (error, _) {
           return ErrorView(message: 'Unable to load history\n$error');
         },
@@ -41,11 +40,7 @@ class MonthlyHistoryPage extends ConsumerWidget {
           }.toList()..sort((a, b) => b.compareTo(a));
 
           if (months.isEmpty) {
-            return const EmptyView(
-              icon: Icons.calendar_month_outlined,
-              title: 'No monthly history yet',
-              message: 'Add transactions to start building your history.',
-            );
+            return _emptyState(context);
           }
 
           return ListView.builder(
@@ -86,6 +81,88 @@ class MonthlyHistoryPage extends ConsumerWidget {
     );
   }
 
+  Widget _emptyState(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 360),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: scheme.surface.withValues(
+              alpha: theme.brightness == Brightness.dark ? .92 : .82,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: .45),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? .16 : .045,
+                ),
+                blurRadius: 26,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: .55),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  Icons.calendar_month_outlined,
+                  color: scheme.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No monthly history yet',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Add a transaction to start building your monthly history.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => context.pushNamed(
+                    AppRoutes.addTransactionName,
+                    extra: TransactionType.expense,
+                  ),
+                  icon: const Icon(Icons.add, size: 19),
+                  label: const Text('Add expense'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   double _total(List<Transaction> items, TransactionType type) {
     return items
         .where((item) => item.type == type)
@@ -117,8 +194,8 @@ class MonthlyHistoryPage extends ConsumerWidget {
               Expanded(
                 child: Text(
                   DateFormat('MMMM yyyy').format(month),
-                  style: const TextStyle(
-                    color: textColor,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
@@ -126,7 +203,10 @@ class MonthlyHistoryPage extends ConsumerWidget {
               ),
               Text(
                 '$transactionCount transactions',
-                style: const TextStyle(color: mutedColor, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -135,6 +215,7 @@ class MonthlyHistoryPage extends ConsumerWidget {
             children: [
               Expanded(
                 child: _metric(
+                  context,
                   label: 'Income',
                   value: AppUtils.formatCurrency(income),
                   color: const Color(0xFF00A578),
@@ -142,6 +223,7 @@ class MonthlyHistoryPage extends ConsumerWidget {
               ),
               Expanded(
                 child: _metric(
+                  context,
                   label: 'Expense',
                   value: AppUtils.formatCurrency(expense),
                   color: const Color(0xFFE85E6F),
@@ -149,6 +231,7 @@ class MonthlyHistoryPage extends ConsumerWidget {
               ),
               Expanded(
                 child: _metric(
+                  context,
                   label: 'Balance',
                   value: AppUtils.formatCurrency(balance),
                   color: balance >= 0
@@ -165,8 +248,8 @@ class MonthlyHistoryPage extends ConsumerWidget {
               value: spentRatio,
               minHeight: 7,
               color: spentRatio >= 1
-                  ? Colors.redAccent
-                  : const Color(0xFF00A578),
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.tertiary,
               backgroundColor: Theme.of(context)
                   .colorScheme
                   .surfaceContainerHighest,
@@ -177,14 +260,18 @@ class MonthlyHistoryPage extends ConsumerWidget {
             spentRatio == 0
                 ? 'No expense data'
                 : '${(spentRatio * 100).round()}% of income spent',
-            style: const TextStyle(color: mutedColor, fontSize: 12),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _metric({
+  Widget _metric(
+    BuildContext context, {
     required String label,
     required String value,
     required Color color,
@@ -192,7 +279,13 @@ class MonthlyHistoryPage extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: mutedColor, fontSize: 11)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 11,
+          ),
+        ),
         const SizedBox(height: 5),
         FittedBox(
           fit: BoxFit.scaleDown,

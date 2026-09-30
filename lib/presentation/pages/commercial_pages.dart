@@ -15,8 +15,8 @@ class CategoriesPage extends ConsumerStatefulWidget {
 }
 
 class _CategoriesPageState extends ConsumerState<CategoriesPage> {
-  static const purple = Color(0xFF5D56AA);
-  static const textColor = Color(0xFF23232B);
+  Color get purple => Theme.of(context).colorScheme.primary;
+  Color get textColor => Theme.of(context).colorScheme.onSurface;
 
   final searchController = TextEditingController();
 
@@ -398,7 +398,7 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: purple,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         onPressed: () => editCategory(),
         icon: const Icon(Icons.add),
         label: const Text(
@@ -407,8 +407,7 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
         ),
       ),
       body: categoriesAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: purple)),
+        loading: () => Center(child: CircularProgressIndicator(color: purple)),
         error: (error, _) {
           return ErrorView(message: 'Unable to load categories\n$error');
         },
@@ -421,7 +420,7 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             children: [
-              const Text(
+              Text(
                 'Organize your money',
                 style: TextStyle(
                   color: textColor,

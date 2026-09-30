@@ -184,45 +184,75 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          surfaceTintColor: Colors.transparent,
-          elevation: 2,
-          shadowColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0x66000000)
-              : const Color(0x26000000),
-          indicatorColor: Theme.of(context).colorScheme.primaryContainer,
-          indicatorShape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? .96
+                    : .92,
+              ),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant
+                    .withValues(alpha: .3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? .24
+                        : .08,
+                  ),
+                  blurRadius: 24,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: NavigationBarTheme(
+              data: NavigationBarThemeData(
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                indicatorColor: Theme.of(context).colorScheme.primaryContainer,
+                indicatorShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              ),
+              child: NavigationBar(
+                height: 68,
+                selectedIndex: navigationShell.currentIndex,
+                onDestinationSelected: _onTabSelected,
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.dashboard_outlined),
+                    selectedIcon: Icon(Icons.dashboard),
+                    label: 'Dashboard',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.receipt_long_outlined),
+                    selectedIcon: Icon(Icons.receipt_long),
+                    label: 'Transactions',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.bar_chart_outlined),
+                    selectedIcon: Icon(Icons.bar_chart),
+                    label: 'Reports',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings),
+                    label: 'Settings',
+                  ),
+                ],
+              ),
+            ),
           ),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        ),
-        child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: _onTabSelected,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: 'Transactions',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.bar_chart_outlined),
-              selectedIcon: Icon(Icons.bar_chart),
-              label: 'Reports',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
         ),
       ),
     );

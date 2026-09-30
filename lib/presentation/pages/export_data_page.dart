@@ -13,27 +13,22 @@ class ExportDataPage extends ConsumerStatefulWidget {
   const ExportDataPage({super.key});
 
   @override
-  ConsumerState<ExportDataPage> createState() =>
-      _ExportDataPageState();
+  ConsumerState<ExportDataPage> createState() => _ExportDataPageState();
 }
 
-class _ExportDataPageState
-    extends ConsumerState<ExportDataPage> {
-  static const purple = Color(0xFF5D56AA);
-  static const background = Color(0xFFF7F7FB);
-  static const textColor = Color(0xFF23232B);
-  static const mutedColor = Color(0xFF70707B);
-  static const borderColor = Color(0xFFE4E4EA);
+class _ExportDataPageState extends ConsumerState<ExportDataPage> {
+  Color get purple => Theme.of(context).colorScheme.primary;
+  Color get background => Theme.of(context).scaffoldBackgroundColor;
+  Color get textColor => Theme.of(context).colorScheme.onSurface;
+  Color get mutedColor => Theme.of(context).colorScheme.onSurfaceVariant;
+  Color get borderColor => Theme.of(context).colorScheme.outlineVariant;
 
   final exportService = const ExportService();
 
   ExportFileType fileType = ExportFileType.csv;
   ExportPeriod period = ExportPeriod.currentMonth;
 
-  DateTime selectedMonth = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-  );
+  DateTime selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
   DateTimeRange? customRange;
   TransactionType? transactionType;
@@ -43,13 +38,9 @@ class _ExportDataPageState
 
   @override
   Widget build(BuildContext context) {
-    final transactionsAsync = ref.watch(
-      allTransactionsProvider,
-    );
+    final transactionsAsync = ref.watch(allTransactionsProvider);
 
-    final categoriesAsync = ref.watch(
-      allCategoriesProvider,
-    );
+    final categoriesAsync = ref.watch(allCategoriesProvider);
 
     return Scaffold(
       backgroundColor: background,
@@ -57,36 +48,22 @@ class _ExportDataPageState
         backgroundColor: background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Export data',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
         ),
       ),
       body: transactionsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(
-            color: purple,
-          ),
-        ),
+        loading: () => Center(child: CircularProgressIndicator(color: purple)),
         error: (error, _) {
-          return _errorView(
-            'Unable to load transactions\n$error',
-          );
+          return _errorView('Unable to load transactions\n$error');
         },
         data: (transactions) {
           return categoriesAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(
-                color: purple,
-              ),
-            ),
+            loading: () =>
+                Center(child: CircularProgressIndicator(color: purple)),
             error: (error, _) {
-              return _errorView(
-                'Unable to load categories\n$error',
-              );
+              return _errorView('Unable to load categories\n$error');
             },
             data: (categories) {
               return _buildContent(
@@ -106,63 +83,36 @@ class _ExportDataPageState
   }) {
     final options = _currentOptions();
 
-    final previewTransactions =
-    exportService.filterTransactions(
+    final previewTransactions = exportService.filterTransactions(
       transactions: transactions,
       options: options,
     );
 
     final previewIncome = previewTransactions
-        .where(
-          (transaction) =>
-      transaction.type ==
-          TransactionType.income,
-    )
-        .fold<double>(
-      0,
-          (sum, transaction) =>
-      sum + transaction.amount,
-    );
+        .where((transaction) => transaction.type == TransactionType.income)
+        .fold<double>(0, (sum, transaction) => sum + transaction.amount);
 
     final previewExpense = previewTransactions
-        .where(
-          (transaction) =>
-      transaction.type ==
-          TransactionType.expense,
-    )
-        .fold<double>(
-      0,
-          (sum, transaction) =>
-      sum + transaction.amount,
-    );
+        .where((transaction) => transaction.type == TransactionType.expense)
+        .fold<double>(0, (sum, transaction) => sum + transaction.amount);
 
-    final availableCategories = categories.where(
-          (category) {
-        if (transactionType == null) {
-          return true;
-        }
+    final availableCategories = categories.where((category) {
+      if (transactionType == null) {
+        return true;
+      }
 
-        if (transactionType ==
-            TransactionType.expense) {
-          return category.type ==
-              CategoryType.expense;
-        }
+      if (transactionType == TransactionType.expense) {
+        return category.type == CategoryType.expense;
+      }
 
-        return category.type ==
-            CategoryType.income;
-      },
-    ).toList();
+      return category.type == CategoryType.income;
+    }).toList();
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          28,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
-          const Text(
+          Text(
             'Export your transactions',
             style: TextStyle(
               color: textColor,
@@ -171,12 +121,9 @@ class _ExportDataPageState
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Choose a format and filter the data you want to share.',
-            style: TextStyle(
-              color: Colors.black54,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: mutedColor, fontSize: 14),
           ),
           const SizedBox(height: 18),
           _formatSelector(),
@@ -185,17 +132,13 @@ class _ExportDataPageState
             label: 'Export period',
             value: _periodLabel(),
             icon: Icons.date_range_outlined,
-            onTap: exporting
-                ? null
-                : _showPeriodPicker,
+            onTap: exporting ? null : _showPeriodPicker,
           ),
-          if (period ==
-              ExportPeriod.selectedMonth) ...[
+          if (period == ExportPeriod.selectedMonth) ...[
             const SizedBox(height: 12),
             _monthSelector(),
           ],
-          if (period ==
-              ExportPeriod.customRange) ...[
+          if (period == ExportPeriod.customRange) ...[
             const SizedBox(height: 12),
             _dateRangeSelector(),
           ],
@@ -204,9 +147,7 @@ class _ExportDataPageState
             label: 'Transaction type',
             value: _transactionTypeLabel(),
             icon: Icons.swap_vert,
-            onTap: exporting
-                ? null
-                : _showTransactionTypePicker,
+            onTap: exporting ? null : _showTransactionTypePicker,
           ),
           const SizedBox(height: 12),
           _selectionField(
@@ -216,15 +157,12 @@ class _ExportDataPageState
             onTap: exporting
                 ? null
                 : () {
-              _showCategoryPicker(
-                availableCategories,
-              );
-            },
+                    _showCategoryPicker(availableCategories);
+                  },
           ),
           const SizedBox(height: 18),
           _previewCard(
-            transactionCount:
-            previewTransactions.length,
+            transactionCount: previewTransactions.length,
             income: previewIncome,
             expense: previewExpense,
           ),
@@ -232,47 +170,41 @@ class _ExportDataPageState
           SizedBox(
             height: 52,
             child: FilledButton.icon(
-              onPressed: exporting ||
-                  previewTransactions.isEmpty ||
-                  !_isDateSelectionValid()
+              onPressed:
+                  exporting ||
+                      previewTransactions.isEmpty ||
+                      !_isDateSelectionValid()
                   ? null
                   : () {
-                _export(
-                  transactions: transactions,
-                  categories: categories,
-                );
-              },
+                      _export(
+                        transactions: transactions,
+                        categories: categories,
+                      );
+                    },
               style: FilledButton.styleFrom(
                 backgroundColor: purple,
-                disabledBackgroundColor:
-                purple.withOpacity(.50),
-                foregroundColor: Colors.white,
+                disabledBackgroundColor: purple.withValues(alpha: .50),
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                  BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               icon: exporting
-                  ? const SizedBox(
-                width: 19,
-                height: 19,
-                child:
-                CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
+                  ? SizedBox(
+                      width: 19,
+                      height: 19,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    )
                   : Icon(
-                fileType ==
-                    ExportFileType.csv
-                    ? Icons.table_view_outlined
-                    : Icons
-                    .picture_as_pdf_outlined,
-              ),
+                      fileType == ExportFileType.csv
+                          ? Icons.table_view_outlined
+                          : Icons.picture_as_pdf_outlined,
+                    ),
               label: Text(
-                exporting
-                    ? 'Generating export...'
-                    : 'Export and share',
+                exporting ? 'Generating export...' : 'Export and share',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -285,10 +217,7 @@ class _ExportDataPageState
             const Text(
               'No transactions found for the selected filters.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: Colors.redAccent, fontSize: 13),
             ),
           ],
         ],
@@ -300,11 +229,9 @@ class _ExportDataPageState
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: borderColor,
-        ),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -339,68 +266,49 @@ class _ExportDataPageState
     required Color color,
   }) {
     final selected = fileType == type;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return InkWell(
       borderRadius: BorderRadius.circular(13),
       onTap: exporting
           ? null
           : () {
-        setState(() {
-          fileType = type;
-        });
-      },
+              setState(() {
+                fileType = type;
+              });
+            },
       child: AnimatedContainer(
-        duration: const Duration(
-          milliseconds: 180,
-        ),
-        padding: const EdgeInsets.symmetric(
-          vertical: 10,
-          horizontal: 8,
-        ),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: selected
-              ? color.withOpacity(.10)
-              : Colors.transparent,
+          color: selected ? color.withValues(alpha: .10) : Colors.transparent,
           borderRadius: BorderRadius.circular(13),
         ),
         child: Row(
-          mainAxisAlignment:
-          MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 21,
-              color: selected
-                  ? color
-                  : Colors.black45,
-            ),
+            Icon(icon, size: 21, color: selected ? color : muted),
             const SizedBox(width: 8),
             Flexible(
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
                     style: TextStyle(
-                      color: selected
-                          ? color
-                          : Colors.black54,
-                      fontWeight: selected
-                          ? FontWeight.bold
-                          : FontWeight.w600,
+                      color: selected ? color : muted,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 1),
                   Text(
                     subtitle,
                     maxLines: 1,
-                    overflow:
-                    TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: selected
-                          ? color.withOpacity(.75)
-                          : Colors.black38,
+                          ? color.withValues(alpha: .75)
+                          : muted.withValues(alpha: .72),
                       fontSize: 10,
                     ),
                   ),
@@ -425,16 +333,11 @@ class _ExportDataPageState
         onTap: onTap,
         borderRadius: BorderRadius.circular(15),
         child: Ink(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(
-              color: borderColor,
-            ),
+            border: Border.all(color: borderColor),
           ),
           child: Row(
             children: [
@@ -442,50 +345,36 @@ class _ExportDataPageState
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: purple.withOpacity(.10),
-                  borderRadius:
-                  BorderRadius.circular(12),
+                  color: purple.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: purple,
-                  size: 20,
-                ),
+                child: Icon(icon, color: purple, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
-                        color: mutedColor,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: mutedColor, fontSize: 11),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       value,
                       maxLines: 1,
-                      overflow:
-                      TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         color: textColor,
                         fontSize: 15,
-                        fontWeight:
-                        FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Colors.black45,
-              ),
+              Icon(Icons.keyboard_arrow_down_rounded, color: mutedColor),
             ],
           ),
         ),
@@ -496,11 +385,9 @@ class _ExportDataPageState
   Widget _monthSelector() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: borderColor,
-        ),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -509,34 +396,27 @@ class _ExportDataPageState
             onPressed: exporting
                 ? null
                 : () {
-              setState(() {
-                selectedMonth = DateTime(
-                  selectedMonth.year,
-                  selectedMonth.month - 1,
-                );
-              });
-            },
-            icon: const Icon(
-              Icons.chevron_left,
-            ),
+                    setState(() {
+                      selectedMonth = DateTime(
+                        selectedMonth.year,
+                        selectedMonth.month - 1,
+                      );
+                    });
+                  },
+            icon: const Icon(Icons.chevron_left),
           ),
           Expanded(
             child: Column(
               children: [
-                const Text(
+                Text(
                   'Selected month',
-                  style: TextStyle(
-                    color: mutedColor,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: mutedColor, fontSize: 11),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  DateFormat('MMMM yyyy').format(
-                    selectedMonth,
-                  ),
+                  DateFormat('MMMM yyyy').format(selectedMonth),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: textColor,
                     fontWeight: FontWeight.bold,
                   ),
@@ -549,16 +429,14 @@ class _ExportDataPageState
             onPressed: exporting
                 ? null
                 : () {
-              setState(() {
-                selectedMonth = DateTime(
-                  selectedMonth.year,
-                  selectedMonth.month + 1,
-                );
-              });
-            },
-            icon: const Icon(
-              Icons.chevron_right,
-            ),
+                    setState(() {
+                      selectedMonth = DateTime(
+                        selectedMonth.year,
+                        selectedMonth.month + 1,
+                      );
+                    });
+                  },
+            icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
@@ -568,49 +446,30 @@ class _ExportDataPageState
   Widget _dateRangeSelector() {
     return InkWell(
       borderRadius: BorderRadius.circular(15),
-      onTap: exporting
-          ? null
-          : _selectDateRange,
+      onTap: exporting ? null : _selectDateRange,
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: 'Date range',
-          prefixIcon: const Icon(
-            Icons.calendar_today_outlined,
-            color: purple,
-          ),
-          suffixIcon: const Icon(
-            Icons.chevron_right,
-          ),
+          prefixIcon: Icon(Icons.calendar_today_outlined, color: purple),
+          suffixIcon: const Icon(Icons.chevron_right),
           filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius:
-            BorderRadius.circular(15),
-          ),
+          fillColor: Theme.of(context).colorScheme.surface,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
           enabledBorder: OutlineInputBorder(
-            borderRadius:
-            BorderRadius.circular(15),
-            borderSide: const BorderSide(
-              color: borderColor,
-            ),
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: borderColor),
           ),
-          contentPadding:
-          const EdgeInsets.symmetric(
-            vertical: 14,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
         child: Text(
           customRange == null
               ? 'Select a date range'
               : '${DateFormat('d MMM yyyy').format(customRange!.start)}'
-              ' - '
-              '${DateFormat('d MMM yyyy').format(customRange!.end)}',
+                    ' - '
+                    '${DateFormat('d MMM yyyy').format(customRange!.end)}',
           style: TextStyle(
-            color: customRange == null
-                ? Colors.black54
-                : textColor,
-            fontWeight:
-            customRange == null
+            color: customRange == null ? mutedColor : textColor,
+            fontWeight: customRange == null
                 ? FontWeight.normal
                 : FontWeight.w600,
           ),
@@ -629,12 +488,8 @@ class _ExportDataPageState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme:
-            Theme.of(context)
-                .colorScheme
-                .copyWith(
-              primary: purple,
-            ),
+            colorScheme: Theme.of(context).colorScheme
+                .copyWith(primary: purple),
           ),
           child: child!,
         );
@@ -653,26 +508,18 @@ class _ExportDataPageState
       context: context,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(26),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       builder: (sheetContext) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            4,
-            16,
-            24,
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Export period',
                 style: TextStyle(
                   color: textColor,
@@ -681,84 +528,53 @@ class _ExportDataPageState
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Choose which transactions to export.',
-                style: TextStyle(
-                  color: mutedColor,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: mutedColor, fontSize: 13),
               ),
               const SizedBox(height: 16),
               _bottomSheetOption(
                 title: 'Current month',
-                subtitle: DateFormat(
-                  'MMMM yyyy',
-                ).format(DateTime.now()),
+                subtitle: DateFormat('MMMM yyyy').format(DateTime.now()),
                 icon: Icons.today_outlined,
-                selected:
-                period ==
-                    ExportPeriod.currentMonth,
+                selected: period == ExportPeriod.currentMonth,
                 onTap: () {
-                  _closeSheetAndUpdate(
-                    sheetContext,
-                        () {
-                      period =
-                          ExportPeriod.currentMonth;
-                    },
-                  );
+                  _closeSheetAndUpdate(sheetContext, () {
+                    period = ExportPeriod.currentMonth;
+                  });
                 },
               ),
               _bottomSheetOption(
                 title: 'Selected month',
-                subtitle:
-                'Choose a specific month',
-                icon:
-                Icons.calendar_month_outlined,
-                selected:
-                period ==
-                    ExportPeriod.selectedMonth,
+                subtitle: 'Choose a specific month',
+                icon: Icons.calendar_month_outlined,
+                selected: period == ExportPeriod.selectedMonth,
                 onTap: () {
-                  _closeSheetAndUpdate(
-                    sheetContext,
-                        () {
-                      period =
-                          ExportPeriod.selectedMonth;
-                    },
-                  );
+                  _closeSheetAndUpdate(sheetContext, () {
+                    period = ExportPeriod.selectedMonth;
+                  });
                 },
               ),
               _bottomSheetOption(
                 title: 'Custom date range',
-                subtitle:
-                'Select a start and end date',
+                subtitle: 'Select a start and end date',
                 icon: Icons.date_range_outlined,
-                selected:
-                period ==
-                    ExportPeriod.customRange,
+                selected: period == ExportPeriod.customRange,
                 onTap: () {
-                  _closeSheetAndUpdate(
-                    sheetContext,
-                        () {
-                      period =
-                          ExportPeriod.customRange;
-                    },
-                  );
+                  _closeSheetAndUpdate(sheetContext, () {
+                    period = ExportPeriod.customRange;
+                  });
                 },
               ),
               _bottomSheetOption(
                 title: 'All transactions',
-                subtitle:
-                'Export your complete history',
+                subtitle: 'Export your complete history',
                 icon: Icons.history_outlined,
-                selected:
-                period == ExportPeriod.all,
+                selected: period == ExportPeriod.all,
                 onTap: () {
-                  _closeSheetAndUpdate(
-                    sheetContext,
-                        () {
-                      period = ExportPeriod.all;
-                    },
-                  );
+                  _closeSheetAndUpdate(sheetContext, () {
+                    period = ExportPeriod.all;
+                  });
                 },
               ),
             ],
@@ -773,26 +589,18 @@ class _ExportDataPageState
       context: context,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(26),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       builder: (sheetContext) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            4,
-            16,
-            24,
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Transaction type',
                 style: TextStyle(
                   color: textColor,
@@ -801,71 +609,47 @@ class _ExportDataPageState
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Choose the transaction type to export.',
-                style: TextStyle(
-                  color: mutedColor,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: mutedColor, fontSize: 13),
               ),
               const SizedBox(height: 16),
               _bottomSheetOption(
                 title: 'All transactions',
-                subtitle:
-                'Include income and expenses',
+                subtitle: 'Include income and expenses',
                 icon: Icons.swap_vert,
-                selected:
-                transactionType == null,
+                selected: transactionType == null,
                 onTap: () {
-                  _closeSheetAndUpdate(
-                    sheetContext,
-                        () {
-                      transactionType = null;
-                      categoryId = null;
-                    },
-                  );
+                  _closeSheetAndUpdate(sheetContext, () {
+                    transactionType = null;
+                    categoryId = null;
+                  });
                 },
               ),
               _bottomSheetOption(
                 title: 'Expenses only',
-                subtitle:
-                'Export expense transactions',
+                subtitle: 'Export expense transactions',
                 icon: Icons.north_east,
-                iconColor:
-                const Color(0xFFE85E6F),
-                selected:
-                transactionType ==
-                    TransactionType.expense,
+                iconColor: const Color(0xFFE85E6F),
+                selected: transactionType == TransactionType.expense,
                 onTap: () {
-                  _closeSheetAndUpdate(
-                    sheetContext,
-                        () {
-                      transactionType =
-                          TransactionType.expense;
-                      categoryId = null;
-                    },
-                  );
+                  _closeSheetAndUpdate(sheetContext, () {
+                    transactionType = TransactionType.expense;
+                    categoryId = null;
+                  });
                 },
               ),
               _bottomSheetOption(
                 title: 'Income only',
-                subtitle:
-                'Export income transactions',
+                subtitle: 'Export income transactions',
                 icon: Icons.south_west,
-                iconColor:
-                const Color(0xFF00A578),
-                selected:
-                transactionType ==
-                    TransactionType.income,
+                iconColor: const Color(0xFF00A578),
+                selected: transactionType == TransactionType.income,
                 onTap: () {
-                  _closeSheetAndUpdate(
-                    sheetContext,
-                        () {
-                      transactionType =
-                          TransactionType.income;
-                      categoryId = null;
-                    },
-                  );
+                  _closeSheetAndUpdate(sheetContext, () {
+                    transactionType = TransactionType.income;
+                    categoryId = null;
+                  });
                 },
               ),
             ],
@@ -875,58 +659,41 @@ class _ExportDataPageState
     );
   }
 
-  Future<void> _showCategoryPicker(
-      List<Category> categories,
-      ) async {
+  Future<void> _showCategoryPicker(List<Category> categories) async {
     await showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(26),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       builder: (sheetContext) {
         return ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight:
-            MediaQuery.sizeOf(context).height *
-                .72,
+            maxHeight: MediaQuery.sizeOf(context).height * .72,
           ),
           child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  4,
-                  20,
-                  8,
-                ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Category',
                       style: TextStyle(
                         color: textColor,
                         fontSize: 20,
-                        fontWeight:
-                        FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     SizedBox(height: 4),
                     Text(
                       'Choose a category to export.',
-                      style: TextStyle(
-                        color: mutedColor,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: mutedColor, fontSize: 13),
                     ),
                   ],
                 ),
@@ -934,68 +701,41 @@ class _ExportDataPageState
               const SizedBox(height: 8),
               Expanded(
                 child: ListView(
-                  padding:
-                  const EdgeInsets.fromLTRB(
-                    16,
-                    0,
-                    16,
-                    24,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   children: [
                     _bottomSheetOption(
                       title: 'All categories',
-                      subtitle:
-                      'Include every category',
-                      icon:
-                      Icons.category_outlined,
-                      selected:
-                      categoryId == null,
+                      subtitle: 'Include every category',
+                      icon: Icons.category_outlined,
+                      selected: categoryId == null,
                       onTap: () {
-                        _closeSheetAndUpdate(
-                          sheetContext,
-                              () {
-                            categoryId = null;
-                          },
-                        );
+                        _closeSheetAndUpdate(sheetContext, () {
+                          categoryId = null;
+                        });
                       },
                     ),
-                    ...categories.map(
-                          (category) {
-                        final isIncome =
-                            category.type ==
-                                CategoryType.income;
+                    ...categories.map((category) {
+                      final isIncome = category.type == CategoryType.income;
 
-                        return _bottomSheetOption(
-                          title: category.name,
-                          subtitle: isIncome
-                              ? 'Income category'
-                              : 'Expense category',
-                          icon: isIncome
-                              ? Icons.trending_up
-                              : Icons
-                              .category_outlined,
-                          iconColor: isIncome
-                              ? const Color(
-                            0xFF00A578,
-                          )
-                              : const Color(
-                            0xFFE85E6F,
-                          ),
-                          selected:
-                          categoryId ==
-                              category.id,
-                          onTap: () {
-                            _closeSheetAndUpdate(
-                              sheetContext,
-                                  () {
-                                categoryId =
-                                    category.id;
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
+                      return _bottomSheetOption(
+                        title: category.name,
+                        subtitle: isIncome
+                            ? 'Income category'
+                            : 'Expense category',
+                        icon: isIncome
+                            ? Icons.trending_up
+                            : Icons.category_outlined,
+                        iconColor: isIncome
+                            ? const Color(0xFF00A578)
+                            : const Color(0xFFE85E6F),
+                        selected: categoryId == category.id,
+                        onTap: () {
+                          _closeSheetAndUpdate(sheetContext, () {
+                            categoryId = category.id;
+                          });
+                        },
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -1017,54 +757,35 @@ class _ExportDataPageState
     final color = iconColor ?? purple;
 
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 8,
-      ),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: selected
-            ? color.withOpacity(.08)
-            : Colors.transparent,
-        borderRadius:
-        BorderRadius.circular(15),
+        color: selected ? color.withValues(alpha: .08) : Colors.transparent,
+        borderRadius: BorderRadius.circular(15),
         child: InkWell(
           onTap: onTap,
-          borderRadius:
-          BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(15),
           child: Padding(
-            padding:
-            const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 11,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             child: Row(
               children: [
                 Container(
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color:
-                    color.withOpacity(.10),
-                    borderRadius:
-                    BorderRadius.circular(13),
+                    color: color.withValues(alpha: .10),
+                    borderRadius: BorderRadius.circular(13),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 21,
-                  ),
+                  child: Icon(icon, color: color, size: 21),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
                         style: TextStyle(
-                          color: selected
-                              ? color
-                              : textColor,
+                          color: selected ? color : textColor,
                           fontWeight: selected
                               ? FontWeight.w800
                               : FontWeight.w600,
@@ -1073,10 +794,7 @@ class _ExportDataPageState
                       const SizedBox(height: 3),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: mutedColor,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: mutedColor, fontSize: 12),
                       ),
                     ],
                   ),
@@ -1089,17 +807,14 @@ class _ExportDataPageState
                       color: color,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       size: 17,
                     ),
                   )
                 else
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Colors.black38,
-                  ),
+                  Icon(Icons.chevron_right, color: mutedColor),
               ],
             ),
           ),
@@ -1108,14 +823,10 @@ class _ExportDataPageState
     );
   }
 
-  void _closeSheetAndUpdate(
-      BuildContext sheetContext,
-      VoidCallback update,
-      ) {
+  void _closeSheetAndUpdate(BuildContext sheetContext, VoidCallback update) {
     Navigator.of(sheetContext).pop();
 
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
       setState(update);
@@ -1132,15 +843,12 @@ class _ExportDataPageState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: borderColor,
-        ),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -1148,55 +856,40 @@ class _ExportDataPageState
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: purple.withOpacity(.10),
-                  borderRadius:
-                  BorderRadius.circular(13),
+                  color: purple.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(13),
                 ),
-                child: const Icon(
-                  Icons.preview_outlined,
-                  color: purple,
-                  size: 21,
-                ),
+                child: Icon(Icons.preview_outlined, color: purple, size: 21),
               ),
               const SizedBox(width: 11),
-              const Expanded(
+              Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Export preview',
                       style: TextStyle(
                         color: textColor,
-                        fontWeight:
-                        FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     SizedBox(height: 2),
                     Text(
                       'Summary of selected records',
-                      style: TextStyle(
-                        color: mutedColor,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: mutedColor, fontSize: 12),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding:
-                const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
-                  color: purple.withOpacity(.10),
-                  borderRadius:
-                  BorderRadius.circular(20),
+                  color: purple.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '$transactionCount records',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: purple,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -1211,36 +904,25 @@ class _ExportDataPageState
               Expanded(
                 child: _previewValue(
                   label: 'Income',
-                  value:
-                  AppUtils.formatCurrency(income),
+                  value: AppUtils.formatCurrency(income),
                   color: const Color(0xFF00A578),
                 ),
               ),
-              Container(
-                width: 1,
-                height: 38,
-                color: borderColor,
-              ),
+              Container(width: 1, height: 38, color: borderColor),
               const SizedBox(width: 10),
               Expanded(
                 child: _previewValue(
                   label: 'Expense',
-                  value:
-                  AppUtils.formatCurrency(expense),
+                  value: AppUtils.formatCurrency(expense),
                   color: const Color(0xFFE85E6F),
                 ),
               ),
-              Container(
-                width: 1,
-                height: 38,
-                color: borderColor,
-              ),
+              Container(width: 1, height: 38, color: borderColor),
               const SizedBox(width: 10),
               Expanded(
                 child: _previewValue(
                   label: 'Balance',
-                  value:
-                  AppUtils.formatCurrency(balance),
+                  value: AppUtils.formatCurrency(balance),
                   color: balance >= 0
                       ? const Color(0xFF3182CE)
                       : Colors.redAccent,
@@ -1259,16 +941,9 @@ class _ExportDataPageState
     required Color color,
   }) {
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: mutedColor,
-            fontSize: 11,
-          ),
-        ),
+        Text(label, style: TextStyle(color: mutedColor, fontSize: 11)),
         const SizedBox(height: 5),
         FittedBox(
           fit: BoxFit.scaleDown,
@@ -1276,10 +951,7 @@ class _ExportDataPageState
           child: Text(
             value,
             maxLines: 1,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.w800),
           ),
         ),
       ],
@@ -1299,8 +971,7 @@ class _ExportDataPageState
   }
 
   bool _isDateSelectionValid() {
-    if (period !=
-        ExportPeriod.customRange) {
+    if (period != ExportPeriod.customRange) {
       return true;
     }
 
@@ -1313,9 +984,7 @@ class _ExportDataPageState
         return 'Current month';
 
       case ExportPeriod.selectedMonth:
-        return DateFormat(
-          'MMMM yyyy',
-        ).format(selectedMonth);
+        return DateFormat('MMMM yyyy').format(selectedMonth);
 
       case ExportPeriod.customRange:
         if (customRange == null) {
@@ -1344,17 +1013,12 @@ class _ExportDataPageState
     }
   }
 
-  String _categoryLabel(
-      List<Category> categories,
-      ) {
+  String _categoryLabel(List<Category> categories) {
     if (categoryId == null) {
       return 'All categories';
     }
 
-    final matches = categories.where(
-          (category) =>
-      category.id == categoryId,
-    );
+    final matches = categories.where((category) => category.id == categoryId);
 
     if (matches.isEmpty) {
       return 'All categories';
@@ -1382,30 +1046,24 @@ class _ExportDataPageState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             fileType == ExportFileType.csv
                 ? 'CSV export created'
                 : 'PDF export created',
           ),
-          behavior:
-          SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Unable to export data: $error',
-          ),
+          content: Text('Unable to export data: $error'),
           backgroundColor: Colors.red,
-          behavior:
-          SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
@@ -1422,29 +1080,19 @@ class _ExportDataPageState
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment:
-          MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 50,
-              color: Colors.redAccent,
-            ),
+            const Icon(Icons.error_outline, size: 50, color: Colors.redAccent),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to load export data',
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 7),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: mutedColor,
-              ),
+              style: TextStyle(color: mutedColor),
             ),
           ],
         ),

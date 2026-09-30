@@ -26,14 +26,14 @@ class FinancialSummaryCard extends StatelessWidget {
   final double amount;
   final List<FinancialSummaryMetric> metrics;
 
-  static const Color _cardStart = Color(0xFF6D65C4);
-  static const Color _cardEnd = Color(0xFF4B438F);
+  static const Color _cardStart = Color(0xFF4338CA);
+  static const Color _cardEnd = Color(0xFF712AE2);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 205,
+      height: 210,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -41,7 +41,8 @@ class FinancialSummaryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: .20)),
         boxShadow: [
           BoxShadow(
             color: _cardStart.withValues(alpha: .24),
@@ -68,7 +69,7 @@ class FinancialSummaryCard extends StatelessWidget {
             child: _circle(size: 170, opacity: .035),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -110,7 +111,7 @@ class FinancialSummaryCard extends StatelessWidget {
                     maxLines: 1,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 31,
+                      fontSize: 34,
                       height: 1.1,
                       fontWeight: FontWeight.w800,
                     ),

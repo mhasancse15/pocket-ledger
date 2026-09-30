@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -36,6 +38,59 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
   Color get cardColor => Theme.of(context).colorScheme.surface;
   Color get mutedColor => Theme.of(context).colorScheme.onSurfaceVariant;
   Color get borderColor => Theme.of(context).colorScheme.outlineVariant;
+
+  BoxDecoration _glassDecoration({double radius = 28}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: cardColor.withValues(alpha: isDark ? .84 : .78),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: Colors.white.withValues(alpha: isDark ? .10 : .82),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDark ? .18 : .045),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+  }
+
+  Widget _ambientBackground() {
+    final colors = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: 30,
+          right: -80,
+          child: _glowOrb(colors.primary.withValues(alpha: .17), 250),
+        ),
+        Positioned(
+          top: 360,
+          left: -100,
+          child: _glowOrb(colors.secondary.withValues(alpha: .12), 280),
+        ),
+        Positioned(
+          top: 760,
+          right: -90,
+          child: _glowOrb(colors.tertiary.withValues(alpha: .10), 260),
+        ),
+      ],
+    );
+  }
+
+  Widget _glowOrb(Color color, double size) {
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 54, sigmaY: 54),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+    );
+  }
 
   late DateTime selectedMonth;
   (int, int)? _lastFinalizedPreviousMonth;
@@ -280,6 +335,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       appBar: AppBar(
         toolbarHeight: 52,
         titleSpacing: 16,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: pageBackground.withValues(alpha: .82),
         title: Text(
           'Pocket Ledger',
           style: TextStyle(
@@ -290,164 +348,183 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         ),
         actions: [
           IconButton(
-            tooltip: 'Set monthly target',
-            onPressed: editMonthlyTarget,
-            icon: const Icon(Icons.track_changes_outlined),
+            tooltip: 'Add expense',
+            onPressed: () => context.pushNamed(
+              AppRoutes.addTransactionName,
+              extra: TransactionType.expense,
+            ),
+            style: IconButton.styleFrom(
+              backgroundColor: cardColor.withValues(alpha: .72),
+              foregroundColor: mutedColor,
+              fixedSize: const Size(40, 40),
+            ),
+            icon: const Icon(Icons.power_settings_new),
           ),
           IconButton(
             tooltip: 'Settings',
             onPressed: () => context.goNamed(AppRoutes.settingsName),
+            style: IconButton.styleFrom(
+              backgroundColor: cardColor.withValues(alpha: .72),
+              foregroundColor: mutedColor,
+              fixedSize: const Size(40, 40),
+            ),
             icon: const Icon(Icons.settings_outlined),
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
-        child: transactionsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _ErrorState(message: error.toString()),
-          data: (transactions) {
-            final income = _total(transactions, TransactionType.income);
-            final expense = _total(transactions, TransactionType.expense);
-            final balance = income - expense;
-            final target = limitAsync.valueOrNull?.amount;
+        child: Stack(
+          children: [
+            Positioned.fill(child: IgnorePointer(child: _ambientBackground())),
+            transactionsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _ErrorState(message: error.toString()),
+              data: (transactions) {
+                final income = _total(transactions, TransactionType.income);
+                final expense = _total(transactions, TransactionType.expense);
+                final balance = income - expense;
+                final target = limitAsync.valueOrNull?.amount;
 
-            final visibleTransactions = isCurrentMonth
-                ? _todayTransactions(transactions)
-                : _monthTransactions(transactions).take(4).toList();
-            final monthBudgets = budgets
-                .where(
-                  (budget) =>
-                      budget.year == selectedMonth.year &&
-                      budget.month == selectedMonth.month,
-                )
-                .toList();
-            final expenseTransactions = transactions
-                .where((item) => item.type == TransactionType.expense)
-                .toList();
-            final upcomingRules = recurringRules.toList()
-              ..sort(
-                (a, b) => a.nextOccurrenceDate.compareTo(b.nextOccurrenceDate),
-              );
+                final visibleTransactions = isCurrentMonth
+                    ? _todayTransactions(transactions)
+                    : _monthTransactions(transactions).take(4).toList();
+                final monthBudgets = budgets
+                    .where(
+                      (budget) =>
+                          budget.year == selectedMonth.year &&
+                          budget.month == selectedMonth.month,
+                    )
+                    .toList();
+                final expenseTransactions = transactions
+                    .where((item) => item.type == TransactionType.expense)
+                    .toList();
+                final upcomingRules = recurringRules.toList()
+                  ..sort(
+                    (a, b) =>
+                        a.nextOccurrenceDate.compareTo(b.nextOccurrenceDate),
+                  );
 
-            return RefreshIndicator(
-              color: primary,
-              onRefresh: () async {
-                ref.invalidate(monthlyTransactionsProvider(monthKey));
-                ref.invalidate(monthlyLimitProvider(monthKey));
-                ref.invalidate(monthlySavingEntriesProvider(monthKey));
-                ref.invalidate(allCategoriesProvider);
-                ref.invalidate(budgetsProvider);
-                ref.invalidate(activeRecurringRulesProvider);
-              },
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [
-                  _monthSelector(),
-                  const SizedBox(height: 14),
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.balance,
-                  )) ...[
-                    _balanceCard(
-                      balance: balance,
-                      income: income,
-                      expense: expense,
-                      transactionCount: transactions.length,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.monthlyTarget,
-                  )) ...[
-                    _budgetSection(expense: expense, target: target),
-                    const SizedBox(height: 22),
-                  ],
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.monthlySavings,
-                  )) ...[
-                    _monthlySavingsSection(
-                      transactions: transactions,
-                      entries: monthlySavingsAsync.valueOrNull ?? const [],
-                    ),
-                    const SizedBox(height: 22),
-                  ],
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.budgetStatus,
-                  )) ...[
-                    _budgetStatusSection(
-                      budgets: monthBudgets,
-                      allBudgets: budgets,
-                      transactions: transactions,
-                      categoryNames: categoryNames,
-                    ),
-                    const SizedBox(height: 22),
-                  ],
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.todayTransactions,
-                  )) ...[
-                    _sectionHeader(
-                      title: isCurrentMonth
-                          ? "Today's transactions"
-                          : 'Recent transactions',
-                      subtitle: isCurrentMonth
-                          ? 'Your spending activity today'
-                          : DateFormat('MMMM yyyy').format(selectedMonth),
-                      actionLabel: 'View all',
-                      onAction: () {
-                        context.goNamed(AppRoutes.transactionsName);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    _transactionsCard(
-                      transactions: visibleTransactions,
-                      categoryNames: categoryNames,
-                    ),
-                    const SizedBox(height: 28),
-                  ],
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.categorySummary,
-                  )) ...[
-                    _categorySummarySection(
-                      transactions: expenseTransactions,
-                      categoryNames: categoryNames,
-                    ),
-                    const SizedBox(height: 22),
-                  ],
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.upcomingBills,
-                  )) ...[
-                    _upcomingBillsSection(
-                      upcomingRules.take(3).toList(),
-                      categoryNames,
-                    ),
-                    const SizedBox(height: 22),
-                  ],
-                  if (_isSectionVisible(
-                    preferences,
-                    DashboardSection.savingsGoals,
-                  )) ...[
-                    _savingsGoalsSection(),
-                    const SizedBox(height: 22),
-                  ],
-                  const SizedBox(height: 32),
-                  _sectionHeader(
-                    title: 'Quick actions',
-                    subtitle: 'Record a transaction in seconds',
+                return RefreshIndicator(
+                  color: primary,
+                  onRefresh: () async {
+                    ref.invalidate(monthlyTransactionsProvider(monthKey));
+                    ref.invalidate(monthlyLimitProvider(monthKey));
+                    ref.invalidate(monthlySavingEntriesProvider(monthKey));
+                    ref.invalidate(allCategoriesProvider);
+                    ref.invalidate(budgetsProvider);
+                    ref.invalidate(activeRecurringRulesProvider);
+                  },
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    children: [
+                      _monthSelector(),
+                      const SizedBox(height: 14),
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.balance,
+                      )) ...[
+                        _balanceCard(
+                          balance: balance,
+                          income: income,
+                          expense: expense,
+                          transactionCount: transactions.length,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.monthlyTarget,
+                      )) ...[
+                        _budgetSection(expense: expense, target: target),
+                        const SizedBox(height: 22),
+                      ],
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.monthlySavings,
+                      )) ...[
+                        _monthlySavingsSection(
+                          transactions: transactions,
+                          entries: monthlySavingsAsync.valueOrNull ?? const [],
+                        ),
+                        const SizedBox(height: 22),
+                      ],
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.budgetStatus,
+                      )) ...[
+                        _budgetStatusSection(
+                          budgets: monthBudgets,
+                          allBudgets: budgets,
+                          transactions: transactions,
+                          categoryNames: categoryNames,
+                        ),
+                        const SizedBox(height: 22),
+                      ],
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.todayTransactions,
+                      )) ...[
+                        _sectionHeader(
+                          title: isCurrentMonth
+                              ? "Today's transactions"
+                              : 'Recent transactions',
+                          subtitle: isCurrentMonth
+                              ? 'Your spending activity today'
+                              : DateFormat('MMMM yyyy').format(selectedMonth),
+                          actionLabel: 'View all',
+                          onAction: () {
+                            context.goNamed(AppRoutes.transactionsName);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        _transactionsCard(
+                          transactions: visibleTransactions,
+                          categoryNames: categoryNames,
+                        ),
+                        const SizedBox(height: 28),
+                      ],
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.categorySummary,
+                      )) ...[
+                        _categorySummarySection(
+                          transactions: expenseTransactions,
+                          categoryNames: categoryNames,
+                        ),
+                        const SizedBox(height: 22),
+                      ],
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.upcomingBills,
+                      )) ...[
+                        _upcomingBillsSection(
+                          upcomingRules.take(3).toList(),
+                          categoryNames,
+                        ),
+                        const SizedBox(height: 22),
+                      ],
+                      if (_isSectionVisible(
+                        preferences,
+                        DashboardSection.savingsGoals,
+                      )) ...[
+                        _savingsGoalsSection(),
+                        const SizedBox(height: 22),
+                      ],
+                      const SizedBox(height: 32),
+                      _sectionHeader(
+                        title: 'Quick actions',
+                        subtitle: 'Record a transaction in seconds',
+                      ),
+                      const SizedBox(height: 14),
+                      _quickActions(),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  _quickActions(),
-                ],
-              ),
-            );
-          },
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -456,10 +533,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
   Widget _monthSelector() {
     return Container(
       height: 60,
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(18),
-      ),
+      decoration: _glassDecoration(radius: 30),
       child: Row(
         children: [
           IconButton(
@@ -541,8 +615,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 'Monthly target',
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -580,11 +654,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         : const Color(0xFF00A578);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
+      decoration: _glassDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -602,7 +673,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                         '${AppUtils.formatCurrency(expense)} spent',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.tertiary,
-                          fontSize: 22,
+                          fontSize: 21,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -622,12 +693,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                '${(percentage * 100).round()}% of ${AppUtils.formatCurrency(target)}',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    text: '${(percentage * 100).round()}% ',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'of ${AppUtils.formatCurrency(target)}',
+                        style: TextStyle(
+                          color: mutedColor,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.end,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -637,7 +724,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             borderRadius: BorderRadius.circular(12),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 11,
+              minHeight: 9,
               backgroundColor: Theme.of(context)
                   .colorScheme
                   .surfaceContainerHighest,
@@ -653,61 +740,53 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(18),
-      ),
+      decoration: _glassDecoration(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.primaryContainer
+                  .withValues(alpha: .58),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(Icons.track_changes_outlined, size: 29, color: primary),
+            child: Icon(Icons.track_changes_outlined, size: 25, color: primary),
           ),
-
-          const SizedBox(height: 12),
-
+          const SizedBox(height: 10),
           Text(
             'No monthly target set',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: textColor,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
-
-          const SizedBox(height: 5),
-
+          const SizedBox(height: 4),
           Text(
-            'Set a spending limit to track your progress.',
+            'Set a spending limit to track your progress effortlessly.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: mutedColor, fontSize: 13, height: 1.3),
+            style: TextStyle(color: mutedColor, fontSize: 12, height: 1.35),
           ),
-
-          const SizedBox(height: 16),
-
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            height: 46,
+            height: 44,
             child: FilledButton.icon(
               onPressed: editMonthlyTarget,
               style: FilledButton.styleFrom(
                 backgroundColor: primary,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              icon: const Icon(Icons.add, size: 20),
+              icon: const Icon(Icons.add, size: 18),
               label: const Text(
                 'Set target',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -741,22 +820,44 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         const SizedBox(height: 14),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(20),
-          ),
+          padding: const EdgeInsets.all(14),
+          decoration: _glassDecoration(),
           child: budgets.isEmpty
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ? Row(
                   children: [
-                    Text(
-                      'No budgets for this month',
-                      style: TextStyle(color: mutedColor, fontSize: 14),
+                    _emptyIcon(Icons.pie_chart_outline_rounded),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'No budgets for this month',
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Create budget limits for categories',
+                            style: TextStyle(color: mutedColor, fontSize: 11),
+                          ),
+                        ],
+                      ),
                     ),
-                    TextButton(
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
                       onPressed: () => context.pushNamed(AppRoutes.budgetsName),
-                      child: const Text('Create a budget'),
+                      icon: const Icon(Icons.add, size: 15),
+                      label: const Text('Budget'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 38),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        textStyle: const TextStyle(fontSize: 11),
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                   ],
                 )
@@ -897,15 +998,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         const SizedBox(height: 14),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(20),
-          ),
+          padding: const EdgeInsets.all(18),
+          decoration: _glassDecoration(),
           child: topEntries.isEmpty
-              ? Text(
-                  'Expense categories will appear here.',
-                  style: TextStyle(color: mutedColor),
+              ? _emptyInfoCard(
+                  icon: Icons.category_outlined,
+                  title: 'Expense categories will appear here',
+                  message:
+                      'Recorded spending organizes into charts automatically.',
                 )
               : Column(
                   children: [
@@ -972,15 +1072,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         const SizedBox(height: 14),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(20),
-          ),
+          padding: const EdgeInsets.all(18),
+          decoration: _glassDecoration(),
           child: rules.isEmpty
-              ? Text(
-                  'No upcoming recurring bills.',
-                  style: TextStyle(color: mutedColor),
+              ? _emptyInfoCard(
+                  icon: Icons.event_repeat_outlined,
+                  title: 'No upcoming recurring bills',
+                  message: 'Keep track of utilities, subscriptions and rent.',
                 )
               : Column(
                   children: [
@@ -988,7 +1086,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                       if (index > 0) Divider(color: borderColor),
                       Row(
                         children: [
-                          Icon(Icons.event_note_outlined, color: primary),
+                          Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer
+                                  .withValues(alpha: .18),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.calendar_today_outlined,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -1044,19 +1156,30 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         const SizedBox(height: 14),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(20),
-          ),
+          padding: const EdgeInsets.all(14),
+          decoration: _glassDecoration(),
           child: Row(
             children: [
-              Icon(Icons.savings_outlined, color: primary, size: 28),
+              _emptyIcon(Icons.flag_outlined, size: 38, iconSize: 19),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Savings goals are not available yet.',
-                  style: TextStyle(color: mutedColor),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Savings goals are not available yet',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Personal savings milestones are coming soon.',
+                      style: TextStyle(color: mutedColor, fontSize: 11),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1083,8 +1206,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 title,
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),
@@ -1112,52 +1235,36 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
     required List<Transaction> transactions,
     required Map<String, String> categoryNames,
   }) {
-    // Empty state: no white card background
     if (transactions.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        decoration: _glassDecoration(),
         child: Column(
           children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Icon(
-                Icons.receipt_long_outlined,
-                size: 30,
-                color: primary,
-              ),
-            ),
-            const SizedBox(height: 12),
+            _emptyIcon(Icons.receipt_long_outlined),
+            const SizedBox(height: 10),
             Text(
               'No transactions found',
               style: TextStyle(
                 color: textColor,
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             Text(
               'Add a transaction to start tracking your money.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: mutedColor, fontSize: 13),
+              style: TextStyle(color: mutedColor, fontSize: 12),
             ),
           ],
         ),
       );
     }
 
-    // Existing items: preserve the attached white-card design
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 4),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(28),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: _glassDecoration(radius: 26),
       child: Column(
         children: [
           for (var index = 0; index < transactions.length; index++) ...[
@@ -1170,6 +1277,52 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           ],
         ],
       ),
+    );
+  }
+
+  Widget _emptyInfoCard({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    return Row(
+      children: [
+        _emptyIcon(icon, size: 38, iconSize: 19),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                message,
+                style: TextStyle(color: mutedColor, fontSize: 11, height: 1.35),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _emptyIcon(IconData icon, {double size = 40, double iconSize = 20}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer
+            .withValues(alpha: .5),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Icon(icon, color: primary, size: iconSize),
     );
   }
 
@@ -1198,19 +1351,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 11),
         child: Row(
           children: [
             Container(
-              width: 58,
-              height: 58,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: itemColor.withOpacity(0.10),
+                color: itemColor.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(17),
               ),
-              child: Icon(_categoryIcon(category), color: itemColor, size: 28),
+              child: Icon(_categoryIcon(category), color: itemColor, size: 24),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1221,7 +1374,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1231,7 +1384,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                     '${DateFormat('d MMM').format(transaction.date.toLocal())}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: mutedColor, fontSize: 15),
+                    style: TextStyle(color: mutedColor, fontSize: 13),
                   ),
                 ],
               ),
@@ -1244,7 +1397,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                 '${AppUtils.formatCurrency(transaction.amount)}',
                 style: TextStyle(
                   color: itemColor,
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1260,7 +1413,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       children: [
         Expanded(
           child: SizedBox(
-            height: 50,
+            height: 48,
             child: FilledButton.icon(
               onPressed: () {
                 context.pushNamed(
@@ -1271,10 +1424,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
               style: FilledButton.styleFrom(
                 backgroundColor: primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(28),
                 ),
               ),
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add, size: 19),
               label: const Text(
                 'Add expense',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -1295,10 +1448,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
               },
               style: OutlinedButton.styleFrom(
                 backgroundColor: cardColor,
-                foregroundColor: Theme.of(context).colorScheme.tertiary,
+                foregroundColor: primary,
                 side: BorderSide(color: borderColor),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(28),
                 ),
               ),
               icon: const Icon(Icons.trending_up),
@@ -1332,13 +1485,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       default:
         return Icons.receipt_long_outlined;
     }
-  }
-
-  String _timeGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'morning';
-    if (hour < 17) return 'afternoon';
-    return 'evening';
   }
 
   double _total(List<Transaction> items, TransactionType type) {
@@ -1534,8 +1680,22 @@ class _MonthlySavingsCard extends StatelessWidget {
         ? 'Final monthly surplus'
         : 'Estimated available to save';
 
-    return Card(
-      elevation: 0,
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: isDark ? .88 : .76),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: isDark ? .10 : .82),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? .18 : .045),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -1543,7 +1703,21 @@ class _MonthlySavingsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.savings_outlined, color: theme.colorScheme.primary),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: .58,
+                    ),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(
+                    Icons.savings_outlined,
+                    color: theme.colorScheme.primary,
+                    size: 19,
+                  ),
+                ),
                 const SizedBox(width: 9),
                 Expanded(
                   child: Text(
@@ -1555,27 +1729,75 @@ class _MonthlySavingsCard extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: onViewAll,
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   child: const Text('All months'),
                 ),
                 if (summary.income > 0)
-                  Text(
-                    '${summary.savingRate.round()}% of income saved',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                  Flexible(
+                    child: Text(
+                      '${summary.savingRate.round()}% of income saved',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 16),
-            if (summary.income <= 0 && summary.expenses <= 0)
-              Text(
-                'Add income this month to calculate your available surplus.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+            if (summary.income <= 0 && summary.expenses <= 0) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
-              )
-            else ...[
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: isDark ? .36 : .42,
+                  ),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: .24,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Projected surplus',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      AppUtils.formatCurrency(available),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Add income this month to calculate your available surplus. Any unallocated surplus will be added to next month automatically.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
+            ] else ...[
               if (summary.hasDeficit)
                 _MonthlySavingMetric(
                   label: 'Expenses exceeded income',
