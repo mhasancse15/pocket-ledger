@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -530,6 +532,7 @@ class _RecurringExpenseEditorPageState
         const <Category>[];
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           _originalRule == null ? 'Add recurring expense' : 'Edit rule',
@@ -539,13 +542,13 @@ class _RecurringExpenseEditorPageState
           ),
         ),
         centerTitle: true,
-        backgroundColor: theme.scaffoldBackgroundColor,
+        backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: .82),
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       body: Stack(
         children: [
-          Positioned.fill(
-            child: _EditorBackdrop(isDark: theme.brightness == Brightness.dark),
-          ),
+          const Positioned.fill(child: _EditorBackdrop()),
           if (_loading)
             const Center(child: CircularProgressIndicator())
           else if (categoriesAsync.isLoading)
@@ -1034,7 +1037,6 @@ class _EditorSurface extends StatelessWidget {
           alpha: Theme.of(context).brightness == Brightness.dark ? .92 : .96,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .55)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
@@ -1113,27 +1115,43 @@ class _QuickAmountChip extends StatelessWidget {
 }
 
 class _EditorBackdrop extends StatelessWidget {
-  const _EditorBackdrop({required this.isDark});
-
-  final bool isDark;
+  const _EditorBackdrop();
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).scaffoldBackgroundColor;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: base,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [base, const Color(0xFF17182B), base]
-              : [
-                  const Color(0xFFF8F9FF),
-                  const Color(0xFFF4F5FB),
-                  const Color(0xFFF9FAFC),
-                ],
+    final colors = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: ColoredBox(color: Theme.of(context).scaffoldBackgroundColor),
         ),
+        Positioned(
+          top: 30,
+          right: -80,
+          child: _glowOrb(colors.primary.withValues(alpha: .17), 250),
+        ),
+        Positioned(
+          top: 360,
+          left: -100,
+          child: _glowOrb(colors.secondary.withValues(alpha: .12), 280),
+        ),
+        Positioned(
+          top: 760,
+          right: -90,
+          child: _glowOrb(colors.tertiary.withValues(alpha: .10), 260),
+        ),
+      ],
+    );
+  }
+
+  Widget _glowOrb(Color color, double size) {
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 54, sigmaY: 54),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
