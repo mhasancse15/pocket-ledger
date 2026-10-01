@@ -409,16 +409,44 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
         ),
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: FloatingActionButton.extended(
-          backgroundColor: const Color(0xFF4338CA),
-          foregroundColor: Colors.white,
-          elevation: 5,
-          onPressed: () => editCategory(),
-          icon: const Icon(Icons.add_rounded),
-          label: const Text(
-            'New category',
-            style: TextStyle(fontWeight: FontWeight.w700),
+        padding: const EdgeInsets.only(right: 2, bottom: 8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4338CA).withValues(alpha: .3),
+                blurRadius: 22,
+                offset: const Offset(0, 9),
+              ),
+            ],
+          ),
+          child: Material(
+            color: const Color(0xFF4338CA),
+            borderRadius: BorderRadius.circular(32),
+            child: InkWell(
+              onTap: () => editCategory(),
+              borderRadius: BorderRadius.circular(32),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 21, vertical: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                    SizedBox(width: 9),
+                    Text(
+                      'New category',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -1051,108 +1079,187 @@ class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
       child: SafeArea(
         top: false,
         child: Material(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-          clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: mediaQuery.size.height * .82,
+          color: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withValues(alpha: .97),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .12),
+                  blurRadius: 28,
+                  offset: const Offset(0, -6),
+                ),
+              ],
             ),
-            child: SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: mediaQuery.size.height * .72,
+              ),
+              child: Stack(
                 children: [
-                  Center(
-                    child: Container(
-                      width: 38,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withOpacity(.20),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Text(
-                    title,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    widget.existing == null
-                        ? 'Create a category to organize your transactions.'
-                        : 'Update the category information.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: nameController,
-                    autofocus: true,
-                    maxLength: 40,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
-                      labelText: 'Category name',
-                      hintText: 'Example: Groceries',
-                      errorText: error,
-                      prefixIcon: const Icon(Icons.label_outline),
-                      filled: true,
-                      fillColor: theme.colorScheme.surface,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.primary,
-                          width: 1.5,
+                  Positioned(
+                    top: -100,
+                    right: -90,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
+                      child: Container(
+                        width: 220,
+                        height: 220,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: .12,
+                          ),
+                          shape: BoxShape.circle,
                         ),
                       ),
                     ),
-                    onChanged: (_) {
-                      if (error != null) setState(() => error = null);
-                    },
-                    onSubmitted: (_) => save(),
                   ),
-                  const SizedBox(height: 12),
-                  _typeTabs(theme),
-                  const SizedBox(height: 22),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: isClosing ? null : close,
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                  SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 38,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: .2,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: const Text('Cancel'),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: isClosing ? null : save,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: .1,
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                Icons.category_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 22,
+                              ),
                             ),
+                            const SizedBox(width: 11),
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 15),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: .48),
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                          child: Text(
-                            widget.existing == null ? 'Create' : 'Save',
+                          child: TextField(
+                            controller: nameController,
+                            autofocus: true,
+                            maxLength: 40,
+                            textCapitalization: TextCapitalization.words,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Category name',
+                              hintText: 'e.g. Groceries, Rent, Salary',
+                              errorText: error,
+                              prefixIcon: Icon(
+                                Icons.edit_outlined,
+                                color: theme.colorScheme.primary,
+                              ),
+                              counterText: '',
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: .55,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            onChanged: (_) {
+                              if (error != null) setState(() => error = null);
+                            },
+                            onSubmitted: (_) => save(),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        Text(
+                          'CATEGORY TYPE',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: .7,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _typeTabs(theme),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: isClosing ? null : close,
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(46),
+                                  shape: const StadiumBorder(),
+                                ),
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: isClosing ? null : save,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4338CA),
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size.fromHeight(46),
+                                  shape: const StadiumBorder(),
+                                ),
+                                icon: const Icon(Icons.check_rounded),
+                                label: Text(
+                                  widget.existing == null ? 'Create' : 'Save',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1164,16 +1271,27 @@ class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
   }
 
   Widget _typeTabs(ThemeData theme) {
+    final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        color: scheme.surfaceContainerHighest.withValues(alpha: .62),
+        borderRadius: BorderRadius.circular(32),
       ),
       child: Row(
         children: [
-          _typeTab(theme, CategoryType.expense, 'Expense', Icons.north_east),
-          _typeTab(theme, CategoryType.income, 'Income', Icons.south_west),
+          _typeTab(
+            theme,
+            CategoryType.expense,
+            'Expense',
+            Icons.north_east_rounded,
+          ),
+          _typeTab(
+            theme,
+            CategoryType.income,
+            'Income',
+            Icons.south_west_rounded,
+          ),
         ],
       ),
     );
@@ -1189,32 +1307,52 @@ class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
     final color = type == CategoryType.expense
         ? const Color(0xFFE85E6F)
         : const Color(0xFF00A578);
+    final scheme = theme.colorScheme;
 
     return Expanded(
       child: InkWell(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(30),
         onTap: isClosing ? null : () => setState(() => selectedType = type),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 11),
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(.10) : Colors.transparent,
-            borderRadius: BorderRadius.circular(13),
+            color: selected ? scheme.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .045),
+                      blurRadius: 7,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 19,
-                color: selected ? color : theme.colorScheme.onSurfaceVariant,
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? color.withValues(alpha: .1)
+                      : scheme.surface.withValues(alpha: .55),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 16,
+                  color: selected ? color : scheme.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(
-                  color: selected ? color : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ],
