@@ -1,9 +1,13 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/constants.dart';
 import '../../domain/entities/category.dart';
+import '../../domain/entities/transaction.dart';
 import '../providers/category_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../widgets/empty_view.dart';
 import '../widgets/error_view.dart';
 
@@ -385,74 +389,139 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final categoriesAsync = ref.watch(allCategoriesProvider);
+    final transactionsAsync = ref.watch(allTransactionsProvider);
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
+        toolbarHeight: 56,
+        titleSpacing: 16,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: .82),
         title: const Text(
           'Categories',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: purple,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        onPressed: () => editCategory(),
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'New category',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: FloatingActionButton.extended(
+          backgroundColor: const Color(0xFF4338CA),
+          foregroundColor: Colors.white,
+          elevation: 5,
+          onPressed: () => editCategory(),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text(
+            'New category',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
       ),
-      body: categoriesAsync.when(
-        loading: () => Center(child: CircularProgressIndicator(color: purple)),
-        error: (error, _) {
-          return ErrorView(message: 'Unable to load categories\n$error');
-        },
-        data: (items) {
-          final filtered = items.where((category) {
-            return category.type == selectedType &&
-                category.name.toLowerCase().contains(query.toLowerCase());
-          }).toList();
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _CategoriesBackdrop()),
+          categoriesAsync.when(
+            loading: () =>
+                Center(child: CircularProgressIndicator(color: scheme.primary)),
+            error: (error, _) {
+              return ErrorView(message: 'Unable to load categories\n$error');
+            },
+            data: (items) {
+              final filtered = items.where((category) {
+                return category.type == selectedType &&
+                    category.name.toLowerCase().contains(query.toLowerCase());
+              }).toList();
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: [
-              Text(
-                'Organize your money',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                ),
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Organize your money',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: scheme.onSurface,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -.6,
+                          ),
+                        ),
+                      ),
+                      _CategoryTotalBadge(count: items.length),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Create categories that match the way you earn and spend.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _searchField(),
+                  const SizedBox(height: 16),
+                  _pageTypeTabs(
+                    expenseCount: items
+                        .where(
+                          (category) => category.type == CategoryType.expense,
+                        )
+                        .length,
+                    incomeCount: items
+                        .where(
+                          (category) => category.type == CategoryType.income,
+                        )
+                        .length,
+                  ),
+                  const SizedBox(height: 18),
+                  if (filtered.isEmpty)
+                    EmptyView(
+                      icon: query.isEmpty
+                          ? Icons.category_outlined
+                          : Icons.search_off_rounded,
+                      title: query.isEmpty
+                          ? 'No categories yet'
+                          : 'No categories found',
+                      message: query.isEmpty
+                          ? 'Create a category to keep your transactions organized.'
+                          : 'Try a different search term.',
+                    )
+                  else
+                    ...filtered.map(
+                      (category) => _categoryItem(
+                        category,
+                        transactions: transactionsAsync.valueOrNull,
+                        activityLoading: transactionsAsync.isLoading,
+                        activityError: transactionsAsync.hasError,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 4,
+          child: Center(
+            child: Container(
+              width: 128,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurface.withValues(alpha: .18),
+                borderRadius: BorderRadius.circular(20),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Create categories that match the way you earn and spend.',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _searchField(),
-              const SizedBox(height: 12),
-              _pageTypeTabs(),
-              const SizedBox(height: 18),
-              if (filtered.isEmpty)
-                const EmptyView(
-                  icon: Icons.category_outlined,
-                  title: 'No categories found',
-                  message:
-                      'Create a category to keep your transactions organized.',
-                )
-              else
-                ...filtered.map(_categoryItem),
-            ],
-          );
-        },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -472,54 +541,67 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
 
   Widget _searchField() {
     final theme = Theme.of(context);
-
-    return TextField(
-      controller: searchController,
-      onChanged: (value) {
-        setState(() {
-          query = value;
-        });
-      },
-      decoration: InputDecoration(
-        hintText: 'Search by category name',
-        prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
-        suffixIcon: query.isEmpty
-            ? null
-            : IconButton(
-                onPressed: () {
-                  searchController.clear();
-
-                  setState(() {
-                    query = '';
-                  });
-                },
-                icon: const Icon(Icons.clear),
-              ),
-        filled: true,
-        fillColor: theme.colorScheme.surface,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+    final scheme = theme.colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: .88),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .035),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: searchController,
+        onChanged: (value) => setState(() => query = value),
+        style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
+        decoration: InputDecoration(
+          hintText: 'Search by category name',
+          hintStyle: TextStyle(
+            color: scheme.onSurfaceVariant.withValues(alpha: .7),
+          ),
+          prefixIcon: Icon(Icons.search_rounded, color: scheme.primary),
+          suffixIcon: query.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  onPressed: () {
+                    searchController.clear();
+                    setState(() => query = '');
+                  },
+                  icon: const Icon(Icons.close_rounded),
+                ),
+          filled: true,
+          fillColor: Colors.transparent,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(color: scheme.primary.withValues(alpha: .5)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
     );
   }
 
-  Widget _pageTypeTabs() {
+  Widget _pageTypeTabs({required int expenseCount, required int incomeCount}) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: scheme.surfaceContainerHighest.withValues(alpha: .55),
+        borderRadius: BorderRadius.circular(40),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .25)),
       ),
       child: Row(
         children: [
@@ -527,26 +609,17 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
             child: _typeTabButton(
               type: CategoryType.expense,
               label: 'Expenses',
-              icon: Icons.north_east,
-              selectedOverride: selectedType,
-              onChanged: (value) {
-                setState(() {
-                  selectedType = value;
-                });
-              },
+              count: expenseCount,
+              icon: Icons.north_east_rounded,
             ),
           ),
+          const SizedBox(width: 4),
           Expanded(
             child: _typeTabButton(
               type: CategoryType.income,
               label: 'Income',
-              icon: Icons.south_west,
-              selectedOverride: selectedType,
-              onChanged: (value) {
-                setState(() {
-                  selectedType = value;
-                });
-              },
+              count: incomeCount,
+              icon: Icons.south_west_rounded,
             ),
           ),
         ],
@@ -572,6 +645,7 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                 child: _typeTabButton(
                   type: CategoryType.expense,
                   label: 'Expense',
+                  count: null,
                   icon: Icons.north_east,
                   selectedOverride: selected,
                   onChanged: (value) {
@@ -583,6 +657,7 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
                 child: _typeTabButton(
                   type: CategoryType.income,
                   label: 'Income',
+                  count: null,
                   icon: Icons.south_west,
                   selectedOverride: selected,
                   onChanged: (value) {
@@ -601,136 +676,316 @@ class _CategoriesPageState extends ConsumerState<CategoriesPage> {
     required CategoryType type,
     required String label,
     required IconData icon,
-    required ValueChanged<CategoryType> onChanged,
+    required int? count,
+    ValueChanged<CategoryType>? onChanged,
     CategoryType? selectedOverride,
   }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final currentType = selectedOverride ?? selectedType;
     final isSelected = currentType == type;
 
-    final color = type == CategoryType.expense
+    final typeColor = type == CategoryType.expense
         ? const Color(0xFFE85E6F)
         : const Color(0xFF00A578);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(13),
+      borderRadius: BorderRadius.circular(32),
       onTap: () {
-        onChanged(type);
+        if (onChanged != null) {
+          onChanged(type);
+        } else {
+          setState(() => selectedType = type);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(.10) : Colors.transparent,
-          borderRadius: BorderRadius.circular(13),
+          color: isSelected ? scheme.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .045),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 19,
-              color: isSelected
-                  ? color
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: TextStyle(
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
                 color: isSelected
-                    ? color
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    ? typeColor.withValues(alpha: .10)
+                    : scheme.surfaceContainerHighest.withValues(alpha: .75),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 16,
+                color: isSelected ? typeColor : scheme.onSurfaceVariant,
               ),
             ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: isSelected
+                      ? scheme.onSurface
+                      : scheme.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+            if (count != null) ...[
+              const SizedBox(width: 5),
+              Container(
+                constraints: const BoxConstraints(minWidth: 25, minHeight: 25),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? typeColor.withValues(alpha: .12)
+                      : scheme.surfaceContainerHighest.withValues(alpha: .75),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$count',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isSelected ? typeColor : scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _categoryItem(Category category) {
-    final isIncome = category.type == CategoryType.income;
-
-    final color = isIncome ? const Color(0xFF00A578) : const Color(0xFFE85E6F);
-
+  Widget _categoryItem(
+    Category category, {
+    required List<Transaction>? transactions,
+    required bool activityLoading,
+    required bool activityError,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final color = _categoryColor(category);
+    final categoryTransactions =
+        transactions
+            ?.where((transaction) => transaction.categoryId == category.id)
+            .toList() ??
+        const [];
+    final amount = categoryTransactions.fold<double>(
+      0,
+      (total, transaction) => total + transaction.amount,
+    );
+    final subtitle = category.isArchived
+        ? 'Archived category'
+        : activityLoading
+        ? 'Loading activity...'
+        : activityError
+        ? 'Activity unavailable'
+        : '${categoryTransactions.length} ${categoryTransactions.length == 1 ? 'transaction' : 'transactions'} • ${AppUtils.formatCurrency(amount)}';
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 11),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(17),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withOpacity(.10),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              isIncome ? Icons.trending_up : Icons.category_outlined,
-              color: color,
-            ),
+        color: scheme.surface.withValues(alpha: .88),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .035),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  category.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  category.isArchived
-                      ? 'Archived category'
-                      : isIncome
-                      ? 'Income category'
-                      : 'Expense category',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (category.isArchived)
-            const Chip(
-              label: Text('Archived'),
-              visualDensity: VisualDensity.compact,
-            )
-          else
-            PopupMenuButton<String>(
-              icon: Icon(
-                Icons.more_horiz,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              onSelected: (value) {
-                if (value == 'edit') {
-                  editCategory(category);
-                }
-
-                if (value == 'archive') {
-                  archiveCategory(category);
-                }
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit')),
-                PopupMenuItem(value: 'archive', child: Text('Archive')),
-              ],
-            ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .09),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              child: Icon(_categoryIcon(category), color: color, size: 24),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    category.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant.withValues(alpha: .82),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (category.isArchived)
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Icon(
+                  Icons.archive_outlined,
+                  size: 20,
+                  color: scheme.onSurfaceVariant,
+                ),
+              )
+            else
+              PopupMenuButton<String>(
+                tooltip: 'Category options',
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  color: scheme.onSurfaceVariant,
+                ),
+                onSelected: (value) {
+                  if (value == 'edit') editCategory(category);
+                  if (value == 'archive') archiveCategory(category);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(value: 'archive', child: Text('Archive')),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _categoryColor(Category category) {
+    final storedColor = category.color;
+    if (storedColor != null) {
+      final hex = storedColor.replaceFirst('#', '');
+      final parsed = int.tryParse(hex, radix: 16);
+      if (parsed != null) {
+        return Color(hex.length == 6 ? 0xFF000000 | parsed : parsed);
+      }
+    }
+    return category.type == CategoryType.income
+        ? const Color(0xFF059669)
+        : const Color(0xFF6366F1);
+  }
+
+  IconData _categoryIcon(Category category) {
+    const icons = <String, IconData>{
+      'restaurant': Icons.restaurant_rounded,
+      'directions_car': Icons.directions_car_rounded,
+      'shopping_bag': Icons.shopping_bag_rounded,
+      'receipt': Icons.receipt_long_rounded,
+      'local_hospital': Icons.local_hospital_rounded,
+      'movie': Icons.movie_rounded,
+      'school': Icons.school_rounded,
+      'phone': Icons.phone_iphone_rounded,
+      'home': Icons.home_rounded,
+      'person': Icons.person_rounded,
+      'local_gas_station': Icons.local_gas_station_rounded,
+      'medication': Icons.medication_rounded,
+      'shopping_cart': Icons.shopping_cart_rounded,
+      'local_grocery_store': Icons.local_grocery_store_rounded,
+      'local_drink': Icons.local_drink_rounded,
+      'category': Icons.category_rounded,
+      'attach_money': Icons.attach_money_rounded,
+      'work_outline': Icons.work_outline_rounded,
+      'card_giftcard': Icons.card_giftcard_rounded,
+      'trending_up': Icons.trending_up_rounded,
+      'savings': Icons.savings_rounded,
+    };
+    return icons[category.icon] ??
+        (category.type == CategoryType.income
+            ? Icons.account_balance_wallet_outlined
+            : Icons.category_outlined);
+  }
+}
+
+class _CategoryTotalBadge extends StatelessWidget {
+  const _CategoryTotalBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        '$count Total',
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: primary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoriesBackdrop extends StatelessWidget {
+  const _CategoriesBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: ColoredBox(color: Theme.of(context).scaffoldBackgroundColor),
+        ),
+        Positioned(
+          top: -70,
+          left: -90,
+          child: _glowOrb(colors.primary.withValues(alpha: .14), 270),
+        ),
+        Positioned(
+          top: 250,
+          right: -110,
+          child: _glowOrb(colors.secondary.withValues(alpha: .10), 290),
+        ),
+      ],
+    );
+  }
+
+  Widget _glowOrb(Color color, double size) {
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 54, sigmaY: 54),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
