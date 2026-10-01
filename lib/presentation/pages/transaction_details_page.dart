@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,15 +22,44 @@ class TransactionDetailsPage extends ConsumerWidget {
     final transactionsAsync = ref.watch(allTransactionsProvider);
     final categories =
         ref.watch(allCategoriesProvider).valueOrNull ?? <Category>[];
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final loadedTransaction = transactionsAsync.maybeWhen(
+      data: _findTransaction,
+      orElse: () => null,
+    );
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
+        toolbarHeight: 60,
+        titleSpacing: 0,
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: .82),
         title: Text(
           'Transaction details',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: scheme.onSurface,
             fontWeight: FontWeight.w800,
+          ),
+        ),
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: IconButton(
+            tooltip: 'Go back',
+            onPressed: () => context.pop(),
+            style: IconButton.styleFrom(
+              backgroundColor: scheme.surface.withValues(alpha: .88),
+              foregroundColor: scheme.onSurface,
+              fixedSize: const Size(44, 44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            icon: const Icon(Icons.arrow_back_rounded),
           ),
         ),
         actions: [
@@ -43,6 +74,14 @@ class TransactionDetailsPage extends ConsumerWidget {
               return IconButton(
                 tooltip: 'Edit transaction',
                 icon: const Icon(Icons.edit_outlined),
+                style: IconButton.styleFrom(
+                  backgroundColor: scheme.surface.withValues(alpha: .88),
+                  foregroundColor: scheme.onSurface,
+                  fixedSize: const Size(44, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 onPressed: () {
                   context.pushNamed(
                     AppRoutes.editTransactionName,
@@ -78,15 +117,19 @@ class TransactionDetailsPage extends ConsumerWidget {
           return _TransactionDetailsBody(
             transaction: transaction,
             categoryName: categoryName,
-            onEdit: () {
-              context.pushNamed(
-                AppRoutes.editTransactionName,
-                pathParameters: {'id': transaction.id},
-              );
-            },
           );
         },
       ),
+      bottomNavigationBar: loadedTransaction == null
+          ? null
+          : _TransactionDetailsFooter(
+              onEdit: () {
+                context.pushNamed(
+                  AppRoutes.editTransactionName,
+                  pathParameters: {'id': loadedTransaction.id},
+                );
+              },
+            ),
     );
   }
 
@@ -115,64 +158,49 @@ class _TransactionDetailsBody extends StatelessWidget {
   const _TransactionDetailsBody({
     required this.transaction,
     required this.categoryName,
-    required this.onEdit,
   });
 
   final Transaction transaction;
   final String categoryName;
-  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == TransactionType.income;
     final accentColor = isIncome
-        ? const Color(0xFF079B73)
-        : const Color(0xFFE35D68);
+        ? const Color(0xFF059669)
+        : const Color(0xFFE11D48);
+    final theme = Theme.of(context);
 
-    final date = transaction.date.toLocal();
-    final note = transaction.note?.trim();
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+    return Stack(
       children: [
-        _buildSummaryCard(
-          context,
-          isIncome: isIncome,
-          accentColor: accentColor,
-        ),
-        const SizedBox(height: 18),
-        Text(
-          'Transaction information',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontSize: 19,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildInformationCard(
-          context,
-          accentColor: accentColor,
-          date: date,
-          note: note,
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          height: 54,
-          child: FilledButton.icon(
-            onPressed: onEdit,
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        const Positioned.fill(child: _TransactionDetailsBackdrop()),
+        SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+            children: [
+              _buildSummaryCard(
+                context,
+                isIncome: isIncome,
+                accentColor: accentColor,
               ),
-            ),
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text(
-              'Edit transaction',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
+              const SizedBox(height: 23),
+              Text(
+                'Transaction information',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -.35,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildInformationCard(
+                context,
+                accentColor: accentColor,
+                date: transaction.date.toLocal(),
+                note: transaction.note?.trim(),
+              ),
+            ],
           ),
         ),
       ],
@@ -186,16 +214,26 @@ class _TransactionDetailsBody extends StatelessWidget {
   }) {
     final amount =
         '${isIncome ? '+' : '-'}${AppUtils.formatCurrency(transaction.amount)}';
+    final gradientColors = isIncome
+        ? [const Color(0xFF10B981), const Color(0xFF047857)]
+        : [const Color(0xFFFF6B7A), const Color(0xFFE11D48)];
 
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [accentColor, accentColor.withOpacity(.72)],
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: .25),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,13 +244,16 @@ class _TransactionDetailsBody extends StatelessWidget {
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.18),
-                  borderRadius: BorderRadius.circular(18),
+                  color: Colors.white.withValues(alpha: .18),
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .24),
+                  ),
                 ),
                 child: Icon(
                   isIncome ? Icons.south_west : Icons.north_east,
                   color: Theme.of(context).colorScheme.surface,
-                  size: 28,
+                  size: 25,
                 ),
               ),
               const SizedBox(width: 14),
@@ -222,10 +263,11 @@ class _TransactionDetailsBody extends StatelessWidget {
                   children: [
                     Text(
                       isIncome ? 'Income transaction' : 'Expense transaction',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .8),
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
+                        letterSpacing: .5,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -235,7 +277,7 @@ class _TransactionDetailsBody extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -247,7 +289,12 @@ class _TransactionDetailsBody extends StatelessWidget {
           const SizedBox(height: 24),
           const Text(
             'Amount',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: .8,
+            ),
           ),
           const SizedBox(height: 4),
           FittedBox(
@@ -257,7 +304,7 @@ class _TransactionDetailsBody extends StatelessWidget {
               amount,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 36,
+                fontSize: 38,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -274,10 +321,17 @@ class _TransactionDetailsBody extends StatelessWidget {
     required String? note,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(22),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .035),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -293,6 +347,7 @@ class _TransactionDetailsBody extends StatelessWidget {
             label: 'Date',
             value: DateFormat('d MMM yyyy').format(date),
             color: Theme.of(context).colorScheme.primary,
+            tint: const Color(0xFF4F46E5),
           ),
           const Divider(height: 1),
           _DetailRow(
@@ -300,13 +355,15 @@ class _TransactionDetailsBody extends StatelessWidget {
             label: 'Time',
             value: DateFormat('h:mm a').format(date),
             color: Theme.of(context).colorScheme.primary,
+            tint: const Color(0xFF8B5CF6),
           ),
           const Divider(height: 1),
           _DetailRow(
             icon: Icons.account_balance_wallet_outlined,
             label: 'Payment method',
             value: _formatLabel(transaction.paymentMethod.name),
-            color: Theme.of(context).colorScheme.primary,
+            color: const Color(0xFF0284C7),
+            tint: const Color(0xFF0284C7),
           ),
           if (note != null && note.isNotEmpty) ...[
             const Divider(height: 1),
@@ -314,7 +371,8 @@ class _TransactionDetailsBody extends StatelessWidget {
               icon: Icons.notes_outlined,
               label: 'Note',
               value: note,
-              color: Theme.of(context).colorScheme.primary,
+              color: const Color(0xFF9333EA),
+              tint: const Color(0xFF9333EA),
             ),
           ],
         ],
@@ -341,28 +399,31 @@ class _DetailRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    this.tint,
   });
 
   final IconData icon;
   final String label;
   final String value;
   final Color color;
+  final Color? tint;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(.10),
-              borderRadius: BorderRadius.circular(13),
+              color: (tint ?? color).withValues(alpha: .09),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: (tint ?? color).withValues(alpha: .1)),
             ),
-            child: Icon(icon, size: 20, color: color),
+            child: Icon(icon, size: 22, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -373,7 +434,7 @@ class _DetailRow extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -383,7 +444,7 @@ class _DetailRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -391,6 +452,63 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TransactionDetailsFooter extends StatelessWidget {
+  const _TransactionDetailsFooter({required this.onEdit});
+
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 11, 20, 8),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor.withValues(alpha: .94),
+        border: Border(
+          top: BorderSide(color: scheme.outlineVariant.withValues(alpha: .25)),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton.icon(
+                onPressed: onEdit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text(
+                  'Edit transaction',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: 128,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurface.withValues(alpha: .18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -405,6 +523,44 @@ class _NotFoundView extends StatelessWidget {
       child: Text(
         'Transaction not found',
         style: TextStyle(fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _TransactionDetailsBackdrop extends StatelessWidget {
+  const _TransactionDetailsBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: ColoredBox(color: Theme.of(context).scaffoldBackgroundColor),
+        ),
+        Positioned(
+          top: -60,
+          left: -90,
+          child: _orb(const Color(0xFFFF8A9B).withValues(alpha: .15), 260),
+        ),
+        Positioned(
+          top: 180,
+          right: -120,
+          child: _orb(colors.primary.withValues(alpha: .13), 290),
+        ),
+      ],
+    );
+  }
+
+  Widget _orb(Color color, double size) {
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 55, sigmaY: 55),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
